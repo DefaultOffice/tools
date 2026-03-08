@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrain Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#1a1a1e;--surface:#232328;--surface2:#2a2a30;--border:#3a3a42;--text:#e8e8ec;--text-dim:#8a8a96;--accent:#e07a2f;--accent-dim:#e07a2f44;--font:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column;user-select:none}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);height:44px;flex-shrink:0}
+  .back-link{font-size:11px;color:var(--text-dim);text-decoration:none;margin-right:12px;opacity:0.7;transition:opacity .15s}
+  .back-link:hover{opacity:1;color:var(--accent)}
+  .header-title{font-size:13px;font-weight:600;letter-spacing:.5px;color:var(--text-dim);text-transform:uppercase}
+  .header-title span{color:var(--accent)}
+  .header-info{font-family:var(--mono);font-size:11px;color:var(--text-dim);display:flex;gap:16px}
+  .header-info .val{color:var(--text)}
+  .main{display:flex;flex:1;overflow:hidden}
+  .panel{width:260px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .panel-section{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px}
+  .panel-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px}
+  .tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .tool-btn{aspect-ratio:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s;position:relative}
+  .tool-btn:hover{border-color:var(--accent);color:var(--text)}
+  .tool-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+  .tool-btn svg{width:18px;height:18px}
+  .control-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .control-label{font-size:11px;color:var(--text-dim)}
+  .control-value{font-family:var(--mono);font-size:11px;color:var(--text);min-width:40px;text-align:right}
+  input[type="range"]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--bg);border-radius:2px;outline:none;margin:4px 0 8px 0}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+  input[type="number"]{width:60px;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:11px;padding:3px 6px;text-align:right}
+  input[type="number"]:focus{outline:1px solid var(--accent)}
+  select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--font);font-size:11px;padding:5px 8px;cursor:pointer;margin-bottom:6px}
+  select:focus{outline:1px solid var(--accent)}
+  .height-display{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .height-swatch{width:28px;height:28px;border-radius:4px;border:2px solid var(--border);flex-shrink:0}
+  .height-text{font-family:var(--mono);font-size:13px;font-weight:500}
+  .height-sub{font-size:10px;color:var(--text-dim)}
+  .btn{width:100%;padding:7px 12px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:4px}
+  .btn:hover{border-color:var(--accent)}
+  .btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-accent:hover{opacity:.9;border-color:var(--accent)}
+  .btn-row{display:flex;gap:4px}.btn-row .btn{flex:1}
+  .canvas-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:#111114;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:50px 50px}
+  .canvas-container{position:relative;cursor:crosshair}
+  .canvas-container canvas{position:absolute;top:0;left:0;image-rendering:auto}
+  #heightCanvas{z-index:1}#overlayCanvas{z-index:2;opacity:.3;pointer-events:none}#roadCanvas{z-index:3;pointer-events:none}#zoneCanvas{z-index:4;opacity:.35;pointer-events:none}#uiCanvas{z-index:10}
+  .panel-right{width:240px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .zone-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+  .zone-btn{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:10px;color:var(--text-dim);transition:all .15s}
+  .zone-btn:hover{border-color:var(--accent)}.zone-btn.active{border-color:var(--accent);color:var(--text)}
+  .zone-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+  .check-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;color:var(--text-dim);cursor:pointer}
+  .check-row input[type="checkbox"]{accent-color:var(--accent)}
+  .status-bar{display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background:var(--surface);border-top:1px solid var(--border);height:28px;flex-shrink:0}
+  .status-bar span{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center}
+  .modal-overlay.active{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;min-width:360px;max-width:440px}
+  .modal h3{font-size:14px;margin-bottom:16px;font-weight:600}
+  .inline-inputs{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .inline-inputs label{font-size:10px;color:var(--text-dim)}
+  .inline-inputs input[type="number"]{width:52px}
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  kbd{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:0 4px;font-family:var(--mono);font-size:9px;color:var(--text-dim)}
+  .shortcut-row{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text-dim);margin-bottom:3px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="display:flex;align-items:center"><a href="/" class="back-link">← Back</a><div class="header-title">Terrain <span>Studio</span></div></div>
+  <div class="header-info">
+    <span>Area <span class="val" id="hdrArea">500 × 500m</span></span>
+    <span>Canvas <span class="val">2048²</span></span>
+    <span>Cursor <span class="val" id="hdrCursor">—</span></span>
+    <span>Height <span class="val" id="hdrHeight">—</span></span>
+  </div>
+</div>
+<div class="main">
+<div class="panel">
+  <!-- Area Size -->
+  <div class="panel-section">
+    <div class="panel-section-title">Area Size</div>
+    <div class="inline-inputs">
+      <label>W</label><input type="number" id="areaW" value="500" min="10" max="500" step="10">
+      <label>×</label>
+      <label>H</label><input type="number" id="areaH" value="500" min="10" max="500" step="10">
+      <label>m</label>
+    </div>
+  </div>
+  <!-- Tools -->
+  <div class="panel-section">
+    <div class="panel-section-title">Tools</div>
+    <div class="tool-grid" id="toolGrid">
+      <button class="tool-btn active" data-tool="brush" title="Brush (B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg></button>
+      <button class="tool-btn" data-tool="noise" title="Noise (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4 12c1-2 2-1 3-3s1-3 3-2 2 3 4 2 2-3 4-2 2 2 3 4"/></svg></button>
+      <button class="tool-btn" data-tool="flatten" title="Flatten (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/></svg></button>
+      <button class="tool-btn" data-tool="smooth" title="Smooth (S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16c4-8 12-8 16 0"/></svg></button>
+      <button class="tool-btn" data-tool="rect" title="Rectangle (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
+      <button class="tool-btn" data-tool="circle" title="Circle (C)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></button>
+      <button class="tool-btn" data-tool="polygon" title="Polygon (P)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,3 21,10 18,20 6,20 3,10"/></svg></button>
+      <button class="tool-btn" data-tool="eraser" title="Eraser (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l9-9 8 8-4 5z"/><line x1="14" y1="8" x2="17" y2="11"/></svg></button>
+      <button class="tool-btn" data-tool="road" title="Road (D)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v20M16 2v20"/><path d="M12 5v3M12 11v3M12 17v3" stroke-dasharray="3 3"/></svg></button>
+      <button class="tool-btn" data-tool="zone" title="Zone (Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" fill="currentColor" opacity=".3"/><rect x="14" y="3" width="7" height="7" fill="currentColor" opacity=".5"/><rect x="3" y="14" width="7" height="7" fill="currentColor" opacity=".7"/><rect x="14" y="14" width="7" height="7" fill="currentColor" opacity=".9"/></svg></button>
+      <button class="tool-btn" data-tool="eyedropper" title="Eyedropper (I)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4l-1-1c-1-1-3-1-4 0l-2 2 5 5 2-2c1-1 1-3 0-4z"/><path d="M13 5L5 13l-2 6 6-2 8-8"/></svg></button>
+      <button class="tool-btn" data-tool="pan" title="Pan (Space)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l-3 5h6l-3-5zM12 22l-3-5h6l-3 5zM2 12l5-3v6l-5-3zM22 12l-5-3v6l5-3z"/></svg></button>
+    </div>
+  </div>
+  <!-- Height -->
+  <div class="panel-section" id="heightSection">
+    <div class="panel-section-title">Height</div>
+    <div class="height-display">
+      <div class="height-swatch" id="heightSwatch"></div>
+      <div><div class="height-text" id="heightValue">0.0m</div><div class="height-sub" id="heightRange">Range: ±10.0m</div></div>
+    </div>
+    <div class="control-row"><span class="control-label">Draw Height</span><span class="control-value" id="drawHeightVal">0.0m</span></div>
+    <input type="range" id="drawHeight" min="-100" max="100" value="0" step="1">
+    <div class="control-row"><span class="control-label">Max Height</span><input type="number" id="maxHeight" value="10" min="1" max="500" step="1"><span class="control-label">m</span></div>
+  </div>
+  <!-- Brush -->
+  <div class="panel-section" id="brushSection">
+    <div class="panel-section-title">Brush</div>
+    <div class="control-row"><span class="control-label">Radius</span><span class="control-value" id="brushRadiusVal">20px</span></div>
+    <input type="range" id="brushRadius" min="1" max="200" value="20">
+    <div class="control-row"><span class="control-label">Hardness</span><span class="control-value" id="brushHardnessVal">70%</span></div>
+    <input type="range" id="brushHardness" min="0" max="100" value="70">
+    <div class="control-row"><span class="control-label">Opacity</span><span class="control-value" id="brushOpacityVal">100%</span></div>
+    <input type="range" id="brushOpacity" min="1" max="100" value="100">
+  </div>
+  <!-- Noise -->
+  <div class="panel-section" id="noiseSection" style="display:none">
+    <div class="panel-section-title">Noise</div>
+    <div class="control-row"><span class="control-label">Type</span></div>
+    <select id="noiseType">
+      <option value="rough">Rough / Gravel</option>
+      <option value="bumpy" selected>Bumpy Ground</option>
+      <option value="gentle">Gentle Undulation</option>
+      <option value="cloud">Cloud / Organic</option>
+    </select>
+    <div class="control-row"><span class="control-label">Scale</span><span class="control-value" id="noiseScaleVal">50</span></div>
+    <input type="range" id="noiseScale" min="5" max="500" value="50">
+    <div class="control-row"><span class="control-label">Intensity</span><span class="control-value" id="noiseIntensityVal">50%</span></div>
+    <input type="range" id="noiseIntensity" min="1" max="100" value="50">
+    <div class="control-row"><span class="control-label">Octaves</span><span class="control-value" id="noiseOctavesVal">3</span></div>
+    <input type="range" id="noiseOctaves" min="1" max="8" value="3">
+    <label class="check-row"><input type="checkbox" id="noiseAdditive" checked> Additive</label>
+    <button class="btn" id="noiseSeedBtn">Randomise Seed</button>
+  </div>
+  <!-- Road -->
+  <div class="panel-section" id="roadSection" style="display:none">
+    <div class="panel-section-title">Road</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;line-height:1.4">
+      Click to place points. Drag handles to adjust curves. <kbd>Enter</kbd> or Finish to commit. <kbd>Esc</kbd> to cancel. <kbd>Backspace</kbd> to remove last point.
+    </div>
+    <div class="control-row"><span class="control-label">Width</span><span class="control-value" id="roadWidthVal">7.0m</span></div>
+    <input type="range" id="roadWidth" min="2" max="30" value="7" step="0.5">
+    <div class="control-row"><span class="control-label">Lanes</span></div>
+    <select id="roadLanes">
+      <option value="1">1 lane</option>
+      <option value="2" selected>2 lanes</option>
+      <option value="3">3 lanes</option>
+      <option value="4">4 lanes</option>
+      <option value="6">6 lanes</option>
+    </select>
+    <div class="control-row"><span class="control-label">Centre Line</span></div>
+    <select id="roadCentre">
+      <option value="double-yellow">Double Yellow</option>
+      <option value="single-yellow">Single Yellow</option>
+      <option value="dashed-yellow">Dashed Yellow</option>
+      <option value="none">None</option>
+    </select>
+    <div class="control-row"><span class="control-label">Edge Lines</span></div>
+    <select id="roadEdge">
+      <option value="solid-white">Solid White</option>
+      <option value="none">None</option>
+    </select>
+    <div class="control-row"><span class="control-label">Lane Dividers</span></div>
+    <select id="roadDividers">
+      <option value="dashed-white">Dashed White</option>
+      <option value="none">None</option>
+    </select>
+    <label class="check-row"><input type="checkbox" id="roadRaise"> Raise road surface</label>
+    <div class="control-row"><span class="control-label">Road Height</span><span class="control-value" id="roadHeightVal">0.1m</span></div>
+    <input type="range" id="roadHeightSlider" min="0" max="20" value="1" step="1">
+    <div class="btn-row">
+      <button class="btn btn-accent" id="roadFinishBtn">Finish Road</button>
+      <button class="btn" id="roadCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-area" id="canvasArea">
+  <div class="canvas-container" id="canvasContainer">
+    <canvas id="heightCanvas" width="2048" height="2048"></canvas>
+    <canvas id="overlayCanvas" width="2048" height="2048"></canvas>
+    <canvas id="roadCanvas" width="2048" height="2048"></canvas>
+    <canvas id="zoneCanvas" width="2048" height="2048"></canvas>
+    <canvas id="uiCanvas" width="2048" height="2048"></canvas>
+  </div>
+</div>
+
+<!-- Right Panel -->
+<div class="panel-right">
+  <div class="panel-section">
+    <div class="panel-section-title">Overlay Image</div>
+    <button class="btn" id="loadOverlayBtn">Load Image</button>
+    <input type="file" id="overlayInput" accept="image/*" style="display:none">
+    <div class="control-row" style="margin-top:6px"><span class="control-label">Opacity</span><span class="control-value" id="overlayOpacityVal">30%</span></div>
+    <input type="range" id="overlayOpacity" min="0" max="100" value="30">
+  </div>
+  <div class="panel-section" id="zoneSection">
+    <div class="panel-section-title">Zones</div>
+    <div class="zone-grid" id="zoneGrid">
+      <button class="zone-btn active" data-zone="none"><div class="zone-swatch" style="background:#666"></div>None</button>
+      <button class="zone-btn" data-zone="road"><div class="zone-swatch" style="background:#333"></div>Road</button>
+      <button class="zone-btn" data-zone="pavement"><div class="zone-swatch" style="background:#999"></div>Path</button>
+      <button class="zone-btn" data-zone="grass"><div class="zone-swatch" style="background:#4a8c3f"></div>Grass</button>
+      <button class="zone-btn" data-zone="dirt"><div class="zone-swatch" style="background:#8b6914"></div>Dirt</button>
+      <button class="zone-btn" data-zone="concrete"><div class="zone-swatch" style="background:#aaa"></div>Concrete</button>
+      <button class="zone-btn" data-zone="water"><div class="zone-swatch" style="background:#2a6496"></div>Water</button>
+      <button class="zone-btn" data-zone="custom"><div class="zone-swatch" style="background:#c44"></div>Custom</button>
+    </div>
+  </div>
+  <div class="panel-section">
+    <div class="panel-section-title">Export</div>
+    <div class="control-row"><span class="control-label">Mesh Quality</span></div>
+    <select id="exportQuality">
+      <option value="512">Draft (512²)</option>
+      <option value="1024" selected>Standard (1024²)</option>
+      <option value="2048">High (2048²)</option>
+      <option value="4096">Ultra (4096²)</option>
+    </select>
+    <div class="control-row"><span class="control-label">Smoothing</span></div>
+    <select id="exportSmoothing">
+      <option value="nearest">None</option>
+      <option value="bilinear">Bilinear</option>
+      <option value="bicubic" selected>Bicubic</option>
+    </select>
+    <div class="control-row"><span class="control-label">Gaussian Blur</span><span class="control-value" id="blurVal">0</span></div>
+    <input type="range" id="exportBlur" min="0" max="10" value="0" step="1">
+    <button class="btn btn-accent" id="exportObjBtn">Export OBJ + MTL</button>
+    <button class="btn" id="exportHeightmapBtn">Export Heightmap PNG</button>
+    <button class="btn" id="exportRoadBtn">Export Road Markings PNG</button>
+    <button class="btn" id="exportZoneBtn">Export Zone Map PNG</button>
+  </div>
+  <div class="panel-section">
+    <div class="panel-section-title">Actions</div>
+    <button class="btn" id="undoBtn">Undo <kbd>Ctrl+Z</kbd></button>
+    <button class="btn" id="clearBtn">Clear All</button>
+    <button class="btn" id="resetViewBtn">Reset View <kbd>Home</kbd></button>
+  </div>
+  <div class="panel-section">
+    <div class="panel-section-title">Shortcuts</div>
+    <div class="shortcut-row"><span>Pan</span><kbd>Space+Drag</kbd></div>
+    <div class="shortcut-row"><span>Zoom</span><kbd>Scroll</kbd></div>
+    <div class="shortcut-row"><span>Brush Size</span><kbd>[ ]</kbd></div>
+    <div class="shortcut-row"><span>Eyedropper</span><kbd>Alt+Click</kbd></div>
+    <div class="shortcut-row"><span>Undo</span><kbd>Ctrl+Z</kbd></div>
+    <div class="shortcut-row"><span>Finish road</span><kbd>Enter</kbd></div>
+    <div class="shortcut-row"><span>Remove last pt</span><kbd>Backspace</kbd></div>
+  </div>
+</div>
+</div>
+<div class="status-bar">
+  <span id="statusLeft">Ready</span>
+  <span id="statusRight">Zoom: 100%</span>
+</div>
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h3 id="exportTitle">Exporting...</h3>
+    <p id="exportStatus" style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Generating mesh...</p>
+    <div style="height:4px;background:var(--bg);border-radius:2px;overflow:hidden">
+      <div id="exportProgress" style="height:100%;background:var(--accent);width:0%;transition:width .2s"></div>
+    </div>
+    <button class="btn" id="exportCancelBtn" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// TERRAIN STUDIO v2
+// ============================================================
+const CS = 2048; // canvas size
+let areaW = 500, areaH = 500;
+
+const heightCanvas = document.getElementById('heightCanvas');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const roadCanvas = document.getElementById('roadCanvas');
+const zoneCanvas = document.getElementById('zoneCanvas');
+const uiCanvas = document.getElementById('uiCanvas');
+const hCtx = heightCanvas.getContext('2d', {willReadFrequently:true});
+const oCtx = overlayCanvas.getContext('2d');
+const rCtx = roadCanvas.getContext('2d');
+const zCtx = zoneCanvas.getContext('2d', {willReadFrequently:true});
+const uCtx = uiCanvas.getContext('2d');
+
+hCtx.fillStyle='#808080';hCtx.fillRect(0,0,CS,CS);
+
+// Stroke buffer canvas for proper hardness
+const strokeCanvas = document.createElement('canvas');
+strokeCanvas.width = CS; strokeCanvas.height = CS;
+const sCtx = strokeCanvas.getContext('2d', {willReadFrequently:true});
+
+const S = {
+  tool:'brush', maxHeight:10, drawHeight:0,
+  brushRadius:20, brushHardness:70, brushOpacity:100,
+  noiseType:'bumpy', noiseScale:50, noiseIntensity:50, noiseOctaves:3, noiseAdditive:true, noiseSeed:Math.random()*1000,
+  zoom:0.35, panX:0, panY:0,
+  isPanning:false, isDrawing:false, spaceDown:false,
+  lastX:0, lastY:0,
+  zone:'none',
+  roadWidth:7, roadLanes:2, roadCentre:'double-yellow', roadEdge:'solid-white', roadDividers:'dashed-white',
+  roadRaise:false, roadHeight:0.1,
+  roads:[], currentRoadPoints:[], dragHandle:null,
+  overlayImage:null, overlayOpacity:0.3,
+  undoStack:[], maxUndo:15,
+  polygonPoints:[], shapeStart:null,
+  strokeSnapshot:null, // saved heightmap at stroke start
+};
+
+const ZONE_SOLID = {none:null, road:'#333333', pavement:'#999999', grass:'#4a8c3f', dirt:'#8b6914', concrete:'#aaaaaa', water:'#2a6496', custom:'#cc4444'};
+
+// ---- Area size ----
+document.getElementById('areaW').addEventListener('change', function(){areaW=Math.max(10,Math.min(500,+this.value));this.value=areaW;document.getElementById('hdrArea').textContent=`${areaW} × ${areaH}m`;});
+document.getElementById('areaH').addEventListener('change', function(){areaH=Math.max(10,Math.min(500,+this.value));this.value=areaH;document.getElementById('hdrArea').textContent=`${areaW} × ${areaH}m`;});
+
+// ---- View ----
+function updateTransform(){
+  const c=document.getElementById('canvasContainer');
+  const w=CS*S.zoom, h=CS*S.zoom;
+  c.style.width=w+'px'; c.style.height=h+'px';
+  c.style.transform=`translate(${S.panX}px,${S.panY}px)`;
+  [heightCanvas,overlayCanvas,roadCanvas,zoneCanvas,uiCanvas].forEach(cv=>{cv.style.width=w+'px';cv.style.height=h+'px';});
+  document.getElementById('statusRight').textContent=`Zoom: ${Math.round(S.zoom*100)}%`;
+}
+
+// ---- Height mapping ----
+function heightToGrey(h){return Math.max(0,Math.min(255,Math.round(((h/S.maxHeight+1)/2)*255)));}
+function greyToHeight(g){return((g/255)*2-1)*S.maxHeight;}
+function getDrawGrey(){return heightToGrey(S.drawHeight*S.maxHeight);}
+function updateHeightDisplay(){
+  const h=S.drawHeight*S.maxHeight, g=getDrawGrey();
+  document.getElementById('heightSwatch').style.background=`rgb(${g},${g},${g})`;
+  document.getElementById('heightValue').textContent=h.toFixed(1)+'m';
+  document.getElementById('heightRange').textContent=`Range: ±${S.maxHeight}m`;
+  document.getElementById('drawHeightVal').textContent=h.toFixed(1)+'m';
+}
+
+// ---- Perlin Noise ----
+class Perlin{
+  constructor(seed){
+    this.p=new Uint8Array(512);const p=new Uint8Array(256);
+    for(let i=0;i<256;i++)p[i]=i;
+    let s=seed|0;for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);[p[i],p[j]]=[p[j],p[i]];}
+    for(let i=0;i<512;i++)this.p[i]=p[i&255];
+  }
+  fade(t){return t*t*t*(t*(t*6-15)+10);}
+  lerp(a,b,t){return a+t*(b-a);}
+  grad(h,x,y){const v=h&3,u=v<2?x:y,w=v<2?y:x;return((v&1)?-u:u)+((v&2)?-w:w);}
+  noise(x,y){
+    const X=Math.floor(x)&255,Y=Math.floor(y)&255,xf=x-Math.floor(x),yf=y-Math.floor(y);
+    const u=this.fade(xf),v=this.fade(yf),p=this.p;
+    return this.lerp(this.lerp(this.grad(p[p[X]+Y],xf,yf),this.grad(p[p[X+1]+Y],xf-1,yf),u),
+      this.lerp(this.grad(p[p[X]+Y+1],xf,yf-1),this.grad(p[p[X+1]+Y+1],xf-1,yf-1),u),v);
+  }
+  fbm(x,y,octaves,lacunarity=2,gain=0.5){
+    let val=0,amp=1,freq=1,max=0;
+    for(let i=0;i<octaves;i++){val+=this.noise(x*freq,y*freq)*amp;max+=amp;amp*=gain;freq*=lacunarity;}
+    return val/max;
+  }
+}
+let perlin=new Perlin(S.noiseSeed);
+
+// Noise presets
+function getNoiseParams(){
+  switch(S.noiseType){
+    case 'rough': return {scale:S.noiseScale*0.3, octaves:Math.max(S.noiseOctaves,4), gain:0.6, intensity:S.noiseIntensity/100};
+    case 'bumpy': return {scale:S.noiseScale, octaves:S.noiseOctaves, gain:0.5, intensity:S.noiseIntensity/100};
+    case 'gentle': return {scale:S.noiseScale*3, octaves:Math.min(S.noiseOctaves,3), gain:0.35, intensity:S.noiseIntensity/100*0.4};
+    case 'cloud': return {scale:S.noiseScale*5, octaves:Math.max(S.noiseOctaves,5), gain:0.45, intensity:S.noiseIntensity/100*0.3};
+    default: return {scale:S.noiseScale, octaves:S.noiseOctaves, gain:0.5, intensity:S.noiseIntensity/100};
+  }
+}
+
+// ---- Undo ----
+function saveUndo(){
+  S.undoStack.push({h:hCtx.getImageData(0,0,CS,CS), z:zCtx.getImageData(0,0,CS,CS)});
+  if(S.undoStack.length>S.maxUndo)S.undoStack.shift();
+}
+function undo(){if(!S.undoStack.length)return;const snap=S.undoStack.pop();hCtx.putImageData(snap.h,0,0);zCtx.putImageData(snap.z,0,0);}
+
+// ---- Coords ----
+function screenToCanvas(cx,cy){
+  const cr=document.getElementById('canvasContainer').getBoundingClientRect();
+  return{x:(cx-cr.left)/S.zoom, y:(cy-cr.top)/S.zoom};
+}
+
+// ---- Stroke buffer system (fixes hardness issue) ----
+// At stroke start: snapshot current heightmap, clear stroke buffer
+// During stroke: paint onto stroke buffer (max compositing so overlaps don't stack)
+// At stroke end (mouseup): composite stroke buffer onto heightmap with opacity
+
+function beginStroke(){
+  S.strokeSnapshot = hCtx.getImageData(0,0,CS,CS);
+  sCtx.clearRect(0,0,CS,CS);
+}
+
+function applyStrokeToBuffer(cx,cy){
+  const r=S.brushRadius, hardness=S.brushHardness/100, grey=getDrawGrey();
+  const x0=Math.max(0,Math.floor(cx-r)), y0=Math.max(0,Math.floor(cy-r));
+  const x1=Math.min(CS,Math.ceil(cx+r)), y1=Math.min(CS,Math.ceil(cy+r));
+  if(x1<=x0||y1<=y0)return;
+
+  const imgData=sCtx.getImageData(x0,y0,x1-x0,y1-y0);
+  const d=imgData.data;
+
+  for(let py=y0;py<y1;py++){
+    for(let px=x0;px<x1;px++){
+      const dx=px-cx, dy=py-cy, dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist>r)continue;
+      let falloff=1;
+      if(hardness<1){const edge=r*hardness;if(dist>edge)falloff=1-(dist-edge)/(r-edge);}
+      const idx=((py-y0)*(x1-x0)+(px-x0))*4;
+      // Store: R=grey value, A=max of current alpha and new falloff (max compositing)
+      const newAlpha=Math.round(falloff*255);
+      if(newAlpha>d[idx+3]){
+        d[idx]=d[idx+1]=d[idx+2]=grey;
+        d[idx+3]=newAlpha;
+      }
+    }
+  }
+  sCtx.putImageData(imgData,x0,y0);
+  compositeStroke();
+}
+
+function compositeStroke(){
+  if(!S.strokeSnapshot)return;
+  // Restore snapshot then blend stroke buffer on top
+  hCtx.putImageData(S.strokeSnapshot,0,0);
+  const opacity=S.brushOpacity/100;
+  hCtx.save();
+  hCtx.globalAlpha=opacity;
+  hCtx.globalCompositeOperation='source-over';
+  // We need custom compositing: for each pixel, blend stroke colour toward heightmap by stroke alpha
+  // Since canvas globalAlpha * stroke alpha gives us the right blend, but we need the stroke to replace not blend additively
+  // Use a temp approach: draw stroke buffer, its alpha channel handles falloff, globalAlpha handles opacity
+  hCtx.drawImage(strokeCanvas,0,0);
+  hCtx.restore();
+}
+
+function endStroke(){
+  compositeStroke();
+  S.strokeSnapshot=null;
+}
+
+// Noise stroke (similar buffer approach)
+function applyNoiseToBuffer(cx,cy){
+  const r=S.brushRadius, hardness=S.brushHardness/100;
+  const np=getNoiseParams();
+  const x0=Math.max(0,Math.floor(cx-r)), y0=Math.max(0,Math.floor(cy-r));
+  const x1=Math.min(CS,Math.ceil(cx+r)), y1=Math.min(CS,Math.ceil(cy+r));
+  if(x1<=x0||y1<=y0)return;
+
+  const snapData=S.strokeSnapshot;
+  const imgData=sCtx.getImageData(x0,y0,x1-x0,y1-y0);
+  const d=imgData.data;
+
+  for(let py=y0;py<y1;py++){
+    for(let px=x0;px<x1;px++){
+      const dx=px-cx,dy=py-cy,dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist>r)continue;
+      let falloff=1;
+      if(hardness<1){const edge=r*hardness;if(dist>edge)falloff=1-(dist-edge)/(r-edge);}
+
+      const n=perlin.fbm(px/np.scale, py/np.scale, np.octaves, 2, np.gain);
+      const idx=((py-y0)*(x1-x0)+(px-x0))*4;
+      const snapIdx=(py*CS+px)*4;
+      const existing=snapData.data[snapIdx];
+
+      let target;
+      if(S.noiseAdditive){
+        target=Math.max(0,Math.min(255, existing + Math.round(n*128*np.intensity)));
+      } else {
+        const noiseGrey=Math.round(128+n*128*np.intensity);
+        target=noiseGrey;
+      }
+
+      const newAlpha=Math.round(falloff*255);
+      if(newAlpha>d[idx+3]){
+        d[idx]=d[idx+1]=d[idx+2]=target;
+        d[idx+3]=newAlpha;
+      }
+    }
+  }
+  sCtx.putImageData(imgData,x0,y0);
+  compositeStroke();
+}
+
+// Direct brush tools (flatten, smooth, eraser use direct painting since they read current state)
+function flattenBrush(cx,cy){
+  const cd=hCtx.getImageData(Math.floor(Math.max(0,Math.min(CS-1,cx))),Math.floor(Math.max(0,Math.min(CS-1,cy))),1,1).data[0];
+  const r=S.brushRadius,h=S.brushHardness/100,o=S.brushOpacity/100*0.5;
+  const x0=Math.max(0,Math.floor(cx-r)),y0=Math.max(0,Math.floor(cy-r));
+  const x1=Math.min(CS,Math.ceil(cx+r)),y1=Math.min(CS,Math.ceil(cy+r));
+  if(x1<=x0||y1<=y0)return;
+  const id=hCtx.getImageData(x0,y0,x1-x0,y1-y0),d=id.data;
+  for(let py=y0;py<y1;py++)for(let px=x0;px<x1;px++){
+    const dx=px-cx,dy=py-cy,dist=Math.sqrt(dx*dx+dy*dy);if(dist>r)continue;
+    let f=1;if(h<1){const e=r*h;if(dist>e)f=1-(dist-e)/(r-e);}
+    const a=f*o,i=((py-y0)*(x1-x0)+(px-x0))*4;
+    d[i]=d[i+1]=d[i+2]=Math.round(d[i]+(cd-d[i])*a);
+  }
+  hCtx.putImageData(id,x0,y0);
+}
+
+function smoothBrush(cx,cy){
+  const r=S.brushRadius,hard=S.brushHardness/100,o=S.brushOpacity/100*0.5;
+  const k=Math.max(2,Math.ceil(r*0.15)); // adaptive kernel
+  const x0=Math.max(k,Math.floor(cx-r)),y0=Math.max(k,Math.floor(cy-r));
+  const x1=Math.min(CS-k,Math.ceil(cx+r)),y1=Math.min(CS-k,Math.ceil(cy+r));
+  if(x1<=x0||y1<=y0)return;
+  const src=hCtx.getImageData(x0-k,y0-k,x1-x0+k*2,y1-y0+k*2);
+  const id=hCtx.getImageData(x0,y0,x1-x0,y1-y0),d=id.data;
+  const sw=x1-x0+k*2;
+  for(let py=y0;py<y1;py++)for(let px=x0;px<x1;px++){
+    const dx=px-cx,dy=py-cy,dist=Math.sqrt(dx*dx+dy*dy);if(dist>r)continue;
+    let f=1;if(hard<1){const e=r*hard;if(dist>e)f=1-(dist-e)/(r-e);}
+    let sum=0,cnt=0;
+    for(let ky=-k;ky<=k;ky++)for(let kx=-k;kx<=k;kx++){
+      sum+=src.data[((py-y0+k+ky)*sw+(px-x0+k+kx))*4];cnt++;
+    }
+    const avg=sum/cnt,a=f*o,i=((py-y0)*(x1-x0)+(px-x0))*4;
+    d[i]=d[i+1]=d[i+2]=Math.round(d[i]+(avg-d[i])*a);
+  }
+  hCtx.putImageData(id,x0,y0);
+}
+
+function eraserStroke(cx,cy){
+  const r=S.brushRadius,hard=S.brushHardness/100,o=S.brushOpacity/100;
+  const x0=Math.max(0,Math.floor(cx-r)),y0=Math.max(0,Math.floor(cy-r));
+  const x1=Math.min(CS,Math.ceil(cx+r)),y1=Math.min(CS,Math.ceil(cy+r));
+  if(x1<=x0||y1<=y0)return;
+  const id=hCtx.getImageData(x0,y0,x1-x0,y1-y0),d=id.data;
+  for(let py=y0;py<y1;py++)for(let px=x0;px<x1;px++){
+    const dx=px-cx,dy=py-cy,dist=Math.sqrt(dx*dx+dy*dy);if(dist>r)continue;
+    let f=1;if(hard<1){const e=r*hard;if(dist>e)f=1-(dist-e)/(r-e);}
+    const a=f*o,i=((py-y0)*(x1-x0)+(px-x0))*4;
+    d[i]=d[i+1]=d[i+2]=Math.round(d[i]+(128-d[i])*a);
+  }
+  hCtx.putImageData(id,x0,y0);
+}
+
+function zoneBrush(cx,cy){
+  if(S.zone==='none'){zCtx.globalCompositeOperation='destination-out';zCtx.beginPath();zCtx.arc(cx,cy,S.brushRadius,0,Math.PI*2);zCtx.fill();zCtx.globalCompositeOperation='source-over';return;}
+  zCtx.fillStyle=ZONE_SOLID[S.zone];zCtx.beginPath();zCtx.arc(cx,cy,S.brushRadius,0,Math.PI*2);zCtx.fill();
+}
+
+function drawLine(x0,y0,x1,y1,fn){
+  const dx=x1-x0,dy=y1-y0,dist=Math.sqrt(dx*dx+dy*dy);
+  const step=Math.max(1,S.brushRadius*0.25),steps=Math.ceil(dist/step);
+  for(let i=0;i<=steps;i++){const t=steps>0?i/steps:0;fn(x0+dx*t,y0+dy*t);}
+}
+
+// ---- Shapes ----
+function fillRect(x0,y0,x1,y1){const g=getDrawGrey();hCtx.fillStyle=`rgb(${g},${g},${g})`;hCtx.fillRect(Math.min(x0,x1),Math.min(y0,y1),Math.abs(x1-x0),Math.abs(y1-y0));}
+function fillCircle(cx,cy,rx,ry){const g=getDrawGrey();hCtx.fillStyle=`rgb(${g},${g},${g})`;hCtx.beginPath();hCtx.ellipse(cx,cy,Math.abs(rx),Math.abs(ry),0,0,Math.PI*2);hCtx.fill();}
+
+// ---- Road system with bezier handles ----
+// Each road point: {x, y, cx1, cy1, cx2, cy2} where c1/c2 are control handles
+function addRoadPoint(x,y){
+  const pts=S.currentRoadPoints;
+  const pt={x,y,cx1:x,cy1:y,cx2:x,cy2:y};
+  if(pts.length>0){
+    const prev=pts[pts.length-1];
+    const dx=x-prev.x, dy=y-prev.y;
+    // Auto-generate handles: 1/3 of distance along tangent
+    prev.cx2=prev.x+dx*0.33;
+    prev.cy2=prev.y+dy*0.33;
+    pt.cx1=x-dx*0.33;
+    pt.cy1=y-dy*0.33;
+  }
+  pts.push(pt);
+}
+
+function getRoadCurvePoints(pts, numPerSeg=60){
+  if(pts.length<2)return[];
+  const result=[];
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i], p1=pts[i+1];
+    for(let t=0;t<=1;t+=1/numPerSeg){
+      const mt=1-t;
+      const x=mt*mt*mt*p0.x + 3*mt*mt*t*p0.cx2 + 3*mt*t*t*p1.cx1 + t*t*t*p1.x;
+      const y=mt*mt*mt*p0.y + 3*mt*mt*t*p0.cy2 + 3*mt*t*t*p1.cy1 + t*t*t*p1.y;
+      result.push({x,y});
+    }
+  }
+  return result;
+}
+
+function drawRoadToCanvases(pts, params){
+  if(pts.length<2)return;
+  const pxW=areaW/CS, pxH=areaH/CS;
+  const widthPx=params.width/pxW;
+  const curve=getRoadCurvePoints(pts);
+  if(curve.length<2)return;
+
+  // Road surface on heightmap
+  if(params.raise){
+    const rg=heightToGrey(params.roadHeight);
+    hCtx.strokeStyle=`rgb(${rg},${rg},${rg})`;
+    hCtx.lineWidth=widthPx;hCtx.lineCap='round';hCtx.lineJoin='round';
+    hCtx.beginPath();hCtx.moveTo(curve[0].x,curve[0].y);
+    for(let i=1;i<curve.length;i++)hCtx.lineTo(curve[i].x,curve[i].y);
+    hCtx.stroke();
+  }
+
+  // Zone
+  zCtx.strokeStyle=ZONE_SOLID.road;
+  zCtx.lineWidth=widthPx;zCtx.lineCap='round';zCtx.lineJoin='round';
+  zCtx.beginPath();zCtx.moveTo(curve[0].x,curve[0].y);
+  for(let i=1;i<curve.length;i++)zCtx.lineTo(curve[i].x,curve[i].y);
+  zCtx.stroke();
+
+  // Markings
+  drawRoadMarkings(rCtx, curve, widthPx, params);
+}
+
+function drawRoadMarkings(ctx, curve, widthPx, params){
+  const pxPerM = CS/areaW;
+  const lineW=0.15*pxPerM;
+  const lanes=params.lanes;
+
+  // Normals for each point
+  function getNormals(){
+    return curve.map((p,i)=>{
+      const prev=curve[Math.max(0,i-1)], next=curve[Math.min(curve.length-1,i+1)];
+      const dx=next.x-prev.x, dy=next.y-prev.y, len=Math.sqrt(dx*dx+dy*dy)||1;
+      return{nx:-dy/len, ny:dx/len};
+    });
+  }
+  const normals=getNormals();
+
+  function drawOffsetLine(offset,w,color,dashed){
+    ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';
+    if(dashed){
+      const dashPx=3*pxPerM, gapPx=3*pxPerM;
+      let dist=0, drawing=true, segDist=0;
+      ctx.beginPath();
+      ctx.moveTo(curve[0].x+normals[0].nx*offset, curve[0].y+normals[0].ny*offset);
+      for(let i=1;i<curve.length;i++){
+        const x=curve[i].x+normals[i].nx*offset, y=curve[i].y+normals[i].ny*offset;
+        const px=curve[i-1].x+normals[i-1].nx*offset, py=curve[i-1].y+normals[i-1].ny*offset;
+        segDist+=Math.sqrt((x-px)**2+(y-py)**2);
+        if(drawing){ctx.lineTo(x,y);if(segDist>=dashPx){ctx.stroke();ctx.beginPath();drawing=false;segDist=0;}}
+        else{if(segDist>=gapPx){ctx.moveTo(x,y);drawing=true;segDist=0;}}
+      }
+      if(drawing)ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(curve[0].x+normals[0].nx*offset, curve[0].y+normals[0].ny*offset);
+      for(let i=1;i<curve.length;i++)ctx.lineTo(curve[i].x+normals[i].nx*offset, curve[i].y+normals[i].ny*offset);
+      ctx.stroke();
+    }
+  }
+
+  const laneW=widthPx/lanes;
+
+  // Centre line (only for 2+ lanes)
+  if(params.centre!=='none' && lanes>=2){
+    const color=params.centre.includes('yellow')?'#e8c840':'#fff';
+    const dashed=params.centre==='dashed-yellow';
+    if(params.centre==='double-yellow'){
+      drawOffsetLine(-lineW*1.2, lineW, color, false);
+      drawOffsetLine(lineW*1.2, lineW, color, false);
+    } else {
+      drawOffsetLine(0, lineW, color, dashed);
+    }
+  }
+
+  // Edge lines
+  if(params.edge!=='none'){
+    const off=widthPx/2-lineW;
+    drawOffsetLine(-off, lineW, '#fff', false);
+    drawOffsetLine(off, lineW, '#fff', false);
+  }
+
+  // Lane dividers (skip centre)
+  if(params.dividers!=='none' && lanes>2){
+    for(let i=1;i<lanes;i++){
+      if(lanes%2===0 && i===lanes/2)continue;
+      const off=(i-lanes/2)*laneW;
+      drawOffsetLine(off, lineW*0.8, '#fff', true);
+    }
+  }
+}
+
+// Auto-set road params for 1 lane
+document.getElementById('roadLanes').addEventListener('change',function(){
+  S.roadLanes=+this.value;
+  if(S.roadLanes===1){
+    document.getElementById('roadCentre').value='none';S.roadCentre='none';
+    document.getElementById('roadDividers').value='none';S.roadDividers='none';
+  }
+});
+
+// ---- UI Drawing ----
+let lastMouseCanvas={x:0,y:0};
+
+function drawUI(mx,my){
+  uCtx.clearRect(0,0,CS,CS);
+  if(mx===undefined)mx=lastMouseCanvas.x;
+  if(my===undefined)my=lastMouseCanvas.y;
+
+  // Brush cursor
+  if(['brush','noise','flatten','smooth','eraser','zone'].includes(S.tool)){
+    uCtx.strokeStyle='rgba(255,255,255,0.5)';uCtx.lineWidth=1/S.zoom;
+    uCtx.beginPath();uCtx.arc(mx,my,S.brushRadius,0,Math.PI*2);uCtx.stroke();
+    if(S.brushHardness<100){
+      uCtx.strokeStyle='rgba(255,255,255,0.2)';uCtx.beginPath();
+      uCtx.arc(mx,my,S.brushRadius*S.brushHardness/100,0,Math.PI*2);uCtx.stroke();
+    }
+  }
+
+  // Crosshair
+  if(['rect','circle','polygon','road','eyedropper'].includes(S.tool)){
+    uCtx.strokeStyle='rgba(255,255,255,0.4)';uCtx.lineWidth=1/S.zoom;
+    uCtx.beginPath();
+    uCtx.moveTo(mx-12/S.zoom,my);uCtx.lineTo(mx+12/S.zoom,my);
+    uCtx.moveTo(mx,my-12/S.zoom);uCtx.lineTo(mx,my+12/S.zoom);
+    uCtx.stroke();
+  }
+
+  // Shape preview
+  if(S.shapeStart){
+    uCtx.strokeStyle='rgba(224,122,47,0.8)';uCtx.lineWidth=1.5/S.zoom;
+    uCtx.setLineDash([5/S.zoom,5/S.zoom]);
+    if(S.tool==='rect')uCtx.strokeRect(S.shapeStart.x,S.shapeStart.y,mx-S.shapeStart.x,my-S.shapeStart.y);
+    else if(S.tool==='circle'){uCtx.beginPath();uCtx.ellipse((S.shapeStart.x+mx)/2,(S.shapeStart.y+my)/2,Math.abs(mx-S.shapeStart.x)/2,Math.abs(my-S.shapeStart.y)/2,0,0,Math.PI*2);uCtx.stroke();}
+    uCtx.setLineDash([]);
+  }
+
+  // Polygon preview
+  if(S.tool==='polygon'&&S.polygonPoints.length>0){
+    uCtx.strokeStyle='rgba(224,122,47,0.8)';uCtx.fillStyle='rgba(224,122,47,1)';uCtx.lineWidth=1.5/S.zoom;
+    uCtx.beginPath();uCtx.moveTo(S.polygonPoints[0].x,S.polygonPoints[0].y);
+    S.polygonPoints.forEach(p=>uCtx.lineTo(p.x,p.y));
+    uCtx.lineTo(mx,my);uCtx.stroke();
+    S.polygonPoints.forEach(p=>{uCtx.beginPath();uCtx.arc(p.x,p.y,3/S.zoom,0,Math.PI*2);uCtx.fill();});
+  }
+
+  // Road preview with bezier handles
+  if(S.tool==='road'&&S.currentRoadPoints.length>0){
+    const pxW=areaW/CS;
+    const widthPx=S.roadWidth/pxW;
+    const pts=[...S.currentRoadPoints];
+    // Temp point at mouse
+    const tempPts=[...pts];
+    if(!S.dragHandle){
+      const tp={x:mx,y:my,cx1:mx,cy1:my,cx2:mx,cy2:my};
+      if(pts.length>0){
+        const prev=pts[pts.length-1];
+        const dx=mx-prev.x,dy=my-prev.y;
+        tp.cx1=mx-dx*0.33;tp.cy1=my-dy*0.33;
+      }
+      tempPts.push(tp);
+    }
+
+    // Road width preview
+    if(tempPts.length>=2){
+      const curve=getRoadCurvePoints(tempPts,40);
+      uCtx.strokeStyle='rgba(224,122,47,0.15)';uCtx.lineWidth=widthPx;
+      uCtx.lineCap='round';uCtx.lineJoin='round';
+      uCtx.beginPath();uCtx.moveTo(curve[0].x,curve[0].y);
+      curve.forEach(p=>uCtx.lineTo(p.x,p.y));uCtx.stroke();
+
+      // Centre line
+      uCtx.strokeStyle='rgba(224,122,47,0.5)';uCtx.lineWidth=1.5/S.zoom;
+      uCtx.setLineDash([6/S.zoom,4/S.zoom]);
+      uCtx.beginPath();uCtx.moveTo(curve[0].x,curve[0].y);
+      curve.forEach(p=>uCtx.lineTo(p.x,p.y));uCtx.stroke();
+      uCtx.setLineDash([]);
+    }
+
+    // Control points and handles
+    const handleR=5/S.zoom;
+    pts.forEach((p,i)=>{
+      // Control handles
+      uCtx.strokeStyle='rgba(224,122,47,0.4)';uCtx.lineWidth=1/S.zoom;
+      if(i>0){
+        uCtx.beginPath();uCtx.moveTo(p.x,p.y);uCtx.lineTo(p.cx1,p.cy1);uCtx.stroke();
+        uCtx.fillStyle='rgba(224,122,47,0.8)';uCtx.beginPath();
+        uCtx.arc(p.cx1,p.cy1,handleR*0.7,0,Math.PI*2);uCtx.fill();
+      }
+      if(i<pts.length-1){
+        uCtx.beginPath();uCtx.moveTo(p.x,p.y);uCtx.lineTo(p.cx2,p.cy2);uCtx.stroke();
+        uCtx.fillStyle='rgba(224,122,47,0.8)';uCtx.beginPath();
+        uCtx.arc(p.cx2,p.cy2,handleR*0.7,0,Math.PI*2);uCtx.fill();
+      }
+      // Main point
+      uCtx.fillStyle='rgba(224,122,47,1)';uCtx.strokeStyle='rgba(0,0,0,0.5)';
+      uCtx.lineWidth=1.5/S.zoom;
+      uCtx.beginPath();uCtx.arc(p.x,p.y,handleR,0,Math.PI*2);uCtx.fill();uCtx.stroke();
+    });
+  }
+}
+
+// ---- Road handle hit testing ----
+function hitTestRoadHandle(mx,my){
+  const r=8/S.zoom;
+  for(let i=S.currentRoadPoints.length-1;i>=0;i--){
+    const p=S.currentRoadPoints[i];
+    if(Math.sqrt((mx-p.cx1)**2+(my-p.cy1)**2)<r && i>0)return{idx:i,handle:'cx1'};
+    if(Math.sqrt((mx-p.cx2)**2+(my-p.cy2)**2)<r && i<S.currentRoadPoints.length-1)return{idx:i,handle:'cx2'};
+    if(Math.sqrt((mx-p.x)**2+(my-p.y)**2)<r)return{idx:i,handle:'main'};
+  }
+  return null;
+}
+
+// ---- Mouse events ----
+uiCanvas.addEventListener('mousedown',e=>{
+  if(e.button===1||S.spaceDown){S.isPanning=true;S.lastX=e.clientX;S.lastY=e.clientY;uiCanvas.style.cursor='grabbing';return;}
+  const{x,y}=screenToCanvas(e.clientX,e.clientY);
+
+  if(e.altKey||S.tool==='eyedropper'){
+    const px=hCtx.getImageData(Math.floor(Math.max(0,Math.min(CS-1,x))),Math.floor(Math.max(0,Math.min(CS-1,y))),1,1).data;
+    S.drawHeight=greyToHeight(px[0])/S.maxHeight;
+    document.getElementById('drawHeight').value=S.drawHeight*100;
+    updateHeightDisplay();return;
+  }
+
+  if(S.tool==='road'){
+    // Check if dragging a handle
+    const hit=hitTestRoadHandle(x,y);
+    if(hit){S.dragHandle=hit;S.isDrawing=true;return;}
+    addRoadPoint(x,y);
+    drawUI(x,y);return;
+  }
+
+  if(S.tool==='polygon'){
+    if(S.polygonPoints.length>2){
+      const f=S.polygonPoints[0];
+      if(Math.sqrt((x-f.x)**2+(y-f.y)**2)<10/S.zoom){
+        saveUndo();const g=getDrawGrey();hCtx.fillStyle=`rgb(${g},${g},${g})`;
+        hCtx.beginPath();hCtx.moveTo(S.polygonPoints[0].x,S.polygonPoints[0].y);
+        S.polygonPoints.forEach(p=>hCtx.lineTo(p.x,p.y));hCtx.closePath();hCtx.fill();
+        S.polygonPoints=[];drawUI(x,y);return;
+      }
+    }
+    S.polygonPoints.push({x,y});drawUI(x,y);return;
+  }
+
+  if(['rect','circle'].includes(S.tool)){S.shapeStart={x,y};S.isDrawing=true;return;}
+
+  // Brush-type tools
+  if(['brush','noise'].includes(S.tool)){
+    saveUndo();beginStroke();S.isDrawing=true;S.lastX=x;S.lastY=y;
+    if(S.tool==='brush')applyStrokeToBuffer(x,y);
+    else applyNoiseToBuffer(x,y);
+    return;
+  }
+  if(['flatten','smooth','eraser'].includes(S.tool)){
+    saveUndo();S.isDrawing=true;S.lastX=x;S.lastY=y;
+    if(S.tool==='flatten')flattenBrush(x,y);
+    else if(S.tool==='smooth')smoothBrush(x,y);
+    else eraserStroke(x,y);
+    return;
+  }
+  if(S.tool==='zone'){saveUndo();S.isDrawing=true;S.lastX=x;S.lastY=y;zoneBrush(x,y);return;}
+});
+
+uiCanvas.addEventListener('mousemove',e=>{
+  const{x,y}=screenToCanvas(e.clientX,e.clientY);
+  lastMouseCanvas={x,y};
+
+  // Header info
+  const mx=(x/CS*areaW).toFixed(1), my=(y/CS*areaH).toFixed(1);
+  document.getElementById('hdrCursor').textContent=`${mx}, ${my}m`;
+  if(x>=0&&x<CS&&y>=0&&y<CS){
+    const px=hCtx.getImageData(Math.floor(Math.min(x,CS-1)),Math.floor(Math.min(y,CS-1)),1,1).data;
+    document.getElementById('hdrHeight').textContent=greyToHeight(px[0]).toFixed(2)+'m';
+  }
+
+  if(S.isPanning){S.panX+=e.clientX-S.lastX;S.panY+=e.clientY-S.lastY;S.lastX=e.clientX;S.lastY=e.clientY;updateTransform();return;}
+
+  // Road handle dragging
+  if(S.isDrawing&&S.dragHandle){
+    const p=S.currentRoadPoints[S.dragHandle.idx];
+    const h=S.dragHandle.handle;
+    if(h==='main'){
+      const dx=x-p.x, dy=y-p.y;
+      p.cx1+=dx;p.cy1+=dy;p.cx2+=dx;p.cy2+=dy;p.x=x;p.y=y;
+    } else if(h==='cx1'){
+      p.cx1=x;p.cy1=y;
+      // Mirror to cx2
+      p.cx2=p.x-(x-p.x);p.cy2=p.y-(y-p.y);
+    } else if(h==='cx2'){
+      p.cx2=x;p.cy2=y;
+      p.cx1=p.x-(x-p.x);p.cy1=p.y-(y-p.y);
+    }
+    drawUI(x,y);return;
+  }
+
+  if(S.isDrawing&&['rect','circle'].includes(S.tool)){drawUI(x,y);return;}
+
+  if(S.isDrawing&&['brush','noise'].includes(S.tool)){
+    const fn=S.tool==='brush'?applyStrokeToBuffer:applyNoiseToBuffer;
+    drawLine(S.lastX,S.lastY,x,y,fn);S.lastX=x;S.lastY=y;
+  }
+  if(S.isDrawing&&S.tool==='flatten')drawLine(S.lastX,S.lastY,x,y,flattenBrush),S.lastX=x,S.lastY=y;
+  if(S.isDrawing&&S.tool==='smooth')drawLine(S.lastX,S.lastY,x,y,smoothBrush),S.lastX=x,S.lastY=y;
+  if(S.isDrawing&&S.tool==='eraser')drawLine(S.lastX,S.lastY,x,y,eraserStroke),S.lastX=x,S.lastY=y;
+  if(S.isDrawing&&S.tool==='zone')drawLine(S.lastX,S.lastY,x,y,zoneBrush),S.lastX=x,S.lastY=y;
+
+  drawUI(x,y);
+});
+
+uiCanvas.addEventListener('mouseup',e=>{
+  if(S.isPanning){S.isPanning=false;uiCanvas.style.cursor='crosshair';return;}
+  const{x,y}=screenToCanvas(e.clientX,e.clientY);
+
+  if(S.dragHandle){S.dragHandle=null;S.isDrawing=false;return;}
+
+  if(S.isDrawing&&S.tool==='rect'&&S.shapeStart){saveUndo();fillRect(S.shapeStart.x,S.shapeStart.y,x,y);S.shapeStart=null;}
+  if(S.isDrawing&&S.tool==='circle'&&S.shapeStart){saveUndo();fillCircle((S.shapeStart.x+x)/2,(S.shapeStart.y+y)/2,Math.abs(x-S.shapeStart.x)/2,Math.abs(y-S.shapeStart.y)/2);S.shapeStart=null;}
+
+  if(S.isDrawing&&['brush','noise'].includes(S.tool))endStroke();
+
+  S.isDrawing=false;drawUI(x,y);
+});
+
+uiCanvas.addEventListener('mouseleave',()=>{uCtx.clearRect(0,0,CS,CS);if(S.isDrawing&&['brush','noise'].includes(S.tool))endStroke();S.isDrawing=false;S.isPanning=false;});
+
+// Zoom
+document.getElementById('canvasArea').addEventListener('wheel',e=>{
+  e.preventDefault();
+  const f=e.deltaY>0?0.9:1.1, old=S.zoom;
+  S.zoom=Math.max(0.05,Math.min(5,S.zoom*f));
+  const rect=document.getElementById('canvasArea').getBoundingClientRect();
+  const mx=e.clientX-rect.left-rect.width/2, my=e.clientY-rect.top-rect.height/2;
+  S.panX=mx-(mx-S.panX)*(S.zoom/old);S.panY=my-(my-S.panY)*(S.zoom/old);
+  updateTransform();
+},{passive:false});
+
+// ---- Keyboard ----
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.code==='Space'){e.preventDefault();S.spaceDown=true;uiCanvas.style.cursor='grab';}
+  if(e.key==='b')setTool('brush');if(e.key==='n')setTool('noise');
+  if(e.key==='f')setTool('flatten');if(e.key==='s'&&!e.ctrlKey)setTool('smooth');
+  if(e.key==='r')setTool('rect');if(e.key==='c')setTool('circle');
+  if(e.key==='p')setTool('polygon');if(e.key==='e')setTool('eraser');
+  if(e.key==='d')setTool('road');if(e.key==='z'&&!e.ctrlKey&&!e.metaKey)setTool('zone');
+  if(e.key==='i')setTool('eyedropper');
+  if(e.key==='['){S.brushRadius=Math.max(1,S.brushRadius-5);document.getElementById('brushRadius').value=S.brushRadius;document.getElementById('brushRadiusVal').textContent=S.brushRadius+'px';}
+  if(e.key===']'){S.brushRadius=Math.min(200,S.brushRadius+5);document.getElementById('brushRadius').value=S.brushRadius;document.getElementById('brushRadiusVal').textContent=S.brushRadius+'px';}
+  if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
+  if(e.key==='Home')resetView();
+  if(e.key==='Escape'){S.polygonPoints=[];S.currentRoadPoints=[];S.shapeStart=null;S.dragHandle=null;drawUI();}
+  if(e.key==='Enter'&&S.tool==='road')finishRoad();
+  if(e.key==='Backspace'&&S.tool==='road'&&S.currentRoadPoints.length>0){S.currentRoadPoints.pop();drawUI();}
+});
+document.addEventListener('keyup',e=>{if(e.code==='Space'){S.spaceDown=false;uiCanvas.style.cursor='crosshair';}});
+
+// ---- Tool selection ----
+function setTool(t){
+  S.tool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
+  document.getElementById('noiseSection').style.display=t==='noise'?'block':'none';
+  document.getElementById('roadSection').style.display=t==='road'?'block':'none';
+  if(t!=='polygon')S.polygonPoints=[];
+  document.getElementById('statusLeft').textContent='Tool: '+t.charAt(0).toUpperCase()+t.slice(1);
+}
+document.querySelectorAll('.tool-btn').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+document.querySelectorAll('.zone-btn').forEach(b=>b.addEventListener('click',()=>{S.zone=b.dataset.zone;document.querySelectorAll('.zone-btn').forEach(z=>z.classList.toggle('active',z===b));}));
+
+// ---- Slider bindings ----
+document.getElementById('drawHeight').addEventListener('input',function(){S.drawHeight=this.value/100;updateHeightDisplay();});
+document.getElementById('maxHeight').addEventListener('change',function(){S.maxHeight=parseFloat(this.value)||10;updateHeightDisplay();});
+document.getElementById('brushRadius').addEventListener('input',function(){S.brushRadius=+this.value;document.getElementById('brushRadiusVal').textContent=S.brushRadius+'px';});
+document.getElementById('brushHardness').addEventListener('input',function(){S.brushHardness=+this.value;document.getElementById('brushHardnessVal').textContent=S.brushHardness+'%';});
+document.getElementById('brushOpacity').addEventListener('input',function(){S.brushOpacity=+this.value;document.getElementById('brushOpacityVal').textContent=S.brushOpacity+'%';});
+document.getElementById('noiseScale').addEventListener('input',function(){S.noiseScale=+this.value;document.getElementById('noiseScaleVal').textContent=S.noiseScale;});
+document.getElementById('noiseIntensity').addEventListener('input',function(){S.noiseIntensity=+this.value;document.getElementById('noiseIntensityVal').textContent=S.noiseIntensity+'%';});
+document.getElementById('noiseOctaves').addEventListener('input',function(){S.noiseOctaves=+this.value;document.getElementById('noiseOctavesVal').textContent=S.noiseOctaves;});
+document.getElementById('noiseAdditive').addEventListener('change',function(){S.noiseAdditive=this.checked;});
+document.getElementById('noiseSeedBtn').addEventListener('click',()=>{S.noiseSeed=Math.random()*10000;perlin=new Perlin(S.noiseSeed);});
+document.getElementById('noiseType').addEventListener('change',function(){S.noiseType=this.value;});
+document.getElementById('roadWidth').addEventListener('input',function(){S.roadWidth=+this.value;document.getElementById('roadWidthVal').textContent=S.roadWidth.toFixed(1)+'m';});
+document.getElementById('roadCentre').addEventListener('change',function(){S.roadCentre=this.value;});
+document.getElementById('roadEdge').addEventListener('change',function(){S.roadEdge=this.value;});
+document.getElementById('roadDividers').addEventListener('change',function(){S.roadDividers=this.value;});
+document.getElementById('roadRaise').addEventListener('change',function(){S.roadRaise=this.checked;});
+document.getElementById('roadHeightSlider').addEventListener('input',function(){S.roadHeight=+this.value/10;document.getElementById('roadHeightVal').textContent=S.roadHeight.toFixed(1)+'m';});
+document.getElementById('overlayOpacity').addEventListener('input',function(){S.overlayOpacity=this.value/100;overlayCanvas.style.opacity=S.overlayOpacity;document.getElementById('overlayOpacityVal').textContent=this.value+'%';});
+document.getElementById('exportBlur').addEventListener('input',function(){document.getElementById('blurVal').textContent=this.value;});
+
+// Road finish/cancel
+function finishRoad(){
+  if(S.currentRoadPoints.length>=2){
+    saveUndo();
+    drawRoadToCanvases(S.currentRoadPoints,{
+      width:S.roadWidth,lanes:S.roadLanes,centre:S.roadCentre,
+      edge:S.roadEdge,dividers:S.roadDividers,raise:S.roadRaise,roadHeight:S.roadHeight
+    });
+    S.roads.push({points:[...S.currentRoadPoints],params:{width:S.roadWidth,lanes:S.roadLanes,centre:S.roadCentre,edge:S.roadEdge,dividers:S.roadDividers,raise:S.roadRaise,roadHeight:S.roadHeight}});
+  }
+  S.currentRoadPoints=[];drawUI();
+}
+document.getElementById('roadFinishBtn').addEventListener('click',finishRoad);
+document.getElementById('roadCancelBtn').addEventListener('click',()=>{S.currentRoadPoints=[];drawUI();});
+
+// Overlay
+document.getElementById('loadOverlayBtn').addEventListener('click',()=>document.getElementById('overlayInput').click());
+document.getElementById('overlayInput').addEventListener('change',function(){
+  if(this.files[0]){const img=new Image();img.onload=()=>{S.overlayImage=img;oCtx.clearRect(0,0,CS,CS);oCtx.drawImage(img,0,0,CS,CS);};img.src=URL.createObjectURL(this.files[0]);}
+});
+
+// Actions
+document.getElementById('undoBtn').addEventListener('click',undo);
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(confirm('Clear all?')){saveUndo();hCtx.fillStyle='#808080';hCtx.fillRect(0,0,CS,CS);rCtx.clearRect(0,0,CS,CS);zCtx.clearRect(0,0,CS,CS);S.roads=[];}
+});
+function resetView(){S.zoom=0.35;S.panX=0;S.panY=0;updateTransform();}
+document.getElementById('resetViewBtn').addEventListener('click',resetView);
+
+// ---- EXPORT OBJ (chunked for large files) ----
+document.getElementById('exportObjBtn').addEventListener('click',exportOBJ);
+
+async function exportOBJ(){
+  const modal=document.getElementById('exportModal');
+  const status=document.getElementById('exportStatus');
+  const prog=document.getElementById('exportProgress');
+  document.getElementById('exportTitle').textContent='Exporting OBJ...';
+  modal.classList.add('active');
+
+  const Q=parseInt(document.getElementById('exportQuality').value);
+  const smoothing=document.getElementById('exportSmoothing').value;
+  const blur=parseInt(document.getElementById('exportBlur').value);
+
+  status.textContent='Sampling heightmap...';prog.style.width='5%';
+  await sleep(50);
+
+  const hData=hCtx.getImageData(0,0,CS,CS).data;
+  const zData=zCtx.getImageData(0,0,CS,CS).data;
+  const grid=new Float32Array(Q*Q);
+  const zoneGrid=new Uint8Array(Q*Q);
+
+  for(let gy=0;gy<Q;gy++){
+    for(let gx=0;gx<Q;gx++){
+      const sx=(gx/(Q-1))*(CS-1), sy=(gy/(Q-1))*(CS-1);
+      let grey;
+      if(smoothing==='nearest')grey=hData[(Math.round(sy)*CS+Math.round(sx))*4];
+      else if(smoothing==='bilinear')grey=bilinear(hData,sx,sy,CS);
+      else grey=bicubic(hData,sx,sy,CS);
+      grid[gy*Q+gx]=greyToHeight(grey);
+      const zpx=Math.round(sx),zpy=Math.round(sy),zi=(zpy*CS+zpx)*4;
+      zoneGrid[gy*Q+gx]=classifyZone(zData[zi],zData[zi+1],zData[zi+2],zData[zi+3]);
+    }
+    if(gy%(Q/10|0)===0){prog.style.width=(5+gy/Q*25)+'%';await sleep(1);}
+  }
+
+  if(blur>0){status.textContent='Blurring...';prog.style.width='30%';await sleep(10);gaussianBlur(grid,Q,Q,blur);}
+
+  status.textContent='Building OBJ chunks...';prog.style.width='35%';await sleep(10);
+
+  const chunks=[];
+  const zoneNames=['default','road','pavement','grass','dirt','concrete','water','custom'];
+  const zoneFaces=zoneNames.map(()=>[]);
+
+  chunks.push(`# Terrain Studio Export\n# Area: ${areaW}m x ${areaH}m\n# Grid: ${Q}x${Q}\n\n`);
+
+  // Vertices
+  const stepX=areaW/(Q-1), stepZ=areaH/(Q-1);
+  let vChunk='';
+  for(let gy=0;gy<Q;gy++){
+    for(let gx=0;gx<Q;gx++){
+      vChunk+=`v ${(gx*stepX).toFixed(4)} ${grid[gy*Q+gx].toFixed(4)} ${(gy*stepZ).toFixed(4)}\n`;
+    }
+    if(gy%100===99){chunks.push(vChunk);vChunk='';prog.style.width=(35+gy/Q*15)+'%';await sleep(1);}
+  }
+  if(vChunk)chunks.push(vChunk);
+
+  // UVs
+  let uvChunk='\n';
+  for(let gy=0;gy<Q;gy++){
+    for(let gx=0;gx<Q;gx++)uvChunk+=`vt ${(gx/(Q-1)).toFixed(6)} ${(1-gy/(Q-1)).toFixed(6)}\n`;
+    if(gy%100===99){chunks.push(uvChunk);uvChunk='';await sleep(1);}
+  }
+  if(uvChunk)chunks.push(uvChunk);
+
+  // Normals
+  let nChunk='\n';
+  for(let gy=0;gy<Q;gy++){
+    for(let gx=0;gx<Q;gx++){
+      const l=gx>0?grid[gy*Q+gx-1]:grid[gy*Q+gx], r=gx<Q-1?grid[gy*Q+gx+1]:grid[gy*Q+gx];
+      const u=gy>0?grid[(gy-1)*Q+gx]:grid[gy*Q+gx], d=gy<Q-1?grid[(gy+1)*Q+gx]:grid[gy*Q+gx];
+      const nx=(l-r)/(2*stepX), nz=(u-d)/(2*stepZ), ny=1;
+      const len=Math.sqrt(nx*nx+ny*ny+nz*nz);
+      nChunk+=`vn ${(nx/len).toFixed(4)} ${(ny/len).toFixed(4)} ${(nz/len).toFixed(4)}\n`;
+    }
+    if(gy%100===99){chunks.push(nChunk);nChunk='';await sleep(1);}
+  }
+  if(nChunk)chunks.push(nChunk);
+
+  status.textContent='Writing faces...';prog.style.width='70%';await sleep(10);
+
+  // Faces by zone
+  for(let gy=0;gy<Q-1;gy++){
+    for(let gx=0;gx<Q-1;gx++){
+      const i0=gy*Q+gx+1,i1=i0+1,i2=i0+Q,i3=i2+1;
+      const z=zoneGrid[gy*Q+gx];
+      zoneFaces[z].push(`f ${i0}/${i0}/${i0} ${i2}/${i2}/${i2} ${i1}/${i1}/${i1}\nf ${i1}/${i1}/${i1} ${i2}/${i2}/${i2} ${i3}/${i3}/${i3}`);
+    }
+  }
+
+  for(let zi=0;zi<zoneNames.length;zi++){
+    if(!zoneFaces[zi].length)continue;
+    let fChunk=`\ng ${zoneNames[zi]}\nusemtl ${zoneNames[zi]}\n`;
+    for(let fi=0;fi<zoneFaces[zi].length;fi++){
+      fChunk+=zoneFaces[zi][fi]+'\n';
+      if(fi%5000===4999){chunks.push(fChunk);fChunk='';await sleep(1);}
+    }
+    if(fChunk)chunks.push(fChunk);
+  }
+
+  status.textContent='Creating download...';prog.style.width='90%';await sleep(10);
+
+  // Build MTL first so we can reference it in OBJ header
+  let mtl='# Terrain Studio Materials\n';
+  for(let zi=0;zi<zoneNames.length;zi++){
+    if(!zoneFaces[zi].length)continue;
+    const col=ZONE_SOLID[zoneNames[zi]];
+    if(col){const r=parseInt(col.slice(1,3),16)/255,g=parseInt(col.slice(3,5),16)/255,b=parseInt(col.slice(5,7),16)/255;
+      mtl+=`\nnewmtl ${zoneNames[zi]}\nKd ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)}\n`;}
+    else mtl+=`\nnewmtl ${zoneNames[zi]}\nKd 0.500 0.500 0.500\n`;
+  }
+
+  // Add mtllib reference to start of OBJ
+  chunks.unshift('mtllib terrain.mtl\n');
+
+  status.textContent='Downloading OBJ...';prog.style.width='92%';await sleep(50);
+
+  const objBlob=new Blob(chunks,{type:'text/plain'});
+  downloadBlob(objBlob,'terrain.obj');
+
+  // Stagger second download so browser doesn't block it
+  await sleep(1000);
+  status.textContent='Downloading MTL...';prog.style.width='96%';
+  downloadText(mtl,'terrain.mtl');
+
+  await sleep(500);
+  prog.style.width='100%';
+
+  // Create persistent download links as fallback
+  const objUrl = URL.createObjectURL(objBlob);
+  const mtlUrl = URL.createObjectURL(new Blob([mtl],{type:'text/plain'}));
+
+  status.innerHTML = `Done! If downloads didn't start automatically:<br><br>` +
+    `<a href="${objUrl}" download="terrain.obj" style="color:var(--accent);text-decoration:underline;font-weight:600;">⬇ Download terrain.obj</a><br><br>` +
+    `<a href="${mtlUrl}" download="terrain.mtl" style="color:var(--accent);text-decoration:underline;font-weight:600;">⬇ Download terrain.mtl</a>`;
+}
+
+function bilinear(d,x,y,w){
+  const x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(x0+1,w-1),y1=Math.min(y0+1,w-1),fx=x-x0,fy=y-y0;
+  return d[(y0*w+x0)*4]*(1-fx)*(1-fy)+d[(y0*w+x1)*4]*fx*(1-fy)+d[(y1*w+x0)*4]*(1-fx)*fy+d[(y1*w+x1)*4]*fx*fy;
+}
+function bicubic(d,x,y,w){
+  const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi;let v=0;
+  for(let m=-1;m<=2;m++)for(let n=-1;n<=2;n++){
+    const px=Math.max(0,Math.min(w-1,xi+n)),py=Math.max(0,Math.min(w-1,yi+m));
+    v+=d[(py*w+px)*4]*cw(fx-n)*cw(fy-m);
+  }return Math.max(0,Math.min(255,v));
+}
+function cw(t){t=Math.abs(t);if(t<=1)return 1.5*t*t*t-2.5*t*t+1;if(t<=2)return-.5*t*t*t+2.5*t*t-4*t+2;return 0;}
+
+function classifyZone(r,g,b,a){
+  if(a<50)return 0;
+  const zones=[[1,[51,51,51]],[2,[153,153,153]],[3,[74,140,63]],[4,[139,105,20]],[5,[170,170,170]],[6,[42,100,150]],[7,[204,68,68]]];
+  let best=0,bestD=Infinity;
+  for(const[idx,col]of zones){const d=(r-col[0])**2+(g-col[1])**2+(b-col[2])**2;if(d<bestD){bestD=d;best=idx;}}
+  return best;
+}
+
+function gaussianBlur(g,w,h,rad){
+  const s=rad,sz=Math.ceil(s*3)*2+1,k=new Float32Array(sz);let sum=0;
+  for(let i=0;i<sz;i++){const x=i-(sz-1)/2;k[i]=Math.exp(-x*x/(2*s*s));sum+=k[i];}
+  for(let i=0;i<sz;i++)k[i]/=sum;
+  const half=(sz-1)/2,t=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0;for(let i=0;i<sz;i++)v+=g[y*w+Math.max(0,Math.min(w-1,x+i-half))]*k[i];t[y*w+x]=v;}
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let v=0;for(let i=0;i<sz;i++)v+=t[Math.max(0,Math.min(h-1,y+i-half))*w+x]*k[i];g[y*w+x]=v;}
+}
+
+function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+function downloadText(c,n){downloadBlob(new Blob([c],{type:'text/plain'}),n);}
+function downloadCanvas(cv,n){const u=cv.toDataURL('image/png'),a=document.createElement('a');a.href=u;a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+document.getElementById('exportHeightmapBtn').addEventListener('click',()=>downloadCanvas(heightCanvas,'heightmap.png'));
+document.getElementById('exportRoadBtn').addEventListener('click',()=>downloadCanvas(roadCanvas,'road_markings.png'));
+document.getElementById('exportZoneBtn').addEventListener('click',()=>downloadCanvas(zoneCanvas,'zone_map.png'));
+document.getElementById('exportCancelBtn').addEventListener('click',()=>document.getElementById('exportModal').classList.remove('active'));
+
+// Init
+updateTransform();updateHeightDisplay();resetView();
+document.getElementById('statusLeft').textContent='Tool: Brush';
+</script>
+</body>
+</html>
