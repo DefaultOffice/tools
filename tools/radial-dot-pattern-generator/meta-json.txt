@@ -1,0 +1,8 @@
+{
+    "name": "Radial Dot Pattern Generator",
+    "category": "Pattern",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Create precise radial dot patterns with customizable rings, spacing, and dot arrangements. Export as PNG."
+}
