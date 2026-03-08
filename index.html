@@ -48,10 +48,14 @@
         }
 
         .header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
             align-items: center;
             margin-bottom: 80px;
+        }
+
+        .logo {
+            grid-column: 1 / 2;
         }
 
         .logo svg {
@@ -61,8 +65,10 @@
         }
 
         .header-actions {
+            grid-column: 4 / 6;
             display: flex;
             gap: 24px;
+            justify-content: flex-end;
             font-size: 15px;
             font-weight: 400;
         }
@@ -143,6 +149,7 @@
 
         .tool-expanded-thumb {
             grid-column: 1 / 2;
+            padding-right: 20px;
         }
 
         .tool-expanded-thumb img {
