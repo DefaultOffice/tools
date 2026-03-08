@@ -137,18 +137,12 @@
         }
 
         .tool-expanded.open {
-            display: block;
-        }
-
-        .tool-expanded-inner {
-            display: flex;
-            gap: 30px;
-            width: 100%;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
         }
 
         .tool-expanded-thumb {
-            flex: 0 0 640px;
-            max-width: 640px;
+            grid-column: 1 / 2;
         }
 
         .tool-expanded-thumb img {
@@ -161,7 +155,7 @@
         }
 
         .tool-expanded-info {
-            flex: 1;
+            grid-column: 2 / 6;
             font-size: 15px;
         }
 
@@ -215,18 +209,16 @@
                 display: none;
             }
 
-            .tool-expanded-inner {
-                flex-direction: column;
-                max-width: 100%;
+            .tool-expanded.open {
+                grid-template-columns: 1fr;
             }
 
             .tool-expanded-thumb {
-                flex: none;
-                max-width: 100%;
+                grid-column: 1;
             }
 
-            .tool-expanded-description {
-                max-width: 100%;
+            .tool-expanded-info {
+                grid-column: 1;
             }
         }
     </style>
@@ -358,14 +350,12 @@ Once you have my answers, do the following:
                             <span class="date">${tool.date}</span>
                         </div>
                         <div class="tool-expanded" id="expanded-${tool.folder}">
-                            <div class="tool-expanded-inner">
-                                <div class="tool-expanded-thumb">
-                                    <img src="/tools/${tool.folder}/thumbnail.png" alt="${tool.name}">
-                                </div>
-                                <div class="tool-expanded-info">
-                                    <a href="/tools/${tool.folder}/" target="_blank">Open tool</a>
-                                    ${descriptionHtml}
-                                </div>
+                            <div class="tool-expanded-thumb">
+                                <img src="/tools/${tool.folder}/thumbnail.png" alt="${tool.name}">
+                            </div>
+                            <div class="tool-expanded-info">
+                                <a href="/tools/${tool.folder}/" target="_blank">Open tool</a>
+                                ${descriptionHtml}
                             </div>
                         </div>
                     `;
