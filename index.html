@@ -227,52 +227,77 @@
                 <span style="text-align: right;">Date</span>
             </div>
 
-            <!-- Add tools here. Date format: DD.MM.YYYY -->
-            <!-- Example row:
-            <div class="tool-row" data-tool="toolname">
-                <div class="tool-row-grid">
-                    <span class="name">Tool Name</span>
-                    <span class="category">Category</span>
-                    <span class="project">Project</span>
-                    <span class="owner">Owner</span>
-                    <span class="date">08.03.2026</span>
-                </div>
-                <div class="tool-expanded" id="expanded-toolname">
-                    <div class="tool-expanded-inner">
-                        <img src="/tools/toolname/thumbnail.png" alt="Tool Name">
-                        <div class="tool-expanded-actions">
-                            <a href="/tools/toolname/">Open tool</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            -->
-
+            <div id="tools-container"></div>
         </div>
     </div>
 
     <script>
-        document.querySelectorAll('.tool-row').forEach(row => {
-            row.addEventListener('click', () => {
-                const toolId = row.dataset.tool;
-                const expanded = document.getElementById('expanded-' + toolId);
-                const isOpen = expanded.classList.contains('open');
+        const TOOLS_DIR = '/tools/';
 
-                // Close all and remove active
-                document.querySelectorAll('.tool-expanded').forEach(el => {
-                    el.classList.remove('open');
-                });
-                document.querySelectorAll('.tool-row').forEach(r => {
-                    r.classList.remove('active');
+        async function loadTools() {
+            try {
+                const response = await fetch('/tools/registry.json');
+                const tools = await response.json();
+
+                // Sort by date descending (DD.MM.YYYY)
+                tools.sort((a, b) => {
+                    const [ad, am, ay] = a.date.split('.');
+                    const [bd, bm, by] = b.date.split('.');
+                    return new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad);
                 });
 
-                // Toggle clicked (if it wasn't already open)
-                if (!isOpen) {
-                    expanded.classList.add('open');
-                    row.classList.add('active');
-                }
-            });
-        });
+                const container = document.getElementById('tools-container');
+
+                tools.forEach(tool => {
+                    const row = document.createElement('div');
+                    row.className = 'tool-row';
+                    row.dataset.tool = tool.folder;
+                    row.innerHTML = `
+                        <div class="tool-row-grid">
+                            <span class="name">${tool.name}</span>
+                            <span class="category">${tool.category}</span>
+                            <span class="project">${tool.project}</span>
+                            <span class="owner">${tool.owner}</span>
+                            <span class="date">${tool.date}</span>
+                        </div>
+                        <div class="tool-expanded" id="expanded-${tool.folder}">
+                            <div class="tool-expanded-inner">
+                                <img src="/tools/${tool.folder}/thumbnail.png" alt="${tool.name}">
+                                <div class="tool-expanded-actions">
+                                    <a href="/tools/${tool.folder}/">Open tool</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+
+                // Attach click handlers
+                document.querySelectorAll('.tool-row').forEach(row => {
+                    row.addEventListener('click', () => {
+                        const toolId = row.dataset.tool;
+                        const expanded = document.getElementById('expanded-' + toolId);
+                        const isOpen = expanded.classList.contains('open');
+
+                        document.querySelectorAll('.tool-expanded').forEach(el => {
+                            el.classList.remove('open');
+                        });
+                        document.querySelectorAll('.tool-row').forEach(r => {
+                            r.classList.remove('active');
+                        });
+
+                        if (!isOpen) {
+                            expanded.classList.add('open');
+                            row.classList.add('active');
+                        }
+                    });
+                });
+            } catch (e) {
+                console.error('Failed to load tools:', e);
+            }
+        }
+
+        loadTools();
     </script>
 </body>
 </html>
