@@ -13,18 +13,22 @@ fs.readdirSync(toolsDir).forEach(folder => {
 
     try {
         const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-        registry.push({ folder, ...meta });
+        registry.push({
+            folder,
+            name: meta.name,
+            category: meta.category,
+            project: meta.project,
+            owner: meta.owner,
+            date: meta.date,
+            description: meta.description || ''
+        });
     } catch (e) {
         console.warn(`Skipping ${folder}: invalid meta.json`);
     }
 });
 
-// Sort by date descending (DD.MM.YYYY)
-registry.sort((a, b) => {
-    const [ad, am, ay] = a.date.split('.');
-    const [bd, bm, by] = b.date.split('.');
-    return new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad);
-});
+// Sort by date descending (YYYY MM DD)
+registry.sort((a, b) => b.date.localeCompare(a.date));
 
 fs.writeFileSync(
     path.join(toolsDir, 'registry.json'),
