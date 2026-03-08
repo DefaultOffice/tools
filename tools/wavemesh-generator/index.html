@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WaveMesh Generator — Default Office</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --black:#000;--white:#fff;--g60:#999;--g40:#666;--g20:#333;--g08:#141414;--g05:#0d0d0d;
+  --orange:#FF4F00;
+  --font:'Helvetica Neue','Helvetica','Arial',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--white);font-family:var(--font);overflow:hidden;height:100vh;display:flex;flex-direction:column;font-size:11px;-webkit-font-smoothing:antialiased}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;height:48px;border-bottom:1px solid var(--g20);flex-shrink:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;padding:0 20px;height:100%;border-right:1px solid var(--g20);gap:8px;flex-shrink:0}
+.topbar-brand-name{font-size:11px;letter-spacing:.02em;text-transform:uppercase;color:var(--white)}
+.topbar-brand-tool{font-size:11px;color:var(--g60);letter-spacing:.02em}
+.topbar-transport{display:flex;align-items:center;flex:1;height:100%;padding:0 16px;gap:12px}
+.play-btn{width:32px;height:32px;border-radius:50%;background:var(--orange);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s}
+.play-btn:hover{opacity:.85}
+.play-btn svg{fill:var(--white)}
+.t-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--g20);color:var(--g60);cursor:pointer;font-size:11px;flex-shrink:0;transition:all .1s}
+.t-btn:hover{border-color:var(--g40);color:var(--white)}
+.timeline{flex:1;height:2px;background:var(--g20);position:relative;cursor:pointer;min-width:60px}
+.timeline-fill{height:100%;background:var(--g60);width:0%}
+.timeline-head{position:absolute;top:50%;left:0%;transform:translate(-50%,-50%);width:8px;height:8px;background:var(--white);border-radius:50%}
+.t-time{font-size:10px;color:var(--g60);letter-spacing:.05em;min-width:90px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.frame-info{font-size:10px;color:var(--g40);letter-spacing:.05em;padding:0 16px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.topbar-actions{display:flex;align-items:center;height:100%;border-left:1px solid var(--g20);flex-shrink:0}
+.t-action{height:100%;display:flex;align-items:center;padding:0 16px;border-left:1px solid var(--g20);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g60);cursor:pointer;transition:color .1s;background:none;border-top:none;border-bottom:none;border-right:none;font-family:var(--font);white-space:nowrap}
+.t-action:first-child{border-left:none}
+.t-action:hover{color:var(--white)}
+.t-action.primary{color:var(--orange)}
+.t-action.primary:hover{color:#ff7033}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:280px;flex-shrink:0;border-right:1px solid var(--g20);overflow-y:auto;overflow-x:hidden}
+.sidebar::-webkit-scrollbar{width:0}
+
+/* PANELS */
+.panel{border-bottom:1px solid var(--g20)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;height:36px;padding:0 16px;cursor:pointer;user-select:none}
+.panel-head:hover{background:var(--g08)}
+.panel-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--g60)}
+.panel-arrow{font-size:8px;color:var(--g40);transition:transform .15s}
+.panel-arrow.shut{transform:rotate(-90deg)}
+.panel-content{padding:0 16px 12px}
+.panel-content.shut{display:none}
+
+/* CONTROLS */
+.row{display:flex;align-items:center;height:28px}
+.lbl{width:72px;flex-shrink:0;font-size:10px;color:var(--g40);text-transform:uppercase;letter-spacing:.04em}
+.inp{flex:1;display:flex;align-items:center;gap:6px}
+input[type="range"]{-webkit-appearance:none;flex:1;height:1px;background:var(--g20);outline:none;border-radius:0}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--white);border-radius:50%;cursor:pointer;border:none}
+input[type="range"]::-webkit-slider-thumb:hover{background:var(--orange)}
+.rv{font-size:10px;color:var(--g60);min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
+input[type="number"]{font-family:var(--font);font-size:10px;width:56px;height:24px;padding:0 6px;background:var(--g08);border:1px solid var(--g20);color:var(--white);outline:none;border-radius:0;font-variant-numeric:tabular-nums}
+input[type="number"]:focus{border-color:var(--g40)}
+select{font-family:var(--font);font-size:10px;height:24px;padding:0 6px;background:var(--g08);border:1px solid var(--g20);color:var(--white);outline:none;cursor:pointer;flex:1;-webkit-appearance:none;border-radius:0}
+select:focus{border-color:var(--g40)}
+
+/* SHAPES */
+.shapes{display:flex;gap:2px}
+.shape-btn{width:28px;height:24px;display:flex;align-items:center;justify-content:center;border:1px solid var(--g20);background:none;cursor:pointer;transition:all .1s;border-radius:0}
+.shape-btn:hover{border-color:var(--g40)}
+.shape-btn.on{border-color:var(--white);background:var(--white)}
+.shape-btn svg{width:12px;height:12px}
+.shape-btn.on svg{stroke:var(--black);fill:none}
+.shape-btn:not(.on) svg{stroke:var(--g60);fill:none}
+
+.presets{display:flex;gap:2px;margin-bottom:4px}
+.preset-btn{font-family:var(--font);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;border:1px solid var(--g20);background:none;color:var(--g60);cursor:pointer;transition:all .1s;border-radius:0}
+.preset-btn:hover{border-color:var(--g40);color:var(--white)}
+
+/* WAVES */
+.wave-card{border:1px solid var(--g20);padding:10px 12px;margin-bottom:6px}
+.wave-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.wave-num{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g60)}
+.wave-del{font-size:12px;color:var(--g40);cursor:pointer;width:18px;height:18px;display:flex;align-items:center;justify-content:center;transition:color .1s}
+.wave-del:hover{color:var(--orange)}
+.chips{display:flex;gap:2px;flex-wrap:wrap}
+.chip{font-family:var(--font);font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border:1px solid var(--g20);background:none;color:var(--g40);cursor:pointer;transition:all .1s;border-radius:0}
+.chip.on{border-color:var(--orange);color:var(--orange)}
+.add-wave-btn{font-family:var(--font);font-size:10px;text-transform:uppercase;letter-spacing:.08em;width:100%;height:32px;border:1px solid var(--g20);background:none;color:var(--g60);cursor:pointer;margin-top:4px;transition:all .1s;border-radius:0}
+.add-wave-btn:hover{border-color:var(--g40);color:var(--white)}
+
+/* CANVAS */
+.canvas-area{flex:1;display:flex;align-items:center;justify-content:center;background:var(--g05);position:relative;overflow:hidden}
+.canvas-wrap{position:relative}
+.canvas-wrap.checker{background-image:linear-gradient(45deg,#111 25%,transparent 25%),linear-gradient(-45deg,#111 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#111 75%),linear-gradient(-45deg,transparent 75%,#111 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;background-color:#0a0a0a}
+canvas{display:block;position:relative;z-index:1}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000}
+.overlay.show{display:flex}
+.modal{background:var(--black);border:1px solid var(--g20);padding:24px;width:340px;max-width:90vw}
+.modal-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--white);margin-bottom:16px}
+.modal .row{height:30px}
+.modal .lbl{width:80px}
+.modal-foot{display:flex;gap:6px;justify-content:flex-end;margin-top:20px}
+.modal-btn{font-family:var(--font);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border:1px solid var(--g20);background:none;color:var(--g60);cursor:pointer;transition:all .1s;border-radius:0}
+.modal-btn:hover{border-color:var(--g40);color:var(--white)}
+.modal-btn.go{background:var(--orange);border-color:var(--orange);color:var(--white)}
+.modal-btn.go:hover{opacity:.85}
+.prog-bar{width:100%;height:2px;background:var(--g20);margin-top:12px;overflow:hidden;display:none}
+.prog-bar.show{display:block}
+.prog-fill{height:100%;background:var(--orange);width:0%;transition:width .1s}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <a href="/" style="color:var(--g40);text-decoration:none;font-size:10px;margin-right:8px;transition:color .1s" onmouseover="this.style.color='var(--white)'" onmouseout="this.style.color='var(--g40)'">&larr; Back</a>
+    <span class="topbar-brand-name">Default Office</span>
+    <span class="topbar-brand-tool">WaveMesh Generator</span>
+  </div>
+  <div class="topbar-transport">
+    <button class="play-btn" id="btnPlay" onclick="togglePlay()" title="Play">
+      <svg id="playIcon" width="12" height="14" viewBox="0 0 12 14"><polygon points="0,0 12,7 0,14"/></svg>
+    </button>
+    <button class="t-btn" onclick="resetPlayhead()" title="Reset">⏮</button>
+    <div class="timeline" id="timeline" onmousedown="scrubStart(event)">
+      <div class="timeline-fill" id="timelineFill"></div>
+      <div class="timeline-head" id="timelineHead"></div>
+    </div>
+    <span class="t-time" id="tTime">0:00.00 / 3:00.00</span>
+    <span class="frame-info" id="frameInfo">1920×1080 · 30fps</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="t-action" onclick="loadPresetFile()">Load</button>
+    <button class="t-action" onclick="savePreset()">Save</button>
+    <button class="t-action primary" onclick="openExportModal()">Export</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Canvas</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div class="presets">
+          <button class="preset-btn" onclick="setSize(1920,1080)">1080p</button>
+          <button class="preset-btn" onclick="setSize(3840,2160)">4K</button>
+          <button class="preset-btn" onclick="setSize(1080,1080)">1:1</button>
+          <button class="preset-btn" onclick="setSize(1080,1920)">9:16</button>
+        </div>
+        <div class="row"><span class="lbl">Width</span><div class="inp"><input type="number" id="canvasW" value="1920" min="100" max="7680" step="10" onchange="resizeCanvas()"></div></div>
+        <div class="row"><span class="lbl">Height</span><div class="inp"><input type="number" id="canvasH" value="1080" min="100" max="4320" step="10" onchange="resizeCanvas()"></div></div>
+        <div class="row"><span class="lbl">Background</span><div class="inp">
+          <select id="bgMode" onchange="scheduleRender()">
+            <option value="black" selected>Black</option>
+            <option value="white">White</option>
+            <option value="transparent">Transparent</option>
+          </select></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Mesh</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div class="row"><span class="lbl">Shape</span><div class="inp">
+          <div class="shapes">
+            <button class="shape-btn on" data-shape="circle" onclick="setShape('circle',this)"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" stroke-width="1.2" fill="none"/></svg></button>
+            <button class="shape-btn" data-shape="square" onclick="setShape('square',this)"><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" stroke-width="1.2" fill="none"/></svg></button>
+            <button class="shape-btn" data-shape="line" onclick="setShape('line',this)"><svg viewBox="0 0 12 12"><line x1="6" y1="0.5" x2="6" y2="11.5" stroke-width="1.5"/></svg></button>
+          </div></div></div>
+        <div class="row"><span class="lbl">Spacing X</span><div class="inp"><input type="range" id="spacingX" min="4" max="200" value="30" oninput="uv(this);scheduleRender()"><span class="rv" id="spacingX_v">30</span></div></div>
+        <div class="row"><span class="lbl">Spacing Y</span><div class="inp"><input type="range" id="spacingY" min="4" max="200" value="30" oninput="uv(this);scheduleRender()"><span class="rv" id="spacingY_v">30</span></div></div>
+        <div class="row"><span class="lbl">Size</span><div class="inp"><input type="range" id="pointSize" min="1" max="100" value="8" oninput="uv(this);scheduleRender()"><span class="rv" id="pointSize_v">8</span></div></div>
+        <div class="row" id="lineLenRow" style="display:none"><span class="lbl">Line Len</span><div class="inp"><input type="range" id="lineLength" min="2" max="200" value="20" oninput="uv(this);scheduleRender()"><span class="rv" id="lineLength_v">20</span></div></div>
+        <div class="row"><span class="lbl">Colour</span><div class="inp"><select id="baseColor" onchange="scheduleRender()"><option value="white" selected>White</option><option value="black">Black</option></select></div></div>
+        <div class="row"><span class="lbl">Offset X</span><div class="inp"><input type="range" id="offsetX" min="-200" max="200" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="offsetX_v">0</span></div></div>
+        <div class="row"><span class="lbl">Offset Y</span><div class="inp"><input type="range" id="offsetY" min="-200" max="200" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="offsetY_v">0</span></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Waves</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div id="waveList"></div>
+        <button class="add-wave-btn" onclick="addWave()">+ Add Wave</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Animation</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div class="row"><span class="lbl">FPS</span><div class="inp"><select id="fps" onchange="updateFrameInfo()"><option value="12">12</option><option value="24">24</option><option value="25">25</option><option value="30" selected>30</option><option value="60">60</option></select></div></div>
+        <div class="row"><span class="lbl">Duration</span><div class="inp"><input type="number" id="duration" value="3" min="0.5" max="60" step="0.5" onchange="updateFrameInfo()"><span class="rv">sec</span></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Tiling</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div class="row"><span class="lbl">Loop Time</span><div class="inp"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--g60);font-size:10px"><input type="checkbox" id="loopTime" checked onchange="scheduleRender()" style="accent-color:var(--orange)">Snap speed to loop</label></div></div>
+        <div class="row"><span class="lbl">Tile X</span><div class="inp"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--g60);font-size:10px"><input type="checkbox" id="tileX" checked onchange="scheduleRender()" style="accent-color:var(--orange)">Snap freq to tile</label></div></div>
+        <div class="row" id="tileInfoRow" style="height:auto;padding:4px 0"><span class="lbl"></span><div class="inp"><span id="tileInfo" style="font-size:9px;color:var(--g40);line-height:1.4"></span></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head" onclick="tog(this)"><span class="panel-label">Post FX</span><span class="panel-arrow">▼</span></div>
+      <div class="panel-content">
+        <div class="row"><span class="lbl">Blur</span><div class="inp"><input type="range" id="fxBlur" min="0" max="20" step="0.5" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="fxBlur_v">0</span></div></div>
+        <div class="row"><span class="lbl">Grain</span><div class="inp"><input type="range" id="fxGrain" min="0" max="100" step="1" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="fxGrain_v">0</span></div></div>
+        <div class="row"><span class="lbl">Grain Size</span><div class="inp"><input type="range" id="fxGrainSize" min="1" max="6" step="1" value="1" oninput="uv(this);scheduleRender()"><span class="rv" id="fxGrainSize_v">1</span></div></div>
+        <div class="row"><span class="lbl">Noise Spd</span><div class="inp"><input type="range" id="fxNoiseSpeed" min="0" max="10" step="0.1" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="fxNoiseSpeed_v">0</span></div></div>
+        <div class="row"><span class="lbl">Chroma</span><div class="inp"><input type="range" id="fxChroma" min="0" max="20" step="0.5" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="fxChroma_v">0</span></div></div>
+        <div class="row" style="height:8px"></div>
+        <div class="row"><span class="lbl">Distort</span><div class="inp"><input type="range" id="fxDistAmt" min="0" max="60" step="1" value="0" oninput="uv(this);scheduleRender()"><span class="rv" id="fxDistAmt_v">0</span></div></div>
+        <div class="row"><span class="lbl">Dist Scale</span><div class="inp"><input type="range" id="fxDistScale" min="4" max="200" step="1" value="40" oninput="uv(this);scheduleRender()"><span class="rv" id="fxDistScale_v">40</span></div></div>
+        <div class="row"><span class="lbl">Dist Spd</span><div class="inp"><input type="range" id="fxDistSpeed" min="0" max="10" step="0.1" value="1" oninput="uv(this);scheduleRender()"><span class="rv" id="fxDistSpeed_v">1</span></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="canvas-area">
+    <div class="canvas-wrap checker" id="canvasWrap">
+      <canvas id="mainCanvas" width="1920" height="1080"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="exportModal">
+  <div class="modal">
+    <div class="modal-title">Export PNG Sequence</div>
+    <div class="row"><span class="lbl" style="width:80px">Canvas</span><div class="inp"><span class="rv" id="exSize" style="min-width:auto">1920×1080</span></div></div>
+    <div class="row"><span class="lbl" style="width:80px">Frames</span><div class="inp"><span class="rv" id="exFrames" style="min-width:auto">90</span></div></div>
+    <div class="row"><span class="lbl" style="width:80px">FPS</span><div class="inp"><span class="rv" id="exFps" style="min-width:auto">30</span></div></div>
+    <div class="row"><span class="lbl" style="width:80px">Format</span><div class="inp"><select id="exFormat"><option value="png">PNG (Alpha)</option><option value="jpg">JPEG</option></select></div></div>
+    <div class="prog-bar" id="exProg"><div class="prog-fill" id="exProgFill"></div></div>
+    <div class="modal-foot">
+      <button class="modal-btn" onclick="closeExportModal()">Cancel</button>
+      <button class="modal-btn go" id="exBtn" onclick="startExport()">Export</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="presetFileInput" accept=".json" style="display:none" onchange="handlePresetLoad(event)">
+
+<script>
+const canvas=document.getElementById('mainCanvas'),ctx=canvas.getContext('2d');
+let currentShape='circle',waves=[],waveId=0,isPlaying=false,currentTime=0,lastTs=null,af=null,rp=false;
+const G=id=>parseFloat(document.getElementById(id).value);
+function uv(el){const s=document.getElementById(el.id+'_v');if(s)s.textContent=el.value}
+function tog(h){h.nextElementSibling.classList.toggle('shut');h.querySelector('.panel-arrow').classList.toggle('shut')}
+function setShape(s,el){currentShape=s;document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('lineLenRow').style.display=s==='line'?'flex':'none';scheduleRender()}
+function setSize(w,h){document.getElementById('canvasW').value=w;document.getElementById('canvasH').value=h;resizeCanvas()}
+function resizeCanvas(){canvas.width=G('canvasW');canvas.height=G('canvasH');fitCanvas();updateFrameInfo();scheduleRender()}
+function fitCanvas(){
+  const a=document.querySelector('.canvas-area'),sc=Math.min((a.clientWidth-40)/canvas.width,(a.clientHeight-40)/canvas.height,1),wr=document.getElementById('canvasWrap');
+  wr.style.width=(canvas.width*sc)+'px';wr.style.height=(canvas.height*sc)+'px';canvas.style.width=(canvas.width*sc)+'px';canvas.style.height=(canvas.height*sc)+'px';
+  wr.classList.toggle('checker',document.getElementById('bgMode').value==='transparent');
+}
+function updateFrameInfo(){
+  const w=G('canvasW'),h=G('canvasH'),fps=G('fps'),dur=G('duration'),tf=Math.round(fps*dur);
+  document.getElementById('frameInfo').textContent=w+'×'+h+' · '+fps+'fps · '+tf+'f';
+  document.getElementById('exSize').textContent=w+'×'+h;document.getElementById('exFrames').textContent=tf;document.getElementById('exFps').textContent=fps;updateTTime();
+}
+
+// WAVES
+function addWave(c){
+  const id=waveId++;
+  waves.push({id,angle:c?.angle??0,frequency:c?.frequency??0.02,speed:c?.speed??2,amplitude:c?.amplitude??1,waveform:c?.waveform??'sine',targets:c?.targets??['opacity']});
+  renderWaves();scheduleRender();
+}
+function removeWave(id){waves=waves.filter(w=>w.id!==id);renderWaves();scheduleRender()}
+function renderWaves(){
+  const el=document.getElementById('waveList');el.innerHTML='';
+  waves.forEach((w,i)=>{
+    const d=document.createElement('div');d.className='wave-card';
+    d.innerHTML=`<div class="wave-head"><span class="wave-num">Wave ${i+1}</span><span class="wave-del" onclick="removeWave(${w.id})">✕</span></div>
+<div class="row"><span class="lbl">Angle</span><div class="inp"><input type="range" min="0" max="360" value="${w.angle}" oninput="uw(${w.id},'angle',this.value);this.nextElementSibling.textContent=this.value"><span class="rv">${w.angle}</span></div></div>
+<div class="row"><span class="lbl">Freq</span><div class="inp"><input type="range" min="0.001" max="0.15" step="0.001" value="${w.frequency}" oninput="uw(${w.id},'frequency',this.value);this.nextElementSibling.textContent=parseFloat(this.value).toFixed(3)"><span class="rv">${w.frequency.toFixed(3)}</span></div></div>
+<div class="row"><span class="lbl">Speed</span><div class="inp"><input type="range" min="0" max="20" step="0.1" value="${w.speed}" oninput="uw(${w.id},'speed',this.value);this.nextElementSibling.textContent=parseFloat(this.value).toFixed(1)"><span class="rv">${w.speed.toFixed(1)}</span></div></div>
+<div class="row"><span class="lbl">Amplitude</span><div class="inp"><input type="range" min="0" max="3" step="0.01" value="${w.amplitude}" oninput="uw(${w.id},'amplitude',this.value);this.nextElementSibling.textContent=parseFloat(this.value).toFixed(2)"><span class="rv">${w.amplitude.toFixed(2)}</span></div></div>
+<div class="row"><span class="lbl">Waveform</span><div class="inp"><select onchange="uw(${w.id},'waveform',this.value)"><option value="sine"${w.waveform==='sine'?' selected':''}>Sine</option><option value="square"${w.waveform==='square'?' selected':''}>Square</option><option value="triangle"${w.waveform==='triangle'?' selected':''}>Triangle</option><option value="sawtooth"${w.waveform==='sawtooth'?' selected':''}>Sawtooth</option></select></div></div>
+<div class="row"><span class="lbl">Targets</span><div class="inp"><div class="chips">${['posX','posY','size','opacity'].map(t=>`<span class="chip${w.targets.includes(t)?' on':''}" onclick="tt(${w.id},'${t}',this)">${t}</span>`).join('')}</div></div></div>`;
+    el.appendChild(d);
+  });
+}
+function uw(id,p,v){const w=waves.find(w=>w.id===id);if(!w)return;w[p]=p==='waveform'?v:parseFloat(v);scheduleRender()}
+function tt(id,t,el){const w=waves.find(w=>w.id===id);if(!w)return;const i=w.targets.indexOf(t);if(i>=0){w.targets.splice(i,1);el.classList.remove('on')}else{w.targets.push(t);el.classList.add('on')}scheduleRender()}
+
+// WAVEFORMS
+function wv(type,phase){
+  const p=((phase%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+  switch(type){case'sine':return Math.sin(phase);case'square':return Math.sin(phase)>=0?1:-1;case'triangle':return 2*Math.abs(2*(p/(Math.PI*2)-Math.floor(p/(Math.PI*2)+.5)))-1;case'sawtooth':return 2*(p/(Math.PI*2))-1;default:return Math.sin(phase)}
+}
+
+// TILING HELPERS
+function quantiseSpeed(speed, duration) {
+  // Snap speed so speed*duration = n*2π (nearest whole cycle)
+  const TWO_PI = Math.PI * 2;
+  const cycles = speed * duration / TWO_PI;
+  const n = Math.max(1, Math.round(cycles));
+  return n * TWO_PI / duration;
+}
+
+function quantiseFreqForTileX(frequency, angle, canvasW) {
+  // The horizontal repeat requires: frequency * cos(angle_rad) * canvasW = m * 2π
+  const TWO_PI = Math.PI * 2;
+  const ar = angle * Math.PI / 180;
+  const cosA = Math.cos(ar);
+  if (Math.abs(cosA) < 1e-6) return frequency; // vertical wave already tiles perfectly
+  const hCycles = frequency * cosA * canvasW / TWO_PI;
+  const m = Math.max(1, Math.round(Math.abs(hCycles))) * Math.sign(hCycles || 1);
+  return m * TWO_PI / (cosA * canvasW);
+}
+
+// RENDER
+function scheduleRender(){if(!rp){rp=true;requestAnimationFrame(()=>{rp=false;render(currentTime)})}}
+function render(time){
+  const W=canvas.width,H=canvas.height,bg=document.getElementById('bgMode').value;
+  ctx.clearRect(0,0,W,H);
+  if(bg==='black'){ctx.fillStyle='#000';ctx.fillRect(0,0,W,H)}else if(bg==='white'){ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H)}
+  const spX=G('spacingX'),spY=G('spacingY'),baseSize=G('pointSize'),lineLen=G('lineLength'),offX=G('offsetX'),offY=G('offsetY'),baseCol=document.getElementById('baseColor').value;
+  const doLoopTime=document.getElementById('loopTime').checked;
+  const doTileX=document.getElementById('tileX').checked;
+  const dur=G('duration');
+
+  // Pre-compute effective wave params with quantisation
+  const effWaves = waves.map(w => {
+    let freq = w.frequency;
+    let speed = w.speed;
+    if (doTileX) freq = quantiseFreqForTileX(freq, w.angle, W);
+    if (doLoopTime) speed = quantiseSpeed(speed, dur);
+    return { ...w, frequency: freq, speed: speed };
+  });
+
+  // Update tiling info display
+  updateTileInfo(effWaves, dur, W);
+
+  // Grid: for horizontal tiling, ensure grid columns align at edges
+  // We need exact columns so col 0 and col N overlay when tiled
+  let effectiveSpX = spX;
+  if (doTileX) {
+    // Snap spacing so whole number of columns fit exactly in canvas width
+    const nCols = Math.max(1, Math.round(W / spX));
+    effectiveSpX = W / nCols;
+  }
+  const cols=Math.ceil(W/effectiveSpX)+2,rows=Math.ceil(H/spY)+2;
+  const sx=doTileX ? 0 : (offX%effectiveSpX-effectiveSpX);
+  const sy=offY%spY-spY;
+
+  for(let r=0;r<rows;r++){for(let c=0;c<cols;c++){
+    let px=sx+c*effectiveSpX,py=sy+r*spY,sz=baseSize,op=1;
+    for(const wave of effWaves){
+      const ar=wave.angle*Math.PI/180,dist=px*Math.cos(ar)+py*Math.sin(ar),phase=dist*wave.frequency-time*wave.speed,val=wv(wave.waveform,phase)*wave.amplitude;
+      for(const t of wave.targets){switch(t){case'posX':px+=val*effectiveSpX*.4;break;case'posY':py+=val*spY*.4;break;case'size':sz=Math.max(.1,sz*(1+val*.8));break;case'opacity':op=Math.max(0,Math.min(1,op*(.5+val*.5)));break}}
+    }
+    // Horizontal wrap for tiling: wrap displaced points to appear on opposite edge
+    if(doTileX){
+      px = ((px % W) + W) % W;
+    }
+    if(op<.005)continue;
+    if(!doTileX && (px<-sz*2||px>W+sz*2))continue;
+    if(py<-lineLen-sz||py>H+lineLen+sz)continue;
+    const rgba=baseCol==='white'?`rgba(255,255,255,${op})`:`rgba(0,0,0,${op})`;ctx.fillStyle=rgba;ctx.strokeStyle=rgba;
+    // Draw the point (and a wrapped copy if it straddles the tile edge)
+    const drawAt = [px];
+    if(doTileX){
+      const halfSz = currentShape==='line' ? sz : sz/2;
+      if(px - halfSz < 0) drawAt.push(px + W);
+      else if(px + halfSz > W) drawAt.push(px - W);
+    }
+    for(const dx of drawAt){
+    switch(currentShape){case'circle':ctx.beginPath();ctx.arc(dx,py,sz/2,0,Math.PI*2);ctx.fill();break;case'square':ctx.fillRect(dx-sz/2,py-sz/2,sz,sz);break;case'line':ctx.lineWidth=sz;ctx.lineCap='butt';ctx.beginPath();ctx.moveTo(dx,py-lineLen/2);ctx.lineTo(dx,py+lineLen/2);ctx.stroke();break}
+    }
+  }}
+  applyPostFX(time);
+  fitCanvas();
+}
+
+function updateTileInfo(effWaves, dur, W) {
+  const el = document.getElementById('tileInfo');
+  if (!el) return;
+  const lines = effWaves.map((w, i) => {
+    const TWO_PI = Math.PI * 2;
+    const tCycles = (w.speed * dur / TWO_PI).toFixed(1);
+    const ar = w.angle * Math.PI / 180;
+    const hCycles = Math.abs(w.frequency * Math.cos(ar) * W / TWO_PI).toFixed(1);
+    return `W${i+1}: ${tCycles} t-cycles, ${hCycles} x-cycles`;
+  });
+  el.textContent = lines.join(' · ');
+}
+
+// POST FX
+const fxCanvas = document.createElement('canvas');
+const fxCtx = fxCanvas.getContext('2d');
+let grainData = null, grainW = 0, grainH = 0;
+
+function generateGrain(w, h, size, intensity) {
+  const gw = Math.ceil(w / size), gh = Math.ceil(h / size);
+  if (!grainData || grainW !== gw || grainH !== gh) {
+    grainData = fxCtx.createImageData(gw, gh);
+    grainW = gw; grainH = gh;
+  }
+  const d = grainData.data;
+  const a = intensity * 2.55;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    d[i] = d[i+1] = d[i+2] = v;
+    d[i+3] = (Math.random() * a) | 0;
+  }
+  return { data: grainData, w: gw, h: gh, size };
+}
+
+// Value noise — seeded hash grid with smooth interpolation
+const _noiseP = new Uint8Array(512);
+(function initNoise() {
+  const p = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) p[i] = i;
+  for (let i = 255; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = p[i]; p[i] = p[j]; p[j] = t; }
+  for (let i = 0; i < 512; i++) _noiseP[i] = p[i & 255];
+})();
+function _hash(x, y) { return _noiseP[(_noiseP[x & 255] + y) & 255]; }
+function _fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function _lerp(a, b, t) { return a + (b - a) * t; }
+function valueNoise2D(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = _fade(x - xi), yf = _fade(y - yi);
+  const v00 = _hash(xi, yi) / 255 * 2 - 1;
+  const v10 = _hash(xi + 1, yi) / 255 * 2 - 1;
+  const v01 = _hash(xi, yi + 1) / 255 * 2 - 1;
+  const v11 = _hash(xi + 1, yi + 1) / 255 * 2 - 1;
+  return _lerp(_lerp(v00, v10, xf), _lerp(v01, v11, xf), yf);
+}
+
+function applyPostFX(time) {
+  const W = canvas.width, H = canvas.height;
+  const blur = G('fxBlur');
+  const grain = G('fxGrain');
+  const grainSize = G('fxGrainSize');
+  const chroma = G('fxChroma');
+  const noiseSpeed = G('fxNoiseSpeed');
+  const distAmt = G('fxDistAmt');
+  const distScale = G('fxDistScale');
+  const distSpeed = G('fxDistSpeed');
+
+  if (blur === 0 && grain === 0 && chroma === 0 && distAmt === 0) return;
+
+  if (fxCanvas.width !== W || fxCanvas.height !== H) {
+    fxCanvas.width = W; fxCanvas.height = H;
+  }
+
+  // --- Noise-driven Distortion (displacement via value noise) ---
+  if (distAmt > 0) {
+    const src = ctx.getImageData(0, 0, W, H);
+    const out = ctx.createImageData(W, H);
+    const sd = src.data, dd = out.data;
+    const t = time * distSpeed;
+    // Pre-compute displacement map at grid resolution for performance
+    const step = Math.max(1, Math.round(distScale / 4));
+    const gw = Math.ceil(W / step) + 2, gh = Math.ceil(H / step) + 2;
+    const dxMap = new Float32Array(gw * gh);
+    const dyMap = new Float32Array(gw * gh);
+    for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        const nx = (gx * step) / distScale, ny = (gy * step) / distScale + t;
+        const gi = gy * gw + gx;
+        dxMap[gi] = valueNoise2D(nx, ny) * distAmt;
+        dyMap[gi] = valueNoise2D(nx + 73.7, ny + 31.1) * distAmt;
+      }
+    }
+    // Bilinear interpolate displacement per pixel
+    for (let y = 0; y < H; y++) {
+      const gy = y / step, gy0 = Math.min(gh - 2, gy | 0), gyf = gy - gy0;
+      for (let x = 0; x < W; x++) {
+        const gx = x / step, gx0 = Math.min(gw - 2, gx | 0), gxf = gx - gx0;
+        const i00 = gy0 * gw + gx0, i10 = i00 + 1, i01 = i00 + gw, i11 = i01 + 1;
+        const dx = (dxMap[i00]*(1-gxf) + dxMap[i10]*gxf)*(1-gyf) + (dxMap[i01]*(1-gxf) + dxMap[i11]*gxf)*gyf;
+        const dy = (dyMap[i00]*(1-gxf) + dyMap[i10]*gxf)*(1-gyf) + (dyMap[i01]*(1-gxf) + dyMap[i11]*gxf)*gyf;
+        const sx = Math.round(Math.min(W - 1, Math.max(0, x + dx)));
+        const sy = Math.round(Math.min(H - 1, Math.max(0, y + dy)));
+        const si = (sy * W + sx) * 4;
+        const di = (y * W + x) * 4;
+        dd[di] = sd[si]; dd[di+1] = sd[si+1]; dd[di+2] = sd[si+2]; dd[di+3] = sd[si+3];
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  // --- Chromatic Aberration (pixel shift R/B channels) ---
+  if (chroma > 0) {
+    const src = ctx.getImageData(0, 0, W, H);
+    const out = ctx.createImageData(W, H);
+    const sd = src.data, dd = out.data;
+    const shift = Math.round(chroma);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = (y * W + x) * 4;
+        const rx = Math.min(W - 1, Math.max(0, x + shift));
+        const bx = Math.min(W - 1, Math.max(0, x - shift));
+        dd[idx]     = sd[(y * W + rx) * 4];       // R shifted
+        dd[idx + 1] = sd[idx + 1];                 // G stays
+        dd[idx + 2] = sd[(y * W + bx) * 4 + 2];   // B shifted
+        dd[idx + 3] = Math.max(sd[(y * W + rx) * 4 + 3], sd[idx + 3], sd[(y * W + bx) * 4 + 3]);
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  // --- Blur (downscale → upscale) ---
+  if (blur > 0) {
+    const scale = Math.max(0.05, 1 - blur / 25);
+    const sw = Math.max(1, Math.round(W * scale));
+    const sh = Math.max(1, Math.round(H * scale));
+    fxCtx.clearRect(0, 0, W, H);
+    fxCtx.imageSmoothingEnabled = true;
+    fxCtx.imageSmoothingQuality = 'medium';
+    fxCtx.drawImage(canvas, 0, 0, W, H, 0, 0, sw, sh);
+    const bg = document.getElementById('bgMode').value;
+    ctx.clearRect(0, 0, W, H);
+    if (bg === 'black') { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
+    else if (bg === 'white') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(fxCanvas, 0, 0, sw, sh, 0, 0, W, H);
+  }
+
+  // --- Grain ---
+  if (grain > 0) {
+    const g = generateGrain(W, H, grainSize, grain);
+    fxCtx.clearRect(0, 0, W, H);
+    fxCtx.putImageData(g.data, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = grainSize <= 1;
+    ctx.drawImage(fxCanvas, 0, 0, g.w, g.h, 0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+// PLAYBACK
+function togglePlay(){
+  isPlaying=!isPlaying;const icon=document.getElementById('playIcon');
+  if(isPlaying){icon.innerHTML='<rect x="1" y="0" width="3.5" height="14"/><rect x="7.5" y="0" width="3.5" height="14"/>';lastTs=performance.now();tick()}
+  else{icon.innerHTML='<polygon points="0,0 12,7 0,14"/>';cancelAnimationFrame(af)}
+}
+function tick(){if(!isPlaying)return;const now=performance.now();currentTime=(currentTime+(now-lastTs)/1000)%G('duration');lastTs=now;render(currentTime);updateTimeline();af=requestAnimationFrame(tick)}
+function resetPlayhead(){currentTime=0;render(0);updateTimeline()}
+function updateTimeline(){const dur=G('duration'),pct=Math.min(1,Math.max(0,currentTime/dur));document.getElementById('timelineFill').style.width=(pct*100)+'%';document.getElementById('timelineHead').style.left=(pct*100)+'%';updateTTime()}
+function updateTTime(){document.getElementById('tTime').textContent=fmt(currentTime)+' / '+fmt(G('duration'))}
+function fmt(s){return Math.floor(s/60)+':'+(s%60).toFixed(2).padStart(5,'0')}
+
+// SCRUB
+let scrubbing=false;
+function scrubStart(e){scrubbing=true;scrubMove(e);window.addEventListener('mousemove',scrubMove);window.addEventListener('mouseup',scrubEnd)}
+function scrubMove(e){if(!scrubbing)return;const r=document.getElementById('timeline').getBoundingClientRect();currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*G('duration');render(currentTime);updateTimeline()}
+function scrubEnd(){scrubbing=false;window.removeEventListener('mousemove',scrubMove);window.removeEventListener('mouseup',scrubEnd)}
+
+// PRESETS
+function getState(){return{canvas:{w:G('canvasW'),h:G('canvasH'),bg:document.getElementById('bgMode').value},mesh:{shape:currentShape,spacingX:G('spacingX'),spacingY:G('spacingY'),pointSize:G('pointSize'),lineLength:G('lineLength'),baseColor:document.getElementById('baseColor').value,offsetX:G('offsetX'),offsetY:G('offsetY')},waves:waves.map(w=>({...w})),animation:{fps:G('fps'),duration:G('duration')},tiling:{loopTime:document.getElementById('loopTime').checked,tileX:document.getElementById('tileX').checked},postfx:{blur:G('fxBlur'),grain:G('fxGrain'),grainSize:G('fxGrainSize'),chroma:G('fxChroma'),noiseSpeed:G('fxNoiseSpeed'),distAmt:G('fxDistAmt'),distScale:G('fxDistScale'),distSpeed:G('fxDistSpeed')}}}
+function loadState(st){
+  if(st.canvas){document.getElementById('canvasW').value=st.canvas.w;document.getElementById('canvasH').value=st.canvas.h;document.getElementById('bgMode').value=st.canvas.bg||'black';resizeCanvas()}
+  if(st.mesh){setShape(st.mesh.shape,document.querySelector(`[data-shape="${st.mesh.shape}"]`));sl('spacingX',st.mesh.spacingX);sl('spacingY',st.mesh.spacingY);sl('pointSize',st.mesh.pointSize);sl('lineLength',st.mesh.lineLength);document.getElementById('baseColor').value=st.mesh.baseColor||'white';sl('offsetX',st.mesh.offsetX||0);sl('offsetY',st.mesh.offsetY||0)}
+  if(st.waves){waves=[];waveId=0;st.waves.forEach(w=>addWave(w))}
+  if(st.animation){document.getElementById('fps').value=st.animation.fps;document.getElementById('duration').value=st.animation.duration}
+  if(st.tiling){document.getElementById('loopTime').checked=st.tiling.loopTime!==false;document.getElementById('tileX').checked=st.tiling.tileX!==false}
+  if(st.postfx){sl('fxBlur',st.postfx.blur||0);sl('fxGrain',st.postfx.grain||0);sl('fxGrainSize',st.postfx.grainSize||1);sl('fxChroma',st.postfx.chroma||0);sl('fxNoiseSpeed',st.postfx.noiseSpeed||0);sl('fxDistAmt',st.postfx.distAmt||0);sl('fxDistScale',st.postfx.distScale||40);sl('fxDistSpeed',st.postfx.distSpeed||1)}
+  updateFrameInfo();scheduleRender();
+}
+function sl(id,v){document.getElementById(id).value=v;const s=document.getElementById(id+'_v');if(s)s.textContent=v}
+function savePreset(){const b=new Blob([JSON.stringify(getState(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='wavemesh-'+Date.now()+'.json';a.click()}
+function loadPresetFile(){document.getElementById('presetFileInput').click()}
+function handlePresetLoad(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{loadState(JSON.parse(ev.target.result))}catch(e){alert('Invalid preset')}};r.readAsText(f);e.target.value=''}
+
+// EXPORT
+function openExportModal(){updateFrameInfo();document.getElementById('exportModal').classList.add('show')}
+function closeExportModal(){document.getElementById('exportModal').classList.remove('show')}
+async function startExport(){
+  const fps=G('fps'),dur=G('duration'),tf=Math.round(fps*dur),format=document.getElementById('exFormat').value,ext=format==='jpg'?'jpg':'png',mime=format==='jpg'?'image/jpeg':'image/png';
+  const prog=document.getElementById('exProg'),fill=document.getElementById('exProgFill'),btn=document.getElementById('exBtn');
+  prog.classList.add('show');btn.disabled=true;btn.textContent='Exporting...';
+  if(isPlaying)togglePlay();
+  const zip=new JSZip(),folder=zip.folder('wavemesh-sequence');
+  for(let i=0;i<tf;i++){render((i/tf)*dur);const d=canvas.toDataURL(mime,format==='jpg'?.95:undefined);folder.file('frame_'+String(i).padStart(5,'0')+'.'+ext,d.split(',')[1],{base64:true});fill.style.width=((i+1)/tf*100)+'%';if(i%5===0)await new Promise(r=>setTimeout(r,0))}
+  const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wavemesh-'+G('canvasW')+'x'+G('canvasH')+'-'+fps+'fps-'+tf+'f.zip';a.click();
+  prog.classList.remove('show');fill.style.width='0%';btn.disabled=false;btn.textContent='Export';render(currentTime);closeExportModal();
+}
+
+// INIT
+addWave({angle:0,frequency:.03,speed:3,amplitude:1,waveform:'sine',targets:['size']});
+resizeCanvas();updateFrameInfo();render(0);
+window.addEventListener('resize',fitCanvas);
+</script>
+</body>
+</html>
