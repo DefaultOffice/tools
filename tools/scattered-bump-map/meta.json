@@ -1,0 +1,8 @@
+{
+  "name": "Scattered Bump Map Generator",
+  "category": "Generator",
+  "project": "Default Office",
+  "owner": "Jake",
+  "date": "2026 03 18",
+  "description": "Scatter logo PNGs across a canvas using Poisson disk sampling to generate seamless bump map textures for 3D rendering. Three independent layers with full scatter controls."
+}
