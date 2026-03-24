@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Line Animator — Default Office</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f5f5;
+    --panel: #ffffff;
+    --border: #d4d4d4;
+    --text: #1a1a1a;
+    --text-secondary: #737373;
+    --accent: #1a1a1a;
+    --input-bg: #f5f5f5;
+    --font: 'Suisse International', 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 40px 1fr 48px;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .header-title {
+    font-weight: 500;
+  }
+
+  .header-right {
+    color: var(--text-secondary);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .section {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+
+  .section-title {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .control-row:last-child { margin-bottom: 0; }
+
+  .control-label {
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .control-value {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    outline: none;
+    margin: 6px 0;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  select, input[type="number"], input[type="text"], input[type="color"] {
+    font-family: var(--font);
+    font-size: 11px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: 0;
+    outline: none;
+  }
+
+  select {
+    padding: 4px 4px;
+    cursor: pointer;
+  }
+
+  input[type="number"] {
+    width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="color"] {
+    width: 28px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  button {
+    font-family: var(--font);
+    font-size: 11px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    padding: 6px 12px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+
+  button:hover { background: var(--input-bg); }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  button.primary:hover { opacity: 0.85; }
+
+  button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* Canvas area */
+  .canvas-area {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .canvas-container {
+    position: relative;
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--border);
+  }
+
+  .canvas-container canvas {
+    display: block;
+  }
+
+  .origin-marker {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid #ff3b30;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .origin-marker::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 3px;
+    background: #ff3b30;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .canvas-crosshair { cursor: crosshair; }
+
+  .drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  .drop-zone-label {
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Footer / transport */
+  .transport {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .transport button {
+    border: none;
+    background: none;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .transport button:hover { background: var(--input-bg); }
+
+  .frame-display {
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-width: 120px;
+  }
+
+  .timeline-bar {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+  }
+
+  .timeline-progress {
+    height: 100%;
+    background: var(--accent);
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .timeline-handle {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Path list */
+  .path-list {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .path-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--input-bg);
+    font-size: 10px;
+  }
+
+  .path-item-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100px;
+  }
+
+  .path-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .path-item-controls select {
+    font-size: 10px;
+    padding: 2px 3px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .btn-row button { flex: 1; }
+
+  .export-progress {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .back-link {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .back-link:hover { color: var(--text); }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="back-link">← Back</a>
+      <span class="header-title">SVG Line Animator</span>
+    </div>
+    <span class="header-right">Default Office</span>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="section">
+      <div class="section-title">Input</div>
+      <button id="btn-load" style="width:100%">Load SVG</button>
+      <input type="file" id="file-input" accept=".svg" style="display:none">
+    </div>
+
+    <div class="section">
+      <div class="section-title">Animation</div>
+      <div class="control-row">
+        <span class="control-label">Mode</span>
+        <select id="ctrl-mode">
+          <option value="reveal">Stroke reveal</option>
+          <option value="trail">Reveal + trail</option>
+          <option value="simultaneous">Simultaneous from origin</option>
+          <option value="simultaneous_trail">Simultaneous + trail</option>
+          <option value="constant">Constant speed</option>
+          <option value="constant_trail">Constant speed + trail</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Duration (s)</span>
+        <input type="number" id="ctrl-duration" value="3" min="0.5" max="30" step="0.5">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Stagger</span>
+        <span class="control-value" id="stagger-val">0.30</span>
+      </div>
+      <input type="range" id="ctrl-stagger" min="0" max="1" step="0.01" value="0.30">
+      <div class="control-row" id="trail-row" style="display:none">
+        <span class="control-label">Trail length</span>
+        <span class="control-value" id="trail-val">0.40</span>
+      </div>
+      <input type="range" id="ctrl-trail" min="0.05" max="1" step="0.01" value="0.40" style="display:none">
+      <div class="control-row">
+        <span class="control-label">Easing</span>
+        <select id="ctrl-easing">
+          <option value="linear">Linear</option>
+          <option value="easeIn">Ease in</option>
+          <option value="easeOut" selected>Ease out</option>
+          <option value="easeInOut">Ease in-out</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Speed (px/s)</span>
+        <input type="number" id="ctrl-speed" value="800" min="50" max="5000" step="50" style="display:none">
+        <span id="speed-na" style="font-size:10px;color:var(--text-secondary)">—</span>
+      </div>
+      <div class="control-row" style="margin-top:4px;border-top:1px solid var(--input-bg);padding-top:8px">
+        <span class="control-label">Reverse</span>
+        <select id="ctrl-reverse">
+          <option value="off">Off</option>
+          <option value="on">On</option>
+        </select>
+      </div>
+      <div class="control-row" id="gap-row" style="display:none">
+        <span class="control-label">Gap (s)</span>
+        <input type="number" id="ctrl-gap" value="0.5" min="0" max="10" step="0.1">
+      </div>
+      <div class="control-row" id="reverse-easing-row" style="display:none">
+        <span class="control-label">Reverse easing</span>
+        <select id="ctrl-easing-reverse">
+          <option value="linear">Linear</option>
+          <option value="easeIn">Ease in</option>
+          <option value="easeOut">Ease out</option>
+          <option value="easeInOut" selected>Ease in-out</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Origin Point</div>
+      <button id="btn-origin" style="width:100%">Click canvas to set origin</button>
+      <div class="control-row" style="margin-top:8px">
+        <span class="control-label" id="origin-display">Not set</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Stroke</div>
+      <div class="control-row">
+        <span class="control-label">Width</span>
+        <input type="number" id="ctrl-stroke-width" value="2" min="0.5" max="20" step="0.5">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Colour</span>
+        <input type="color" id="ctrl-stroke-color" value="#000000">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Paths</div>
+      <div class="control-row" style="margin-bottom:8px">
+        <button id="btn-auto-dir" style="font-size:10px;padding:3px 6px;flex:1">Auto</button>
+        <button id="btn-all-fwd" style="font-size:10px;padding:3px 6px;flex:1">All fwd</button>
+        <button id="btn-all-rev" style="font-size:10px;padding:3px 6px;flex:1">All rev</button>
+      </div>
+      <div class="path-list" id="path-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Export</div>
+      <div class="control-row">
+        <span class="control-label">Frame rate</span>
+        <select id="ctrl-fps">
+          <option value="24">24 fps</option>
+          <option value="30" selected>30 fps</option>
+          <option value="60">60 fps</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Scale</span>
+        <select id="ctrl-scale">
+          <option value="1">1x</option>
+          <option value="2" selected>2x</option>
+          <option value="3">3x</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Background</span>
+        <select id="ctrl-bg-mode">
+          <option value="white">White</option>
+          <option value="transparent">Transparent</option>
+          <option value="custom">Custom</option>
+        </select>
+        <input type="color" id="ctrl-bg-color" value="#000000" style="display:none">
+      </div>
+      <div class="btn-row">
+        <button id="btn-export" class="primary" disabled>Export frames</button>
+      </div>
+      <div class="export-progress" id="export-progress"></div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-area" id="canvas-area">
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-zone-label">Drop SVG or use Load SVG</div>
+    </div>
+    <div class="canvas-container" id="canvas-container" style="display:none">
+      <canvas id="main-canvas"></canvas>
+      <div class="origin-marker" id="origin-marker" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Transport -->
+  <div class="transport">
+    <button id="btn-play">▶</button>
+    <button id="btn-stop">■</button>
+    <span class="frame-display" id="frame-display">0 / 0 — 0.00s</span>
+    <div class="timeline-bar" id="timeline-bar">
+      <div class="timeline-progress" id="timeline-progress"></div>
+      <div class="timeline-handle" id="timeline-handle" style="left:0"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function() {
+  // State
+  let state = {
+    svgDoc: null,
+    paths: [],        // { el, d, length, direction: 'forward'|'reverse', id }
+    originPoint: null, // { x, y } in SVG coords
+    settingOrigin: false,
+    playing: false,
+    currentTime: 0,
+    animFrame: null,
+    lastTs: null,
+    canvasW: 800,
+    canvasH: 600,
+    svgVB: null,      // { x, y, w, h }
+    exporting: false,
+  };
+
+  // Elements
+  const $ = id => document.getElementById(id);
+  const fileInput = $('file-input');
+  const canvas = $('main-canvas');
+  const ctx = canvas.getContext('2d');
+  const canvasArea = $('canvas-area');
+  const canvasContainer = $('canvas-container');
+  const dropZone = $('drop-zone');
+  const originMarker = $('origin-marker');
+  const pathListEl = $('path-list');
+
+  // Controls
+  const ctrlMode = $('ctrl-mode');
+  const ctrlDuration = $('ctrl-duration');
+  const ctrlStagger = $('ctrl-stagger');
+  const ctrlTrail = $('ctrl-trail');
+  const ctrlEasing = $('ctrl-easing');
+  const ctrlSpeed = $('ctrl-speed');
+  const speedNa = $('speed-na');
+  const ctrlStrokeWidth = $('ctrl-stroke-width');
+  const ctrlStrokeColor = $('ctrl-stroke-color');
+  const ctrlFps = $('ctrl-fps');
+  const ctrlScale = $('ctrl-scale');
+  const ctrlBgMode = $('ctrl-bg-mode');
+  const ctrlBgColor = $('ctrl-bg-color');
+  const staggerVal = $('stagger-val');
+  const trailVal = $('trail-val');
+  const trailRow = $('trail-row');
+  const ctrlReverse = $('ctrl-reverse');
+  const ctrlGap = $('ctrl-gap');
+  const gapRow = $('gap-row');
+  const ctrlEasingReverse = $('ctrl-easing-reverse');
+  const reverseEasingRow = $('reverse-easing-row');
+
+  // Easing functions
+  const easings = {
+    linear: t => t,
+    easeIn: t => t * t * t,
+    easeOut: t => 1 - Math.pow(1 - t, 3),
+    easeInOut: t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  };
+
+  // --- SVG Loading ---
+  function loadSVG(text) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) { alert('No SVG element found'); return; }
+
+    state.svgDoc = svgEl;
+
+    // Parse viewBox
+    const vb = svgEl.getAttribute('viewBox');
+    if (vb) {
+      const parts = vb.split(/[\s,]+/).map(Number);
+      state.svgVB = { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+    } else {
+      const w = parseFloat(svgEl.getAttribute('width')) || 800;
+      const h = parseFloat(svgEl.getAttribute('height')) || 600;
+      state.svgVB = { x: 0, y: 0, w, h };
+    }
+
+    // Extract paths — need to measure lengths via an offscreen SVG
+    const offSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    offSvg.setAttribute('viewBox', `${state.svgVB.x} ${state.svgVB.y} ${state.svgVB.w} ${state.svgVB.h}`);
+    offSvg.style.position = 'absolute';
+    offSvg.style.left = '-9999px';
+    document.body.appendChild(offSvg);
+
+    // Collect all path-like elements
+    const pathEls = svgEl.querySelectorAll('path, line, polyline, polygon, circle, ellipse, rect');
+    state.paths = [];
+
+    pathEls.forEach((el, i) => {
+      let d = '';
+      const tag = el.tagName.toLowerCase();
+
+      if (tag === 'path') {
+        d = el.getAttribute('d') || '';
+      } else if (tag === 'line') {
+        const x1 = el.getAttribute('x1') || 0, y1 = el.getAttribute('y1') || 0;
+        const x2 = el.getAttribute('x2') || 0, y2 = el.getAttribute('y2') || 0;
+        d = `M${x1},${y1} L${x2},${y2}`;
+      } else if (tag === 'polyline') {
+        const pts = el.getAttribute('points') || '';
+        d = 'M' + pts.trim().replace(/\s+/g, ' L');
+      } else if (tag === 'polygon') {
+        const pts = el.getAttribute('points') || '';
+        d = 'M' + pts.trim().replace(/\s+/g, ' L') + ' Z';
+      } else if (tag === 'rect') {
+        const x = +el.getAttribute('x') || 0, y = +el.getAttribute('y') || 0;
+        const w = +el.getAttribute('width') || 0, h = +el.getAttribute('height') || 0;
+        d = `M${x},${y} L${x+w},${y} L${x+w},${y+h} L${x},${y+h} Z`;
+      } else if (tag === 'circle') {
+        const cx = +el.getAttribute('cx') || 0, cy = +el.getAttribute('cy') || 0;
+        const r = +el.getAttribute('r') || 0;
+        d = `M${cx-r},${cy} A${r},${r} 0 1,0 ${cx+r},${cy} A${r},${r} 0 1,0 ${cx-r},${cy}`;
+      } else if (tag === 'ellipse') {
+        const cx = +el.getAttribute('cx') || 0, cy = +el.getAttribute('cy') || 0;
+        const rx = +el.getAttribute('rx') || 0, ry = +el.getAttribute('ry') || 0;
+        d = `M${cx-rx},${cy} A${rx},${ry} 0 1,0 ${cx+rx},${cy} A${rx},${ry} 0 1,0 ${cx-rx},${cy}`;
+      }
+
+      if (!d) return;
+
+      const pathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pathNode.setAttribute('d', d);
+      offSvg.appendChild(pathNode);
+      const length = pathNode.getTotalLength();
+      offSvg.removeChild(pathNode);
+
+      if (length < 0.5) return;
+
+      // Get original stroke from element or parent
+      let origStroke = el.getAttribute('stroke') || '';
+      if (!origStroke || origStroke === 'none') {
+        const style = el.getAttribute('style') || '';
+        const m = style.match(/stroke:\s*([^;]+)/);
+        if (m) origStroke = m[1].trim();
+      }
+
+      state.paths.push({
+        d,
+        length,
+        direction: 'forward',
+        id: el.getAttribute('id') || `path-${i}`,
+        origStroke,
+      });
+    });
+
+    document.body.removeChild(offSvg);
+
+    // Set default origin to center
+    state.originPoint = {
+      x: state.svgVB.x + state.svgVB.w / 2,
+      y: state.svgVB.y + state.svgVB.h / 2
+    };
+
+    computeDistances();
+    setupCanvas();
+    renderPathList();
+    dropZone.style.display = 'none';
+    canvasContainer.style.display = 'block';
+    $('btn-export').disabled = false;
+    showOriginMarker();
+    renderFrame(0);
+  }
+
+  function computeDistances() {
+    if (!state.originPoint || !state.paths.length) return;
+
+    // Create temp SVG to sample path positions
+    const offSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    offSvg.setAttribute('viewBox', `${state.svgVB.x} ${state.svgVB.y} ${state.svgVB.w} ${state.svgVB.h}`);
+    offSvg.style.position = 'absolute';
+    offSvg.style.left = '-9999px';
+    document.body.appendChild(offSvg);
+
+    const ox = state.originPoint.x, oy = state.originPoint.y;
+
+    state.paths.forEach(p => {
+      const pathNode = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pathNode.setAttribute('d', p.d);
+      offSvg.appendChild(pathNode);
+
+      // Sample a few points to find closest to origin
+      let minDist = Infinity;
+      const samples = Math.max(20, Math.ceil(p.length / 5));
+      for (let i = 0; i <= samples; i++) {
+        const pt = pathNode.getPointAtLength((i / samples) * p.length);
+        const dist = Math.hypot(pt.x - ox, pt.y - oy);
+        if (dist < minDist) minDist = dist;
+      }
+      p.distToOrigin = minDist;
+
+      // Also get start and end points
+      const startPt = pathNode.getPointAtLength(0);
+      const endPt = pathNode.getPointAtLength(p.length);
+      p.startPt = { x: startPt.x, y: startPt.y };
+      p.endPt = { x: endPt.x, y: endPt.y };
+
+      offSvg.removeChild(pathNode);
+    });
+
+    document.body.removeChild(offSvg);
+
+    // Normalise distances
+    const maxDist = Math.max(...state.paths.map(p => p.distToOrigin));
+    state.paths.forEach(p => {
+      p.normDist = maxDist > 0 ? p.distToOrigin / maxDist : 0;
+    });
+
+    // Auto-direction: set each path to draw away from origin
+    autoDirectionFromOrigin();
+  }
+
+  function autoDirectionFromOrigin() {
+    if (!state.originPoint) return;
+    const ox = state.originPoint.x, oy = state.originPoint.y;
+    state.paths.forEach(p => {
+      if (!p.startPt || !p.endPt) return;
+      const dStart = Math.hypot(p.startPt.x - ox, p.startPt.y - oy);
+      const dEnd = Math.hypot(p.endPt.x - ox, p.endPt.y - oy);
+      p.direction = dStart <= dEnd ? 'forward' : 'reverse';
+    });
+    renderPathList();
+  }
+
+  // --- Canvas ---
+  function setupCanvas() {
+    const area = canvasArea.getBoundingClientRect();
+    const aspect = state.svgVB.w / state.svgVB.h;
+    const maxW = area.width - 80;
+    const maxH = area.height - 80;
+
+    let w, h;
+    if (maxW / maxH > aspect) {
+      h = maxH;
+      w = h * aspect;
+    } else {
+      w = maxW;
+      h = w / aspect;
+    }
+
+    state.canvasW = Math.round(w);
+    state.canvasH = Math.round(h);
+
+    canvas.width = state.canvasW;
+    canvas.height = state.canvasH;
+    canvas.style.width = state.canvasW + 'px';
+    canvas.style.height = state.canvasH + 'px';
+    canvasContainer.style.width = state.canvasW + 'px';
+    canvasContainer.style.height = state.canvasH + 'px';
+  }
+
+  function svgToCanvas(sx, sy) {
+    const vb = state.svgVB;
+    return {
+      x: ((sx - vb.x) / vb.w) * state.canvasW,
+      y: ((sy - vb.y) / vb.h) * state.canvasH,
+    };
+  }
+
+  function canvasToSvg(cx, cy) {
+    const vb = state.svgVB;
+    return {
+      x: vb.x + (cx / state.canvasW) * vb.w,
+      y: vb.y + (cy / state.canvasH) * vb.h,
+    };
+  }
+
+  function renderFrame(time, exportCtx, exportScale, phase) {
+    const isExport = !!exportCtx;
+    const c = exportCtx || ctx;
+    const scale = exportScale || 1;
+    const w = state.canvasW * scale;
+    const h = state.canvasH * scale;
+
+    if (!isExport) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    // Background
+    const bgMode = ctrlBgMode.value;
+    if (bgMode === 'transparent') {
+      c.clearRect(0, 0, w, h);
+    } else {
+      c.fillStyle = bgMode === 'white' ? '#ffffff' : ctrlBgColor.value;
+      c.fillRect(0, 0, w, h);
+    }
+
+    if (!state.paths.length) return;
+
+    const duration = parseFloat(ctrlDuration.value) || 3;
+    const stagger = parseFloat(ctrlStagger.value);
+    const mode = ctrlMode.value;
+    const trailLen = parseFloat(ctrlTrail.value);
+    // Pick easing based on phase
+    const easingKey = (phase === 'reverse') ? ctrlEasingReverse.value : ctrlEasing.value;
+    const easing = easings[easingKey] || easings.linear;
+    const strokeW = parseFloat(ctrlStrokeWidth.value) || 2;
+    const strokeColor = ctrlStrokeColor.value;
+    const speed = parseFloat(ctrlSpeed.value) || 800;
+
+    const vb = state.svgVB;
+    const sx = w / vb.w;
+    const sy = h / vb.h;
+
+    c.save();
+    c.scale(sx, sy);
+    c.translate(-vb.x, -vb.y);
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.lineWidth = strokeW / Math.min(sx, sy);
+
+    state.paths.forEach(p => {
+      let pathProgress, trailStart;
+      const isConstant = mode === 'constant' || mode === 'constant_trail';
+
+      if (mode === 'simultaneous' || mode === 'simultaneous_trail') {
+        // All start at same time, speed-based duration per path
+        const pathDuration = p.length / speed;
+        const t = Math.min(1, time / pathDuration);
+        pathProgress = easing(t);
+
+        if (mode === 'simultaneous_trail') {
+          const trailDelay = trailLen * pathDuration;
+          const trailTime = Math.max(0, time - trailDelay);
+          const tTrail = Math.min(1, trailTime / pathDuration);
+          trailStart = easing(tTrail);
+        } else {
+          trailStart = 0;
+        }
+      } else if (isConstant) {
+        // Constant speed: duration control = time for longest path
+        // Speed derived from longest path, so short paths finish proportionally sooner
+        const maxLen = Math.max(...state.paths.map(pp => pp.length), 1);
+        const pathDuration = (p.length / maxLen) * duration;
+        const staggerDelay = p.normDist * stagger * duration;
+        const localTime = Math.max(0, time - staggerDelay);
+        const t = Math.min(1, localTime / Math.max(0.01, pathDuration));
+        pathProgress = easing(t);
+
+        if (mode === 'constant_trail') {
+          const trailDelay = trailLen * pathDuration;
+          const trailTime = Math.max(0, localTime - trailDelay);
+          const tTrail = Math.min(1, trailTime / Math.max(0.01, pathDuration));
+          trailStart = easing(tTrail);
+        } else {
+          trailStart = 0;
+        }
+      } else {
+        // Stagger based on distance from origin
+        const staggerDelay = p.normDist * stagger * duration;
+        const pathDuration = duration * (1 - stagger);
+        const localTime = Math.max(0, time - staggerDelay);
+        const t = Math.min(1, localTime / Math.max(0.01, pathDuration));
+        pathProgress = easing(t);
+
+        if (mode === 'trail') {
+          const trailDelay = trailLen * pathDuration;
+          const trailTime = Math.max(0, localTime - trailDelay);
+          const tTrail = Math.min(1, trailTime / Math.max(0.01, pathDuration));
+          trailStart = easing(tTrail);
+        } else {
+          trailStart = 0;
+        }
+      }
+
+      // Handle direction
+      let drawStart, drawEnd;
+      if (p.direction === 'reverse') {
+        drawStart = 1 - pathProgress;
+        drawEnd = 1 - trailStart;
+      } else {
+        drawStart = trailStart;
+        drawEnd = pathProgress;
+      }
+
+      if (drawEnd <= drawStart) return;
+
+      const dashLen = p.length;
+      const visibleLen = (drawEnd - drawStart) * dashLen;
+      const offset = drawStart * dashLen;
+
+      c.strokeStyle = strokeColor;
+      c.setLineDash([visibleLen, dashLen]);
+      c.lineDashOffset = -offset;
+
+      const path2d = new Path2D(p.d);
+      c.stroke(path2d);
+    });
+
+    c.restore();
+  }
+
+  // --- Path list ---
+  function renderPathList() {
+    pathListEl.innerHTML = '';
+    state.paths.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'path-item';
+      row.innerHTML = `
+        <span class="path-item-name" title="${p.id}">${p.id}</span>
+        <span style="font-size:10px;color:var(--text-secondary);font-variant-numeric:tabular-nums">${Math.round(p.length)}</span>
+        <div class="path-item-controls">
+          <select data-idx="${i}">
+            <option value="forward" ${p.direction==='forward'?'selected':''}>Fwd</option>
+            <option value="reverse" ${p.direction==='reverse'?'selected':''}>Rev</option>
+          </select>
+        </div>
+      `;
+      const sel = row.querySelector('select');
+      sel.addEventListener('change', e => {
+        state.paths[i].direction = e.target.value;
+        renderCurrentFrame();
+      });
+      pathListEl.appendChild(row);
+    });
+  }
+
+  // --- Origin ---
+  function showOriginMarker() {
+    if (!state.originPoint) { originMarker.style.display = 'none'; return; }
+    const pos = svgToCanvas(state.originPoint.x, state.originPoint.y);
+    originMarker.style.display = 'block';
+    originMarker.style.left = pos.x + 'px';
+    originMarker.style.top = pos.y + 'px';
+    $('origin-display').textContent = `${Math.round(state.originPoint.x)}, ${Math.round(state.originPoint.y)}`;
+  }
+
+  // --- Playback ---
+  // Forward animation duration (one direction only)
+  function getForwardDuration() {
+    if (!state.paths.length) return parseFloat(ctrlDuration.value) || 3;
+
+    const mode = ctrlMode.value;
+    const duration = parseFloat(ctrlDuration.value) || 3;
+    const stagger = parseFloat(ctrlStagger.value);
+    const trailLen = parseFloat(ctrlTrail.value);
+    const speed = parseFloat(ctrlSpeed.value) || 800;
+    const hasTrail = mode === 'trail' || mode === 'constant_trail' || mode === 'simultaneous_trail';
+    const maxLen = Math.max(...state.paths.map(p => p.length), 1);
+
+    let latest = 0;
+
+    state.paths.forEach(p => {
+      let pathDuration, staggerDelay;
+
+      if (mode === 'simultaneous' || mode === 'simultaneous_trail') {
+        pathDuration = p.length / speed;
+        staggerDelay = 0;
+      } else if (mode === 'constant' || mode === 'constant_trail') {
+        pathDuration = (p.length / maxLen) * duration;
+        staggerDelay = p.normDist * stagger * duration;
+      } else {
+        // reveal / trail
+        pathDuration = duration * (1 - stagger);
+        staggerDelay = p.normDist * stagger * duration;
+      }
+
+      let endTime = staggerDelay + pathDuration;
+
+      if (hasTrail) {
+        const trailDelay = trailLen * pathDuration;
+        endTime = staggerDelay + pathDuration + trailDelay;
+      }
+
+      if (endTime > latest) latest = endTime;
+    });
+
+    return latest;
+  }
+
+  // Full duration including reverse + gaps
+  function getTotalDuration() {
+    const fwd = getForwardDuration();
+    const reverse = ctrlReverse.value === 'on';
+    if (!reverse) return fwd;
+    const gap = parseFloat(ctrlGap.value) || 0;
+    return fwd + gap + fwd + gap;
+  }
+
+  // Map global time to effective animation time + phase
+  function resolveAnimTime(globalTime) {
+    const fwd = getForwardDuration();
+    const reverse = ctrlReverse.value === 'on';
+    if (!reverse) return { time: globalTime, phase: 'forward' };
+
+    const gap = parseFloat(ctrlGap.value) || 0;
+    const phase1End = fwd;             // forward done
+    const phase2End = fwd + gap;       // first gap done
+    const phase3End = fwd + gap + fwd; // reverse done
+
+    if (globalTime <= phase1End) {
+      return { time: globalTime, phase: 'forward' };
+    } else if (globalTime <= phase2End) {
+      return { time: fwd, phase: 'gap' };
+    } else if (globalTime <= phase3End) {
+      const reverseProgress = globalTime - phase2End;
+      return { time: fwd - reverseProgress, phase: 'reverse' };
+    } else {
+      return { time: 0, phase: 'gap' };
+    }
+  }
+
+  // Render at current global time (resolves reverse/gap + picks easing)
+  function renderCurrentFrame() {
+    const resolved = resolveAnimTime(state.currentTime);
+    renderFrame(resolved.time, null, null, resolved.phase);
+  }
+
+  function play() {
+    if (state.playing) return;
+    state.playing = true;
+    state.lastTs = null;
+    $('btn-play').textContent = '⏸';
+
+    const totalDur = getTotalDuration();
+    if (state.currentTime >= totalDur) state.currentTime = 0;
+
+    function tick(ts) {
+      if (!state.playing) return;
+      if (state.lastTs === null) state.lastTs = ts;
+      const dt = (ts - state.lastTs) / 1000;
+      state.lastTs = ts;
+      state.currentTime += dt;
+
+      const totalDur = getTotalDuration();
+      if (state.currentTime >= totalDur) {
+        state.currentTime = totalDur;
+        renderCurrentFrame();
+        updateTransport();
+        stop();
+        return;
+      }
+
+      renderCurrentFrame();
+      updateTransport();
+      state.animFrame = requestAnimationFrame(tick);
+    }
+
+    state.animFrame = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    state.playing = false;
+    $('btn-play').textContent = '▶';
+    if (state.animFrame) cancelAnimationFrame(state.animFrame);
+    state.lastTs = null;
+  }
+
+  function updateTransport() {
+    const totalDur = getTotalDuration();
+    const fps = parseInt(ctrlFps.value);
+    const totalFrames = Math.ceil(totalDur * fps);
+    const currentFrame = Math.floor(state.currentTime * fps);
+    $('frame-display').textContent = `${currentFrame} / ${totalFrames} — ${state.currentTime.toFixed(2)}s`;
+
+    const pct = totalDur > 0 ? (state.currentTime / totalDur) * 100 : 0;
+    $('timeline-progress').style.width = pct + '%';
+    $('timeline-handle').style.left = pct + '%';
+  }
+
+  // --- Export ---
+  async function exportFrames() {
+    if (state.exporting || !state.paths.length) return;
+    state.exporting = true;
+    stop();
+
+    const fps = parseInt(ctrlFps.value);
+    const scale = parseInt(ctrlScale.value);
+    const totalDur = getTotalDuration();
+    const totalFrames = Math.ceil(totalDur * fps);
+    const w = state.canvasW * scale;
+    const h = state.canvasH * scale;
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = w;
+    offCanvas.height = h;
+    const offCtx = offCanvas.getContext('2d');
+
+    const zip = new JSZip();
+    const folder = zip.folder('frames');
+    const progressEl = $('export-progress');
+
+    for (let i = 0; i <= totalFrames; i++) {
+      const t = (i / fps);
+      const resolved = resolveAnimTime(t);
+      offCtx.clearRect(0, 0, w, h);
+      renderFrame(resolved.time, offCtx, scale, resolved.phase);
+
+      const blob = await new Promise(r => offCanvas.toBlob(r, 'image/png'));
+      const buf = await blob.arrayBuffer();
+      const pad = String(i).padStart(5, '0');
+      folder.file(`frame_${pad}.png`, buf);
+
+      progressEl.textContent = `Exporting ${i + 1} / ${totalFrames + 1}`;
+
+      // yield to browser
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    progressEl.textContent = 'Zipping...';
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `path-animation-${fps}fps-${scale}x.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    progressEl.textContent = `Done — ${totalFrames + 1} frames exported`;
+    state.exporting = false;
+  }
+
+  // --- Events ---
+  $('btn-load').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => loadSVG(reader.result);
+    reader.readAsText(file);
+  });
+
+  // Drag and drop
+  canvasArea.addEventListener('dragover', e => { e.preventDefault(); });
+  canvasArea.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.name.endsWith('.svg')) return;
+    const reader = new FileReader();
+    reader.onload = () => loadSVG(reader.result);
+    reader.readAsText(file);
+  });
+
+  // Origin click
+  $('btn-origin').addEventListener('click', () => {
+    state.settingOrigin = true;
+    canvasContainer.classList.add('canvas-crosshair');
+    $('btn-origin').textContent = 'Click on canvas...';
+  });
+
+  canvasContainer.addEventListener('click', e => {
+    if (!state.settingOrigin) return;
+    state.settingOrigin = false;
+    canvasContainer.classList.remove('canvas-crosshair');
+    $('btn-origin').textContent = 'Click canvas to set origin';
+
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    state.originPoint = canvasToSvg(cx, cy);
+    computeDistances();
+    showOriginMarker();
+    renderCurrentFrame();
+  });
+
+  // Bulk direction controls
+  $('btn-auto-dir').addEventListener('click', () => {
+    autoDirectionFromOrigin();
+    renderCurrentFrame();
+  });
+  $('btn-all-fwd').addEventListener('click', () => {
+    state.paths.forEach(p => p.direction = 'forward');
+    renderPathList();
+    renderCurrentFrame();
+  });
+  $('btn-all-rev').addEventListener('click', () => {
+    state.paths.forEach(p => p.direction = 'reverse');
+    renderPathList();
+    renderCurrentFrame();
+  });
+
+  // Transport
+  $('btn-play').addEventListener('click', () => state.playing ? stop() : play());
+  $('btn-stop').addEventListener('click', () => { stop(); state.currentTime = 0; updateTransport(); renderFrame(0); });
+
+  $('timeline-bar').addEventListener('click', e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const totalDur = getTotalDuration();
+    state.currentTime = Math.max(0, Math.min(totalDur, pct * totalDur));
+    renderCurrentFrame();
+    updateTransport();
+  });
+
+  // Controls
+  ctrlStagger.addEventListener('input', () => {
+    staggerVal.textContent = parseFloat(ctrlStagger.value).toFixed(2);
+    renderCurrentFrame();
+  });
+
+  ctrlTrail.addEventListener('input', () => {
+    trailVal.textContent = parseFloat(ctrlTrail.value).toFixed(2);
+    renderCurrentFrame();
+  });
+
+  ctrlMode.addEventListener('change', () => {
+    const mode = ctrlMode.value;
+    const isTrail = mode === 'trail' || mode === 'constant_trail' || mode === 'simultaneous_trail';
+    const isSimul = mode === 'simultaneous' || mode === 'simultaneous_trail';
+    const isConstant = mode === 'constant' || mode === 'constant_trail';
+
+    trailRow.style.display = isTrail ? 'flex' : 'none';
+    ctrlTrail.style.display = isTrail ? 'block' : 'none';
+
+    ctrlSpeed.style.display = isSimul ? 'inline-block' : 'none';
+    speedNa.style.display = isSimul ? 'none' : 'inline';
+
+    // Show hint for constant speed mode
+    const durLabel = ctrlDuration.parentElement.querySelector('.control-label');
+    durLabel.textContent = isConstant ? 'Duration (longest)' : 'Duration (s)';
+
+    renderCurrentFrame();
+  });
+
+  [ctrlDuration, ctrlStrokeWidth, ctrlEasing, ctrlSpeed].forEach(el => {
+    el.addEventListener('change', () => renderCurrentFrame());
+    el.addEventListener('input', () => renderCurrentFrame());
+  });
+
+  ctrlStrokeColor.addEventListener('input', () => renderCurrentFrame());
+  ctrlBgMode.addEventListener('change', () => {
+    ctrlBgColor.style.display = ctrlBgMode.value === 'custom' ? 'inline-block' : 'none';
+    renderCurrentFrame();
+  });
+  ctrlBgColor.addEventListener('input', () => renderCurrentFrame());
+
+  ctrlReverse.addEventListener('change', () => {
+    const isOn = ctrlReverse.value === 'on';
+    gapRow.style.display = isOn ? 'flex' : 'none';
+    reverseEasingRow.style.display = isOn ? 'flex' : 'none';
+    updateTransport();
+    renderCurrentFrame();
+  });
+  ctrlGap.addEventListener('change', () => { updateTransport(); renderCurrentFrame(); });
+  ctrlGap.addEventListener('input', () => { updateTransport(); renderCurrentFrame(); });
+  ctrlEasingReverse.addEventListener('change', () => renderCurrentFrame());
+
+  $('btn-export').addEventListener('click', exportFrames);
+
+  // Init transport
+  updateTransport();
+
+  // Resize
+  window.addEventListener('resize', () => {
+    if (state.paths.length) {
+      setupCanvas();
+      showOriginMarker();
+      renderCurrentFrame();
+    }
+  });
+})();
+</script>
+</body>
+</html>
