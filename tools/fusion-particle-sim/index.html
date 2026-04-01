@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Fusion Particle Sim | Default Office Tools</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 340px;
+            background: #252525;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .back-link {
+            display: inline-block;
+            font-size: 12px;
+            color: #666;
+            text-decoration: none;
+            margin-bottom: 8px;
+        }
+
+        .back-link:hover {
+            color: #aaa;
+        }
+
+        .sidebar-header h1 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #333;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+        }
+
+        .control-section h2 {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        .control-row label {
+            font-size: 11px;
+            color: #aaa;
+            width: 90px;
+            flex-shrink: 0;
+        }
+
+        .control-row input[type="range"] {
+            flex: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #444;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .control-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .control-row input[type="number"] {
+            width: 55px;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .control-row input[type="color"] {
+            width: 36px;
+            height: 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .control-row input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .control-row input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+
+        .control-row .value-input {
+            font-size: 11px;
+            color: #fff;
+            width: 55px;
+            text-align: right;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 2px 5px;
+            flex-shrink: 0;
+        }
+
+        .control-row .value-input:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 6px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #4a9eff;
+        }
+
+        .checkbox-row label {
+            font-size: 11px;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .btn-primary {
+            background: #4a9eff;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #3a8eef;
+        }
+
+        .btn-play {
+            background: #22c55e;
+            color: #fff;
+            min-width: 60px;
+        }
+
+        .btn-play:hover {
+            background: #16a34a;
+        }
+
+        .btn-purple {
+            background: #8b5cf6;
+            color: #fff;
+        }
+
+        .btn-purple:hover {
+            background: #7c3aed;
+        }
+
+        .btn-secondary {
+            background: #444;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            background: #252525;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        .top-bar-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-bar-section label {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .top-bar-section input[type="number"] {
+            width: 60px;
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .top-bar-divider {
+            width: 1px;
+            height: 24px;
+            background: #444;
+        }
+
+        .frame-display {
+            font-size: 11px;
+            color: #666;
+            min-width: 80px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #111;
+            position: relative;
+            overflow: auto;
+        }
+
+        #simCanvas {
+            border: 1px solid #333;
+        }
+
+        .export-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .export-status.active {
+            display: block;
+        }
+
+        .layer-color-preview {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        .version-tag {
+            font-size: 10px;
+            color: #555;
+            margin-left: 8px;
+        }
+
+        .layers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 12px;
+        }
+
+        .credit-text {
+            position: absolute;
+            bottom: 16px;
+            right: 20px;
+            font-size: 14px;
+            color: #666;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="back-link">← Back</a>
+            <h1>Nuclear Fusion Particle Sim <span class="version-tag">v3.0</span></h1>
+        </div>
+        <div class="sidebar-content">
+            <div class="control-section">
+                <h2>Camera</h2>
+                <div class="control-row">
+                    <label>Focal Length</label>
+                    <input type="range" id="focalLength" min="20" max="200" value="85">
+                    <input type="number" class="value-input" id="focalLengthVal" value="85">
+                </div>
+                <div class="control-row">
+                    <label>Rotate X</label>
+                    <input type="range" id="rotateX" min="-90" max="90" value="20">
+                    <input type="number" class="value-input" id="rotateXVal" value="20">
+                </div>
+                <div class="control-row">
+                    <label>Rotate Y</label>
+                    <input type="range" id="rotateY" min="-180" max="180" value="30">
+                    <input type="number" class="value-input" id="rotateYVal" value="30">
+                </div>
+                <div class="control-row">
+                    <label>Zoom</label>
+                    <input type="range" id="zoom" min="0.2" max="3" step="0.1" value="1">
+                    <input type="number" class="value-input" id="zoomVal" value="1" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Size by Depth</label>
+                    <input type="range" id="depthScale" min="0" max="2" step="0.1" value="1">
+                    <input type="number" class="value-input" id="depthScaleVal" value="1" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Darken by Depth</label>
+                    <input type="range" id="depthDarken" min="0" max="1" step="0.05" value="0.3">
+                    <input type="number" class="value-input" id="depthDarkenVal" value="0.3" step="0.05">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Container</h2>
+                <div class="control-row">
+                    <label>Width</label>
+                    <input type="range" id="boundaryWidth" min="50" max="1000" value="400">
+                    <input type="number" class="value-input" id="boundaryWidthVal" value="400">
+                </div>
+                <div class="control-row">
+                    <label>Height</label>
+                    <input type="range" id="boundaryHeight" min="50" max="1000" value="400">
+                    <input type="number" class="value-input" id="boundaryHeightVal" value="400">
+                </div>
+                <div class="control-row">
+                    <label>Depth</label>
+                    <input type="range" id="boundaryDepth" min="50" max="1000" value="400">
+                    <input type="number" class="value-input" id="boundaryDepthVal" value="400">
+                </div>
+                <div class="control-row">
+                    <label>Chamfer</label>
+                    <input type="range" id="chamferSize" min="0" max="200" value="50">
+                    <input type="number" class="value-input" id="chamferSizeVal" value="50">
+                </div>
+                <div class="control-row">
+                    <label>Stroke</label>
+                    <input type="range" id="boundaryStroke" min="1" max="10" value="2">
+                    <input type="number" class="value-input" id="boundaryStrokeVal" value="2">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="boundaryColor" value="#ffffff">
+                    <input type="file" id="boundaryGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('boundary', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('boundaryGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('boundary')">×</button>
+                    <span id="boundaryGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Lithium Particles</h2>
+                <div class="control-row">
+                    <label>Count</label>
+                    <input type="range" id="lithiumCount" min="20" max="1000" value="200">
+                    <input type="number" class="value-input" id="lithiumCountVal" value="200">
+                </div>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="lithiumSize" min="2" max="50" value="10">
+                    <input type="number" class="value-input" id="lithiumSizeVal" value="10">
+                </div>
+                <div class="control-row">
+                    <label>Density Falloff</label>
+                    <input type="range" id="densityFalloff" min="0.1" max="10" step="0.1" value="2">
+                    <input type="number" class="value-input" id="densityFalloffVal" value="2" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="lithiumColor" value="#3366cc">
+                    <input type="file" id="lithiumGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('lithium', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('lithiumGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('lithium')">×</button>
+                    <span id="lithiumGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+                <button class="btn btn-secondary" onclick="regenerateLithium()">Regenerate</button>
+            </div>
+
+            <div class="control-section">
+                <h2>Neutrons</h2>
+                <div class="control-row">
+                    <label>Emission Rate</label>
+                    <input type="range" id="emissionRate" min="0.1" max="20" step="0.1" value="1">
+                    <input type="number" class="value-input" id="emissionRateVal" value="1" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Max Count</label>
+                    <input type="range" id="maxNeutrons" min="1" max="100" value="10">
+                    <input type="number" class="value-input" id="maxNeutronsVal" value="10">
+                </div>
+                <div class="control-row">
+                    <label>Speed</label>
+                    <input type="range" id="neutronSpeed" min="10" max="1000" value="200">
+                    <input type="number" class="value-input" id="neutronSpeedVal" value="200">
+                </div>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="neutronSize" min="2" max="50" value="8">
+                    <input type="number" class="value-input" id="neutronSizeVal" value="8">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="neutronColor" value="#ffff00">
+                    <input type="file" id="neutronGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('neutron', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('neutronGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('neutron')">×</button>
+                    <span id="neutronGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+                <div class="control-row">
+                    <label>Trail Length</label>
+                    <input type="range" id="neutronTrailLength" min="0" max="50" value="0">
+                    <input type="number" class="value-input" id="neutronTrailLengthVal" value="0">
+                </div>
+                <div class="control-row">
+                    <label>Trail Opacity</label>
+                    <input type="range" id="neutronTrailOpacity" min="0" max="1" step="0.05" value="0.5">
+                    <input type="number" class="value-input" id="neutronTrailOpacityVal" value="0.5" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Collision Start</label>
+                    <input type="range" id="collisionStart" min="0" max="1" step="0.05" value="0.3">
+                    <input type="number" class="value-input" id="collisionStartVal" value="0.3" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Collision Ramp</label>
+                    <input type="range" id="collisionRamp" min="0.5" max="5" step="0.1" value="2">
+                    <input type="number" class="value-input" id="collisionRampVal" value="2" step="0.1">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Helium (Product)</h2>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="heliumSize" min="2" max="50" value="8">
+                    <input type="number" class="value-input" id="heliumSizeVal" value="8">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="heliumColor" value="#ff00ff">
+                    <input type="file" id="heliumGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('helium', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('heliumGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('helium')">×</button>
+                    <span id="heliumGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+                <div class="control-row">
+                    <label>Trail Length</label>
+                    <input type="range" id="heliumTrailLength" min="0" max="50" value="0">
+                    <input type="number" class="value-input" id="heliumTrailLengthVal" value="0">
+                </div>
+                <div class="control-row">
+                    <label>Trail Opacity</label>
+                    <input type="range" id="heliumTrailOpacity" min="0" max="1" step="0.05" value="0.5">
+                    <input type="number" class="value-input" id="heliumTrailOpacityVal" value="0.5" step="0.05">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Tritium (Product)</h2>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="tritiumSize" min="2" max="50" value="8">
+                    <input type="number" class="value-input" id="tritiumSizeVal" value="8">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="tritiumColor" value="#cc0000">
+                    <input type="file" id="tritiumGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('tritium', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('tritiumGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('tritium')">×</button>
+                    <span id="tritiumGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+                <div class="control-row">
+                    <label>Trail Length</label>
+                    <input type="range" id="tritiumTrailLength" min="0" max="50" value="0">
+                    <input type="number" class="value-input" id="tritiumTrailLengthVal" value="0">
+                </div>
+                <div class="control-row">
+                    <label>Trail Opacity</label>
+                    <input type="range" id="tritiumTrailOpacity" min="0" max="1" step="0.05" value="0.5">
+                    <input type="number" class="value-input" id="tritiumTrailOpacityVal" value="0.5" step="0.05">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Product Settings</h2>
+                <div class="control-row">
+                    <label>Speed</label>
+                    <input type="range" id="productSpeed" min="10" max="500" value="100">
+                    <input type="number" class="value-input" id="productSpeedVal" value="100">
+                </div>
+                <div class="control-row">
+                    <label>Fade Distance</label>
+                    <input type="range" id="fadeDistance" min="10" max="500" value="80">
+                    <input type="number" class="value-input" id="fadeDistanceVal" value="80">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Collision Flash</h2>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="flashSize" min="0" max="100" value="30">
+                    <input type="number" class="value-input" id="flashSizeVal" value="30">
+                </div>
+                <div class="control-row">
+                    <label>Colour</label>
+                    <input type="color" id="flashColor" value="#ffffff">
+                    <input type="file" id="flashGradientFile" accept="image/*" style="display:none" onchange="loadGradientImage('flash', event)">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('flashGradientFile').click()">Gradient</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('flash')">×</button>
+                    <span id="flashGradientStatus" style="font-size: 9px; color: #555;"></span>
+                </div>
+                <div class="control-row">
+                    <label>Fade In</label>
+                    <input type="range" id="flashFadeIn" min="0" max="10" value="1">
+                    <input type="number" class="value-input" id="flashFadeInVal" value="1">
+                </div>
+                <div class="control-row">
+                    <label>Fade Out</label>
+                    <input type="range" id="flashFadeOut" min="1" max="30" value="8">
+                    <input type="number" class="value-input" id="flashFadeOutVal" value="8">
+                </div>
+                <div class="control-row">
+                    <label>Glow Rings</label>
+                    <input type="range" id="flashRings" min="1" max="5" value="3">
+                    <input type="number" class="value-input" id="flashRingsVal" value="3">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Layer Visibility</h2>
+                <div class="layers-grid">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showBoundary" checked>
+                        <label for="showBoundary"><span class="layer-color-preview" id="boundaryPreview"></span>Container</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showLithium" checked>
+                        <label for="showLithium"><span class="layer-color-preview" id="lithiumPreview"></span>Lithium</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showNeutrons" checked>
+                        <label for="showNeutrons"><span class="layer-color-preview" id="neutronPreview"></span>Neutrons</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showHelium" checked>
+                        <label for="showHelium"><span class="layer-color-preview" id="heliumPreview"></span>Helium</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showTritium" checked>
+                        <label for="showTritium"><span class="layer-color-preview" id="tritiumPreview"></span>Tritium</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="showFlash" checked>
+                        <label for="showFlash"><span class="layer-color-preview" id="flashPreview"></span>Flash</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="top-bar">
+            <div class="top-bar-section">
+                <button class="btn btn-play" id="playBtn" onclick="togglePlay()">Play</button>
+                <button class="btn btn-secondary" onclick="resetSim()">Reset</button>
+                <button class="btn btn-secondary" onclick="stepFrame()">Step</button>
+                <span class="frame-display" id="frameDisplay">Frame: 0</span>
+            </div>
+            
+            <div class="top-bar-divider"></div>
+            
+            <div class="top-bar-section">
+                <label>Canvas</label>
+                <input type="number" id="canvasWidth" value="1920" min="100" max="8192">
+                <span style="color:#555">×</span>
+                <input type="number" id="canvasHeight" value="1080" min="100" max="8192">
+                <input type="color" id="bgColor" value="#000000" title="Background">
+                <button class="btn btn-secondary btn-sm" onclick="applyCanvasSize()">Apply</button>
+            </div>
+            
+            <div class="top-bar-divider"></div>
+            
+            <div class="top-bar-section">
+                <label>FPS</label>
+                <input type="number" id="frameRateVal" value="30" style="width:50px">
+                <input type="range" id="frameRate" min="12" max="120" value="30" style="width:80px">
+            </div>
+            
+            <div class="top-bar-section">
+                <label>Duration</label>
+                <input type="number" id="duration" value="5" min="1" max="60" style="width:50px">
+            </div>
+            
+            <div class="top-bar-section">
+                <label>Seed</label>
+                <input type="number" id="seedVal" value="12345" style="width:80px">
+                <button class="btn btn-secondary btn-sm" onclick="randomizeSeed()">Random</button>
+            </div>
+            
+            <div class="top-bar-divider"></div>
+            
+            <div class="top-bar-section">
+                <button class="btn btn-primary" onclick="exportSequence()">Export Sequence</button>
+                <button class="btn btn-primary" onclick="exportAllLayers()">Export Layers</button>
+                <button class="btn btn-secondary" onclick="exportCurrentFrame()">Export Frame</button>
+            </div>
+            
+            <div class="top-bar-divider"></div>
+            
+            <div class="top-bar-section">
+                <button class="btn btn-secondary" onclick="savePreset()">Save Preset</button>
+                <button class="btn btn-purple" onclick="document.getElementById('presetFileInput').click()">Load Preset</button>
+                <input type="file" id="presetFileInput" accept=".txt,.json" style="display:none" onchange="loadPreset(event)">
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="1920" height="1080"></canvas>
+            <div class="export-status" id="exportStatus">Exporting...</div>
+            <div class="credit-text">developed by Default Office</div>
+        </div>
+    </div>
+
+    <script>
+        // Seeded random number generator (Mulberry32)
+        let rngSeed = 12345;
+        let rng;
+        
+        function mulberry32(a) {
+            return function() {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+        
+        function initRng() {
+            rngSeed = parseInt(document.getElementById('seedVal').value) || 12345;
+            rng = mulberry32(rngSeed);
+        }
+        
+        function seededRandom() {
+            return rng();
+        }
+        
+        function randomizeSeed() {
+            document.getElementById('seedVal').value = Math.floor(Math.random() * 1000000);
+            resetSim();
+        }
+
+        // Gradient images for each layer
+        const gradientImages = {
+            boundary: null,
+            lithium: null,
+            neutron: null,
+            helium: null,
+            tritium: null,
+            flash: null
+        };
+        
+        // Offscreen canvas for sampling gradient colours
+        const gradientCanvases = {
+            boundary: null,
+            lithium: null,
+            neutron: null,
+            helium: null,
+            tritium: null,
+            flash: null
+        };
+
+        function loadGradientImage(layer, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    gradientImages[layer] = img;
+                    
+                    // Create offscreen canvas for colour sampling
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = img.width;
+                    offCanvas.height = img.height;
+                    const offCtx = offCanvas.getContext('2d');
+                    offCtx.drawImage(img, 0, 0);
+                    gradientCanvases[layer] = offCtx;
+                    
+                    document.getElementById(layer + 'GradientStatus').textContent = 'Loaded';
+                    render();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearGradientImage(layer) {
+            gradientImages[layer] = null;
+            gradientCanvases[layer] = null;
+            document.getElementById(layer + 'GradientStatus').textContent = 'None';
+            document.getElementById(layer + 'GradientFile').value = '';
+            render();
+        }
+
+        function sampleGradientColor(layer, screenX, screenY) {
+            const gradCtx = gradientCanvases[layer];
+            if (!gradCtx) return null;
+            
+            const img = gradientImages[layer];
+            
+            // Map screen position to gradient image position (stretch to fill)
+            const imgX = Math.floor((screenX / canvas.width) * img.width);
+            const imgY = Math.floor((screenY / canvas.height) * img.height);
+            
+            // Clamp to image bounds
+            const clampedX = Math.max(0, Math.min(img.width - 1, imgX));
+            const clampedY = Math.max(0, Math.min(img.height - 1, imgY));
+            
+            try {
+                const pixel = gradCtx.getImageData(clampedX, clampedY, 1, 1).data;
+                return `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function getLayerColor(layer, screenX, screenY, fallbackColorId) {
+            const gradientColor = sampleGradientColor(layer, screenX, screenY);
+            if (gradientColor) {
+                return gradientColor;
+            }
+            return document.getElementById(fallbackColorId).value;
+        }
+
+        // State
+        let canvas, ctx;
+        let isPlaying = false;
+        let currentFrame = 0;
+        let animationId = null;
+        let lastEmitTime = 0;
+
+        // Particles (now with z coordinate)
+        let lithiumParticles = [];
+        let neutrons = [];
+        let heliumParticles = [];
+        let tritiumParticles = [];
+        let flashParticles = [];
+
+        // Canvas center
+        let canvasCenterX, canvasCenterY;
+
+        // Initialize
+        function init() {
+            canvas = document.getElementById('simCanvas');
+            ctx = canvas.getContext('2d');
+            
+            updateCanvasCenter();
+            setupSliderListeners();
+            initRng();
+            regenerateLithium();
+            updateColorPreviews();
+            render();
+        }
+
+        function updateCanvasCenter() {
+            canvasCenterX = canvas.width / 2;
+            canvasCenterY = canvas.height / 2;
+        }
+
+        function setupSliderListeners() {
+            const sliders = [
+                'focalLength', 'rotateX', 'rotateY', 'zoom', 'depthScale', 'depthDarken',
+                'boundaryWidth', 'boundaryHeight', 'boundaryDepth', 'chamferSize', 'boundaryStroke',
+                'lithiumCount', 'lithiumSize', 'densityFalloff',
+                'emissionRate', 'maxNeutrons', 'neutronSpeed', 'neutronSize', 'neutronTrailLength', 'neutronTrailOpacity', 'collisionStart', 'collisionRamp',
+                'productSpeed', 'fadeDistance', 'heliumSize', 'heliumTrailLength', 'heliumTrailOpacity', 'tritiumSize', 'tritiumTrailLength', 'tritiumTrailOpacity',
+                'flashSize', 'flashFadeIn', 'flashFadeOut', 'flashRings',
+                'frameRate'
+            ];
+
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const input = document.getElementById(id + 'Val');
+                
+                slider.addEventListener('input', () => {
+                    input.value = slider.value;
+                    if (['boundaryWidth', 'boundaryHeight', 'boundaryDepth', 'chamferSize'].includes(id)) {
+                        regenerateLithium();
+                    }
+                    render();
+                });
+
+                input.addEventListener('input', () => {
+                    slider.value = input.value;
+                    if (['boundaryWidth', 'boundaryHeight', 'boundaryDepth', 'chamferSize'].includes(id)) {
+                        regenerateLithium();
+                    }
+                    render();
+                });
+            });
+
+            const colorInputs = ['bgColor', 'boundaryColor', 'lithiumColor', 'neutronColor', 'heliumColor', 'tritiumColor', 'flashColor'];
+            colorInputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    updateColorPreviews();
+                    render();
+                });
+            });
+
+            const checkboxes = ['showBoundary', 'showLithium', 'showNeutrons', 'showHelium', 'showTritium', 'showFlash'];
+            checkboxes.forEach(id => {
+                document.getElementById(id).addEventListener('change', render);
+            });
+        }
+
+        function updateColorPreviews() {
+            document.getElementById('boundaryPreview').style.background = document.getElementById('boundaryColor').value;
+            document.getElementById('lithiumPreview').style.background = document.getElementById('lithiumColor').value;
+            document.getElementById('neutronPreview').style.background = document.getElementById('neutronColor').value;
+            document.getElementById('heliumPreview').style.background = document.getElementById('heliumColor').value;
+            document.getElementById('tritiumPreview').style.background = document.getElementById('tritiumColor').value;
+            document.getElementById('flashPreview').style.background = document.getElementById('flashColor').value;
+        }
+
+        function applyCanvasSize() {
+            canvas.width = parseInt(document.getElementById('canvasWidth').value);
+            canvas.height = parseInt(document.getElementById('canvasHeight').value);
+            updateCanvasCenter();
+            render();
+        }
+
+        // 3D Math utilities
+        function rotateX(point, angle) {
+            const rad = angle * Math.PI / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            return {
+                x: point.x,
+                y: point.y * cos - point.z * sin,
+                z: point.y * sin + point.z * cos
+            };
+        }
+
+        function rotateY(point, angle) {
+            const rad = angle * Math.PI / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            return {
+                x: point.x * cos + point.z * sin,
+                y: point.y,
+                z: -point.x * sin + point.z * cos
+            };
+        }
+
+        function project(point) {
+            const focalLength = parseFloat(document.getElementById('focalLengthVal').value);
+            const zoom = parseFloat(document.getElementById('zoomVal').value);
+            const rotX = parseFloat(document.getElementById('rotateXVal').value);
+            const rotY = parseFloat(document.getElementById('rotateYVal').value);
+            const depthScale = parseFloat(document.getElementById('depthScaleVal').value);
+            const depthDarken = parseFloat(document.getElementById('depthDarkenVal').value);
+
+            // Apply rotations
+            let p = rotateX(point, rotX);
+            p = rotateY(p, rotY);
+
+            // Perspective projection
+            // Focal length affects field of view - higher = more telephoto/flatter
+            const fovFactor = focalLength / 50; // Normalize to 50mm as baseline
+            const distance = 800 * fovFactor;
+            const perspectiveScale = distance / (distance + p.z);
+            const scale = perspectiveScale * zoom;
+            
+            // Calculate size scale with adjustable depth effect
+            // depthScale of 0 = no size change, 1 = normal perspective, 2 = exaggerated
+            const sizeScale = 1 + (perspectiveScale - 1) * depthScale;
+            
+            // Calculate brightness multiplier based on depth
+            // depthDarken of 0 = no darkening, 1 = full darkening for far objects
+            const maxZ = 400; // Approximate max depth
+            const normalizedZ = Math.max(0, Math.min(1, (p.z + maxZ) / (maxZ * 2)));
+            const brightness = 1 - (normalizedZ * depthDarken);
+
+            return {
+                x: canvasCenterX + p.x * scale,
+                y: canvasCenterY + p.y * scale,
+                z: p.z,
+                scale: sizeScale * zoom,
+                brightness: brightness
+            };
+        }
+
+        // Apply brightness multiplier to a color (handles both hex and rgb formats)
+        function applyBrightness(color, brightness) {
+            let r, g, b;
+            
+            if (color.startsWith('#')) {
+                // Parse hex color
+                const hex = color.replace('#', '');
+                r = parseInt(hex.substring(0, 2), 16);
+                g = parseInt(hex.substring(2, 4), 16);
+                b = parseInt(hex.substring(4, 6), 16);
+            } else if (color.startsWith('rgb')) {
+                // Parse rgb color
+                const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (match) {
+                    r = parseInt(match[1]);
+                    g = parseInt(match[2]);
+                    b = parseInt(match[3]);
+                } else {
+                    return color; // Return unchanged if parse fails
+                }
+            } else {
+                return color; // Return unchanged for unknown formats
+            }
+            
+            // Apply brightness
+            const newR = Math.round(Math.min(255, Math.max(0, r * brightness)));
+            const newG = Math.round(Math.min(255, Math.max(0, g * brightness)));
+            const newB = Math.round(Math.min(255, Math.max(0, b * brightness)));
+            
+            // Convert back to hex
+            return '#' + 
+                newR.toString(16).padStart(2, '0') +
+                newG.toString(16).padStart(2, '0') +
+                newB.toString(16).padStart(2, '0');
+        }
+
+        // Generate chamfered cube vertices (26-sided: 6 faces + 12 edge chamfers + 8 corner chamfers)
+        function getChamferedCubeEdges() {
+            const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
+            const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
+            const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
+            const c = parseFloat(document.getElementById('chamferSizeVal').value);
+
+            // Vertices of chamfered cube
+            // Each original corner is replaced by 3 vertices (one on each adjacent edge)
+            const vertices = [];
+            
+            // For each of the 8 corners, create 3 chamfer vertices
+            const corners = [
+                { x: 1, y: 1, z: 1 },
+                { x: 1, y: 1, z: -1 },
+                { x: 1, y: -1, z: 1 },
+                { x: 1, y: -1, z: -1 },
+                { x: -1, y: 1, z: 1 },
+                { x: -1, y: 1, z: -1 },
+                { x: -1, y: -1, z: 1 },
+                { x: -1, y: -1, z: -1 }
+            ];
+
+            // Create chamfer vertices for each corner
+            const chamferVerts = [];
+            corners.forEach(corner => {
+                // Three vertices per corner, offset along each axis
+                chamferVerts.push(
+                    { x: corner.x * (w - c), y: corner.y * h, z: corner.z * d },
+                    { x: corner.x * w, y: corner.y * (h - c), z: corner.z * d },
+                    { x: corner.x * w, y: corner.y * h, z: corner.z * (d - c) }
+                );
+            });
+
+            // Define edges - connecting the chamfer vertices
+            const edges = [];
+
+            // Top face edges (y = h)
+            // Front top edge
+            edges.push([chamferVerts[2], chamferVerts[5]]); // Connect corner 0 to corner 1
+            edges.push([chamferVerts[0], chamferVerts[12]]); // Connect to corner 4
+            // Back top edge  
+            edges.push([chamferVerts[14], chamferVerts[17]]); // Corner 4 to 5
+            edges.push([chamferVerts[3], chamferVerts[15]]); // Corner 1 to 5
+            // Left top edge
+            edges.push([chamferVerts[1], chamferVerts[4]]); // Corner 0 to 1
+            edges.push([chamferVerts[13], chamferVerts[16]]); // Corner 4 to 5
+            // Right top edge
+            edges.push([chamferVerts[0], chamferVerts[3]]); // Within top
+            edges.push([chamferVerts[12], chamferVerts[15]]); // Within top back
+
+            // Bottom face edges (y = -h)
+            edges.push([chamferVerts[8], chamferVerts[11]]); // Corner 2 to 3
+            edges.push([chamferVerts[6], chamferVerts[18]]); // Corner 2 to 6
+            edges.push([chamferVerts[20], chamferVerts[23]]); // Corner 6 to 7
+            edges.push([chamferVerts[9], chamferVerts[21]]); // Corner 3 to 7
+            edges.push([chamferVerts[7], chamferVerts[10]]); // Corner 2 to 3
+            edges.push([chamferVerts[19], chamferVerts[22]]); // Corner 6 to 7
+            edges.push([chamferVerts[6], chamferVerts[9]]); // Within bottom
+            edges.push([chamferVerts[18], chamferVerts[21]]); // Within bottom back
+
+            // Vertical edges
+            edges.push([chamferVerts[1], chamferVerts[7]]); // Corner 0 to 2
+            edges.push([chamferVerts[4], chamferVerts[10]]); // Corner 1 to 3
+            edges.push([chamferVerts[13], chamferVerts[19]]); // Corner 4 to 6
+            edges.push([chamferVerts[16], chamferVerts[22]]); // Corner 5 to 7
+
+            // Chamfer triangles at corners (connect the 3 verts of each corner)
+            for (let i = 0; i < 8; i++) {
+                const base = i * 3;
+                edges.push([chamferVerts[base], chamferVerts[base + 1]]);
+                edges.push([chamferVerts[base + 1], chamferVerts[base + 2]]);
+                edges.push([chamferVerts[base + 2], chamferVerts[base]]);
+            }
+
+            // Front face edges (z = d)
+            edges.push([chamferVerts[2], chamferVerts[8]]); // Corner 0 to 2
+            edges.push([chamferVerts[14], chamferVerts[20]]); // Corner 4 to 6
+
+            // Back face edges (z = -d)
+            edges.push([chamferVerts[5], chamferVerts[11]]); // Corner 1 to 3
+            edges.push([chamferVerts[17], chamferVerts[23]]); // Corner 5 to 7
+
+            // Side edges connecting front to back
+            edges.push([chamferVerts[2], chamferVerts[5]]); // Top right
+            edges.push([chamferVerts[14], chamferVerts[17]]); // Top left
+            edges.push([chamferVerts[8], chamferVerts[11]]); // Bottom right
+            edges.push([chamferVerts[20], chamferVerts[23]]); // Bottom left
+
+            return edges;
+        }
+
+        // Simplified chamfered cube - just the main outline edges
+        function getSimpleChamferedCubeEdges() {
+            const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
+            const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
+            const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
+            const c = parseFloat(document.getElementById('chamferSizeVal').value);
+
+            const edges = [];
+
+            // Top face (y = -h, screen coordinates)
+            // Front edge
+            edges.push([{ x: -w + c, y: -h, z: d }, { x: w - c, y: -h, z: d }]);
+            // Back edge
+            edges.push([{ x: -w + c, y: -h, z: -d }, { x: w - c, y: -h, z: -d }]);
+            // Left edge
+            edges.push([{ x: -w, y: -h, z: -d + c }, { x: -w, y: -h, z: d - c }]);
+            // Right edge
+            edges.push([{ x: w, y: -h, z: -d + c }, { x: w, y: -h, z: d - c }]);
+            // Chamfers
+            edges.push([{ x: w - c, y: -h, z: d }, { x: w, y: -h, z: d - c }]);
+            edges.push([{ x: -w + c, y: -h, z: d }, { x: -w, y: -h, z: d - c }]);
+            edges.push([{ x: w - c, y: -h, z: -d }, { x: w, y: -h, z: -d + c }]);
+            edges.push([{ x: -w + c, y: -h, z: -d }, { x: -w, y: -h, z: -d + c }]);
+
+            // Bottom face (y = h)
+            edges.push([{ x: -w + c, y: h, z: d }, { x: w - c, y: h, z: d }]);
+            edges.push([{ x: -w + c, y: h, z: -d }, { x: w - c, y: h, z: -d }]);
+            edges.push([{ x: -w, y: h, z: -d + c }, { x: -w, y: h, z: d - c }]);
+            edges.push([{ x: w, y: h, z: -d + c }, { x: w, y: h, z: d - c }]);
+            edges.push([{ x: w - c, y: h, z: d }, { x: w, y: h, z: d - c }]);
+            edges.push([{ x: -w + c, y: h, z: d }, { x: -w, y: h, z: d - c }]);
+            edges.push([{ x: w - c, y: h, z: -d }, { x: w, y: h, z: -d + c }]);
+            edges.push([{ x: -w + c, y: h, z: -d }, { x: -w, y: h, z: -d + c }]);
+
+            // Vertical edges (main)
+            edges.push([{ x: w, y: -h + c, z: d - c }, { x: w, y: h - c, z: d - c }]);
+            edges.push([{ x: -w, y: -h + c, z: d - c }, { x: -w, y: h - c, z: d - c }]);
+            edges.push([{ x: w, y: -h + c, z: -d + c }, { x: w, y: h - c, z: -d + c }]);
+            edges.push([{ x: -w, y: -h + c, z: -d + c }, { x: -w, y: h - c, z: -d + c }]);
+
+            // Vertical edges (front/back faces)
+            edges.push([{ x: w - c, y: -h + c, z: d }, { x: w - c, y: h - c, z: d }]);
+            edges.push([{ x: -w + c, y: -h + c, z: d }, { x: -w + c, y: h - c, z: d }]);
+            edges.push([{ x: w - c, y: -h + c, z: -d }, { x: w - c, y: h - c, z: -d }]);
+            edges.push([{ x: -w + c, y: -h + c, z: -d }, { x: -w + c, y: h - c, z: -d }]);
+
+            // Top corner chamfers (horizontal)
+            edges.push([{ x: w - c, y: -h, z: d }, { x: w, y: -h + c, z: d - c }]);
+            edges.push([{ x: w, y: -h, z: d - c }, { x: w, y: -h + c, z: d - c }]);
+            edges.push([{ x: w - c, y: -h, z: d }, { x: w - c, y: -h + c, z: d }]);
+
+            edges.push([{ x: -w + c, y: -h, z: d }, { x: -w, y: -h + c, z: d - c }]);
+            edges.push([{ x: -w, y: -h, z: d - c }, { x: -w, y: -h + c, z: d - c }]);
+            edges.push([{ x: -w + c, y: -h, z: d }, { x: -w + c, y: -h + c, z: d }]);
+
+            edges.push([{ x: w - c, y: -h, z: -d }, { x: w, y: -h + c, z: -d + c }]);
+            edges.push([{ x: w, y: -h, z: -d + c }, { x: w, y: -h + c, z: -d + c }]);
+            edges.push([{ x: w - c, y: -h, z: -d }, { x: w - c, y: -h + c, z: -d }]);
+
+            edges.push([{ x: -w + c, y: -h, z: -d }, { x: -w, y: -h + c, z: -d + c }]);
+            edges.push([{ x: -w, y: -h, z: -d + c }, { x: -w, y: -h + c, z: -d + c }]);
+            edges.push([{ x: -w + c, y: -h, z: -d }, { x: -w + c, y: -h + c, z: -d }]);
+
+            // Bottom corner chamfers
+            edges.push([{ x: w - c, y: h, z: d }, { x: w, y: h - c, z: d - c }]);
+            edges.push([{ x: w, y: h, z: d - c }, { x: w, y: h - c, z: d - c }]);
+            edges.push([{ x: w - c, y: h, z: d }, { x: w - c, y: h - c, z: d }]);
+
+            edges.push([{ x: -w + c, y: h, z: d }, { x: -w, y: h - c, z: d - c }]);
+            edges.push([{ x: -w, y: h, z: d - c }, { x: -w, y: h - c, z: d - c }]);
+            edges.push([{ x: -w + c, y: h, z: d }, { x: -w + c, y: h - c, z: d }]);
+
+            edges.push([{ x: w - c, y: h, z: -d }, { x: w, y: h - c, z: -d + c }]);
+            edges.push([{ x: w, y: h, z: -d + c }, { x: w, y: h - c, z: -d + c }]);
+            edges.push([{ x: w - c, y: h, z: -d }, { x: w - c, y: h - c, z: -d }]);
+
+            edges.push([{ x: -w + c, y: h, z: -d }, { x: -w, y: h - c, z: -d + c }]);
+            edges.push([{ x: -w, y: h, z: -d + c }, { x: -w, y: h - c, z: -d + c }]);
+            edges.push([{ x: -w + c, y: h, z: -d }, { x: -w + c, y: h - c, z: -d }]);
+
+            return edges;
+        }
+
+        // Check if point is inside chamfered cube
+        function isInsideBoundary(x, y, z) {
+            const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
+            const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
+            const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
+            const c = parseFloat(document.getElementById('chamferSizeVal').value);
+
+            // First check basic bounding box
+            if (Math.abs(x) > w || Math.abs(y) > h || Math.abs(z) > d) return false;
+
+            // Check corner chamfers - each corner is cut by a plane
+            const corners = [
+                { x: w, y: h, z: d },
+                { x: w, y: h, z: -d },
+                { x: w, y: -h, z: d },
+                { x: w, y: -h, z: -d },
+                { x: -w, y: h, z: d },
+                { x: -w, y: h, z: -d },
+                { x: -w, y: -h, z: d },
+                { x: -w, y: -h, z: -d }
+            ];
+
+            for (const corner of corners) {
+                // Direction from corner pointing inward
+                const nx = -Math.sign(corner.x);
+                const ny = -Math.sign(corner.y);
+                const nz = -Math.sign(corner.z);
+
+                // Distance from corner along the chamfer plane normal
+                const dx = x - corner.x;
+                const dy = y - corner.y;
+                const dz = z - corner.z;
+
+                // The chamfer plane cuts the corner at distance c along each axis
+                // Plane equation: nx*(x-cx) + ny*(y-cy) + nz*(z-cz) = -c*sqrt(3)
+                const dist = nx * dx + ny * dy + nz * dz;
+                const chamferDist = c * Math.sqrt(3);
+
+                if (dist > -chamferDist * 0.95) {
+                    // Check if we're in the corner region
+                    const inCornerX = Math.abs(x) > w - c;
+                    const inCornerY = Math.abs(y) > h - c;
+                    const inCornerZ = Math.abs(z) > d - c;
+
+                    if (inCornerX && inCornerY && inCornerZ) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check edge chamfers
+            // X-aligned edges (4 edges)
+            if (Math.abs(y) > h - c && Math.abs(z) > d - c) {
+                const edgeDist = Math.sqrt(Math.pow(Math.abs(y) - (h - c), 2) + Math.pow(Math.abs(z) - (d - c), 2));
+                if (edgeDist > c) return false;
+            }
+            // Y-aligned edges (4 edges)
+            if (Math.abs(x) > w - c && Math.abs(z) > d - c) {
+                const edgeDist = Math.sqrt(Math.pow(Math.abs(x) - (w - c), 2) + Math.pow(Math.abs(z) - (d - c), 2));
+                if (edgeDist > c) return false;
+            }
+            // Z-aligned edges (4 edges)
+            if (Math.abs(x) > w - c && Math.abs(y) > h - c) {
+                const edgeDist = Math.sqrt(Math.pow(Math.abs(x) - (w - c), 2) + Math.pow(Math.abs(y) - (h - c), 2));
+                if (edgeDist > c) return false;
+            }
+
+            return true;
+        }
+
+        function distanceFromCenter(x, y, z) {
+            return Math.sqrt(x * x + y * y + z * z);
+        }
+
+        // Lithium generation with 3D density gradient
+        function regenerateLithium() {
+            lithiumParticles = [];
+            const count = parseInt(document.getElementById('lithiumCountVal').value);
+            const falloff = parseFloat(document.getElementById('densityFalloffVal').value);
+            
+            const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
+            const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
+            const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
+            const maxDist = Math.sqrt(w * w + h * h + d * d);
+
+            let attempts = 0;
+            const maxAttempts = count * 500;
+
+            while (lithiumParticles.length < count && attempts < maxAttempts) {
+                attempts++;
+
+                // Generate random point within bounding box
+                const x = (seededRandom() - 0.5) * 2 * w * 0.95;
+                const y = (seededRandom() - 0.5) * 2 * h * 0.95;
+                const z = (seededRandom() - 0.5) * 2 * d * 0.95;
+
+                if (!isInsideBoundary(x, y, z)) continue;
+
+                // Calculate distance from center as fraction
+                const distFromCenter = distanceFromCenter(x, y, z);
+                const normalizedDist = distFromCenter / (maxDist * 0.5);
+
+                // Probability increases towards edges
+                const probability = Math.pow(Math.min(normalizedDist, 1), falloff);
+
+                if (seededRandom() < probability) {
+                    if (distFromCenter > 20) {
+                        lithiumParticles.push({ x, y, z });
+                    }
+                }
+            }
+        }
+
+        // Neutron emission in 3D
+        function emitNeutron() {
+            const maxNeutrons = parseInt(document.getElementById('maxNeutronsVal').value);
+            if (neutrons.length >= maxNeutrons) return;
+
+            const speed = parseFloat(document.getElementById('neutronSpeedVal').value);
+            
+            // Random direction on sphere
+            const theta = seededRandom() * Math.PI * 2;
+            const phi = Math.acos(2 * seededRandom() - 1);
+
+            neutrons.push({
+                x: 0,
+                y: 0,
+                z: 0,
+                vx: Math.sin(phi) * Math.cos(theta) * speed,
+                vy: Math.sin(phi) * Math.sin(theta) * speed,
+                vz: Math.cos(phi) * speed,
+                trail: [] // Store position history for trail
+            });
+        }
+
+        // Collision detection in 3D with probability gradient - 100% collision guaranteed
+        function checkCollisions() {
+            const lithiumSize = parseFloat(document.getElementById('lithiumSizeVal').value);
+            const neutronSize = parseFloat(document.getElementById('neutronSizeVal').value);
+            const collisionDist = (lithiumSize + neutronSize) / 2;
+            const collisionStart = parseFloat(document.getElementById('collisionStartVal').value);
+            const collisionRamp = parseFloat(document.getElementById('collisionRampVal').value);
+            
+            const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
+            const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
+            const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
+            const maxDist = Math.sqrt(w * w + h * h + d * d) * 0.85; // Slightly inside boundary
+
+            for (let i = neutrons.length - 1; i >= 0; i--) {
+                const n = neutrons[i];
+                
+                // Calculate normalized distance from center (0 at center, 1 at boundary)
+                const distFromCenter = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+                const normalizedDist = distFromCenter / maxDist;
+                
+                // First check actual collisions
+                let actualCollision = false;
+                for (let j = 0; j < lithiumParticles.length; j++) {
+                    const l = lithiumParticles[j];
+                    const dx = n.x - l.x;
+                    const dy = n.y - l.y;
+                    const dz = n.z - l.z;
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                    if (dist < collisionDist) {
+                        neutrons.splice(i, 1);
+                        spawnProducts(l.x, l.y, l.z);
+                        actualCollision = true;
+                        break;
+                    }
+                }
+                
+                if (actualCollision) continue;
+                
+                // Force collision if very close to boundary (guarantee no escape)
+                if (normalizedDist >= 0.95) {
+                    neutrons.splice(i, 1);
+                    spawnProducts(n.x, n.y, n.z);
+                    continue;
+                }
+                
+                // Probability-based collision (only after collisionStart threshold)
+                if (normalizedDist > collisionStart) {
+                    // Calculate collision probability that ramps up towards the boundary
+                    const progressPastStart = (normalizedDist - collisionStart) / (1 - collisionStart);
+                    // Much higher base probability, exponentially increasing
+                    const collisionProb = Math.pow(progressPastStart, collisionRamp) * 0.4 + progressPastStart * 0.1;
+                    
+                    if (seededRandom() < collisionProb) {
+                        neutrons.splice(i, 1);
+                        spawnProducts(n.x, n.y, n.z);
+                    }
+                }
+            }
+        }
+
+        function spawnProducts(x, y, z) {
+            const speed = parseFloat(document.getElementById('productSpeedVal').value);
+            const fadeDistance = parseFloat(document.getElementById('fadeDistanceVal').value);
+            const flashFadeIn = parseInt(document.getElementById('flashFadeInVal').value);
+            const flashFadeOut = parseInt(document.getElementById('flashFadeOutVal').value);
+
+            // Random 3D directions
+            const theta1 = seededRandom() * Math.PI * 2;
+            const phi1 = Math.acos(2 * seededRandom() - 1);
+            const theta2 = seededRandom() * Math.PI * 2;
+            const phi2 = Math.acos(2 * seededRandom() - 1);
+
+            heliumParticles.push({
+                x, y, z,
+                startX: x, startY: y, startZ: z,
+                vx: Math.sin(phi1) * Math.cos(theta1) * speed,
+                vy: Math.sin(phi1) * Math.sin(theta1) * speed,
+                vz: Math.cos(phi1) * speed,
+                maxDist: fadeDistance,
+                alpha: 1,
+                trail: [] // Store position history for trail
+            });
+
+            tritiumParticles.push({
+                x, y, z,
+                startX: x, startY: y, startZ: z,
+                vx: Math.sin(phi2) * Math.cos(theta2) * speed,
+                vy: Math.sin(phi2) * Math.sin(theta2) * speed,
+                vz: Math.cos(phi2) * speed,
+                maxDist: fadeDistance,
+                alpha: 1,
+                trail: [] // Store position history for trail
+            });
+
+            // Spawn collision flash
+            flashParticles.push({
+                x, y, z,
+                frame: 0,
+                fadeInFrames: flashFadeIn,
+                fadeOutFrames: flashFadeOut,
+                totalFrames: flashFadeIn + flashFadeOut,
+                alpha: 0
+            });
+        }
+
+        // Update simulation
+        function update(deltaTime) {
+            const emissionRate = parseFloat(document.getElementById('emissionRateVal').value);
+            const emissionInterval = 1 / emissionRate;
+            const neutronTrailLength = parseInt(document.getElementById('neutronTrailLengthVal').value);
+            const heliumTrailLength = parseInt(document.getElementById('heliumTrailLengthVal').value);
+            const tritiumTrailLength = parseInt(document.getElementById('tritiumTrailLengthVal').value);
+            
+            // Number of trail interpolation steps (more = smoother trails)
+            const trailSubsteps = 4;
+
+            lastEmitTime += deltaTime;
+            if (lastEmitTime >= emissionInterval) {
+                emitNeutron();
+                lastEmitTime = 0;
+            }
+
+            // Update neutrons with interpolated trails
+            for (let i = neutrons.length - 1; i >= 0; i--) {
+                const n = neutrons[i];
+                
+                // Calculate movement for this frame
+                const dx = n.vx * deltaTime;
+                const dy = n.vy * deltaTime;
+                const dz = n.vz * deltaTime;
+                
+                // Store interpolated positions in trail
+                if (neutronTrailLength > 0) {
+                    for (let s = 0; s < trailSubsteps; s++) {
+                        const t = s / trailSubsteps;
+                        n.trail.unshift({ 
+                            x: n.x + dx * t, 
+                            y: n.y + dy * t, 
+                            z: n.z + dz * t 
+                        });
+                    }
+                    // Trim trail to max length (accounting for substeps)
+                    const maxTrailPoints = neutronTrailLength * trailSubsteps;
+                    while (n.trail.length > maxTrailPoints) {
+                        n.trail.pop();
+                    }
+                }
+                
+                n.x += dx;
+                n.y += dy;
+                n.z += dz;
+
+                if (!isInsideBoundary(n.x, n.y, n.z)) {
+                    neutrons.splice(i, 1);
+                }
+            }
+
+            checkCollisions();
+
+            // Update products with interpolated trails
+            const updateProducts = (particles, trailLength) => {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    
+                    // Calculate movement for this frame
+                    const dx = p.vx * deltaTime;
+                    const dy = p.vy * deltaTime;
+                    const dz = p.vz * deltaTime;
+                    
+                    // Store interpolated positions in trail
+                    if (trailLength > 0) {
+                        for (let s = 0; s < trailSubsteps; s++) {
+                            const t = s / trailSubsteps;
+                            p.trail.unshift({ 
+                                x: p.x + dx * t, 
+                                y: p.y + dy * t, 
+                                z: p.z + dz * t 
+                            });
+                        }
+                        const maxTrailPoints = trailLength * trailSubsteps;
+                        while (p.trail.length > maxTrailPoints) {
+                            p.trail.pop();
+                        }
+                    }
+                    
+                    const nextX = p.x + dx;
+                    const nextY = p.y + dy;
+                    const nextZ = p.z + dz;
+                    
+                    if (!isInsideBoundary(nextX, nextY, nextZ)) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    
+                    p.x = nextX;
+                    p.y = nextY;
+                    p.z = nextZ;
+
+                    const traveled = Math.sqrt(
+                        (p.x - p.startX) ** 2 + 
+                        (p.y - p.startY) ** 2 + 
+                        (p.z - p.startZ) ** 2
+                    );
+                    p.alpha = Math.max(0, 1 - traveled / p.maxDist);
+
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+            };
+
+            updateProducts(heliumParticles, heliumTrailLength);
+            updateProducts(tritiumParticles, tritiumTrailLength);
+
+            // Update flash particles
+            for (let i = flashParticles.length - 1; i >= 0; i--) {
+                const f = flashParticles[i];
+                f.frame++;
+                
+                // Calculate alpha based on fade in/out
+                if (f.frame <= f.fadeInFrames) {
+                    f.alpha = f.fadeInFrames > 0 ? f.frame / f.fadeInFrames : 1;
+                } else {
+                    const fadeOutProgress = (f.frame - f.fadeInFrames) / f.fadeOutFrames;
+                    f.alpha = 1 - fadeOutProgress;
+                }
+                
+                if (f.frame >= f.totalFrames) {
+                    flashParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // Render
+        function render() {
+            const bgColor = document.getElementById('bgColor').value;
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Collect all drawable items for depth sorting
+            const drawables = [];
+
+            // Add boundary edges
+            if (document.getElementById('showBoundary').checked) {
+                const edges = getSimpleChamferedCubeEdges();
+                const strokeWidth = parseFloat(document.getElementById('boundaryStrokeVal').value);
+
+                edges.forEach(edge => {
+                    const p1 = project(edge[0]);
+                    const p2 = project(edge[1]);
+                    const avgZ = (p1.z + p2.z) / 2;
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    const color = getLayerColor('boundary', midX, midY, 'boundaryColor');
+                    drawables.push({
+                        type: 'line',
+                        p1, p2,
+                        color: color,
+                        width: strokeWidth,
+                        z: avgZ
+                    });
+                });
+            }
+
+            // Add lithium particles
+            if (document.getElementById('showLithium').checked) {
+                const size = parseFloat(document.getElementById('lithiumSizeVal').value);
+
+                lithiumParticles.forEach(p => {
+                    const proj = project(p);
+                    const color = getLayerColor('lithium', proj.x, proj.y, 'lithiumColor');
+                    drawables.push({
+                        type: 'circle',
+                        x: proj.x,
+                        y: proj.y,
+                        radius: size / 2 * proj.scale,
+                        color: applyBrightness(color, proj.brightness),
+                        alpha: 1,
+                        z: proj.z
+                    });
+                });
+            }
+
+            // Add neutrons
+            if (document.getElementById('showNeutrons').checked) {
+                const size = parseFloat(document.getElementById('neutronSizeVal').value);
+                const trailLength = parseInt(document.getElementById('neutronTrailLengthVal').value);
+                const trailOpacity = parseFloat(document.getElementById('neutronTrailOpacityVal').value);
+
+                neutrons.forEach(n => {
+                    const proj = project(n);
+                    const color = getLayerColor('neutron', proj.x, proj.y, 'neutronColor');
+                    
+                    // Add trail segments (now with interpolated points)
+                    if (trailLength > 0 && n.trail.length > 0) {
+                        const totalTrailPoints = n.trail.length;
+                        for (let t = 0; t < totalTrailPoints; t++) {
+                            const trailPoint = n.trail[t];
+                            const trailProj = project(trailPoint);
+                            const trailProgress = t / totalTrailPoints;
+                            const trailAlpha = trailOpacity * (1 - trailProgress);
+                            const trailSize = size * (1 - trailProgress * 0.5); // Shrink trail
+                            const trailColor = getLayerColor('neutron', trailProj.x, trailProj.y, 'neutronColor');
+                            
+                            drawables.push({
+                                type: 'circle',
+                                x: trailProj.x,
+                                y: trailProj.y,
+                                radius: trailSize / 2 * trailProj.scale,
+                                color: applyBrightness(trailColor, trailProj.brightness),
+                                alpha: trailAlpha,
+                                z: trailProj.z
+                            });
+                        }
+                    }
+                    
+                    drawables.push({
+                        type: 'circle',
+                        x: proj.x,
+                        y: proj.y,
+                        radius: size / 2 * proj.scale,
+                        color: applyBrightness(color, proj.brightness),
+                        alpha: 1,
+                        z: proj.z
+                    });
+                });
+            }
+
+            // Add helium
+            if (document.getElementById('showHelium').checked) {
+                const size = parseFloat(document.getElementById('heliumSizeVal').value);
+                const trailLength = parseInt(document.getElementById('heliumTrailLengthVal').value);
+                const trailOpacity = parseFloat(document.getElementById('heliumTrailOpacityVal').value);
+
+                heliumParticles.forEach(p => {
+                    const proj = project(p);
+                    const color = getLayerColor('helium', proj.x, proj.y, 'heliumColor');
+                    
+                    // Add trail segments (now with interpolated points)
+                    if (trailLength > 0 && p.trail.length > 0) {
+                        const totalTrailPoints = p.trail.length;
+                        for (let t = 0; t < totalTrailPoints; t++) {
+                            const trailPoint = p.trail[t];
+                            const trailProj = project(trailPoint);
+                            const trailProgress = t / totalTrailPoints;
+                            const trailAlpha = trailOpacity * p.alpha * (1 - trailProgress);
+                            const trailSize = size * (1 - trailProgress * 0.5);
+                            const trailColor = getLayerColor('helium', trailProj.x, trailProj.y, 'heliumColor');
+                            
+                            drawables.push({
+                                type: 'circle',
+                                x: trailProj.x,
+                                y: trailProj.y,
+                                radius: trailSize / 2 * trailProj.scale,
+                                color: applyBrightness(trailColor, trailProj.brightness),
+                                alpha: trailAlpha,
+                                z: trailProj.z
+                            });
+                        }
+                    }
+                    
+                    drawables.push({
+                        type: 'circle',
+                        x: proj.x,
+                        y: proj.y,
+                        radius: size / 2 * proj.scale,
+                        color: applyBrightness(color, proj.brightness),
+                        alpha: p.alpha,
+                        z: proj.z
+                    });
+                });
+            }
+
+            // Add tritium
+            if (document.getElementById('showTritium').checked) {
+                const size = parseFloat(document.getElementById('tritiumSizeVal').value);
+                const trailLength = parseInt(document.getElementById('tritiumTrailLengthVal').value);
+                const trailOpacity = parseFloat(document.getElementById('tritiumTrailOpacityVal').value);
+
+                tritiumParticles.forEach(p => {
+                    const proj = project(p);
+                    const color = getLayerColor('tritium', proj.x, proj.y, 'tritiumColor');
+                    
+                    // Add trail segments (now with interpolated points)
+                    if (trailLength > 0 && p.trail.length > 0) {
+                        const totalTrailPoints = p.trail.length;
+                        for (let t = 0; t < totalTrailPoints; t++) {
+                            const trailPoint = p.trail[t];
+                            const trailProj = project(trailPoint);
+                            const trailProgress = t / totalTrailPoints;
+                            const trailAlpha = trailOpacity * p.alpha * (1 - trailProgress);
+                            const trailSize = size * (1 - trailProgress * 0.5);
+                            const trailColor = getLayerColor('tritium', trailProj.x, trailProj.y, 'tritiumColor');
+                            
+                            drawables.push({
+                                type: 'circle',
+                                x: trailProj.x,
+                                y: trailProj.y,
+                                radius: trailSize / 2 * trailProj.scale,
+                                color: applyBrightness(trailColor, trailProj.brightness),
+                                alpha: trailAlpha,
+                                z: trailProj.z
+                            });
+                        }
+                    }
+                    
+                    drawables.push({
+                        type: 'circle',
+                        x: proj.x,
+                        y: proj.y,
+                        radius: size / 2 * proj.scale,
+                        color: applyBrightness(color, proj.brightness),
+                        alpha: p.alpha,
+                        z: proj.z
+                    });
+                });
+            }
+
+            // Add flash particles
+            if (document.getElementById('showFlash').checked) {
+                const flashSize = parseFloat(document.getElementById('flashSizeVal').value);
+                const flashRings = parseInt(document.getElementById('flashRingsVal').value);
+
+                flashParticles.forEach(f => {
+                    const proj = project(f);
+                    const color = getLayerColor('flash', proj.x, proj.y, 'flashColor');
+                    
+                    // Draw multiple concentric rings for glow effect
+                    for (let ring = 0; ring < flashRings; ring++) {
+                        const ringProgress = ring / flashRings;
+                        const ringSize = flashSize * (1 - ringProgress * 0.6) * proj.scale;
+                        const ringAlpha = f.alpha * (1 - ringProgress * 0.7);
+                        
+                        drawables.push({
+                            type: 'circle',
+                            x: proj.x,
+                            y: proj.y,
+                            radius: ringSize,
+                            color: applyBrightness(color, proj.brightness),
+                            alpha: ringAlpha,
+                            z: proj.z + 0.01 * ring // Slight z offset so rings layer properly
+                        });
+                    }
+                });
+            }
+
+            // Sort by z (back to front)
+            drawables.sort((a, b) => b.z - a.z);
+
+            // Draw all items
+            drawables.forEach(item => {
+                if (item.type === 'line') {
+                    ctx.beginPath();
+                    ctx.moveTo(item.p1.x, item.p1.y);
+                    ctx.lineTo(item.p2.x, item.p2.y);
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = item.width;
+                    ctx.stroke();
+                } else if (item.type === 'circle') {
+                    ctx.globalAlpha = item.alpha;
+                    ctx.fillStyle = item.color;
+                    ctx.beginPath();
+                    ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            });
+
+            document.getElementById('frameDisplay').textContent = `Frame: ${currentFrame}`;
+        }
+
+        // Playback
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').textContent = isPlaying ? 'Pause' : 'Play';
+            
+            if (isPlaying) {
+                lastTime = performance.now();
+                animate();
+            } else if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+
+        let lastTime = 0;
+        function animate() {
+            if (!isPlaying) return;
+
+            const now = performance.now();
+            const frameRate = parseInt(document.getElementById('frameRateVal').value);
+            const frameInterval = 1000 / frameRate;
+
+            if (now - lastTime >= frameInterval) {
+                update(1 / frameRate);
+                render();
+                currentFrame++;
+                lastTime = now;
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function stepFrame() {
+            const frameRate = parseInt(document.getElementById('frameRateVal').value);
+            update(1 / frameRate);
+            render();
+            currentFrame++;
+        }
+
+        function resetSim() {
+            isPlaying = false;
+            document.getElementById('playBtn').textContent = 'Play';
+            if (animationId) cancelAnimationFrame(animationId);
+            
+            currentFrame = 0;
+            lastEmitTime = 0;
+            neutrons = [];
+            heliumParticles = [];
+            tritiumParticles = [];
+            flashParticles = [];
+            initRng();
+            regenerateLithium();
+            render();
+        }
+
+        // Export
+        async function exportSequence() {
+            const duration = parseFloat(document.getElementById('duration').value);
+            const frameRate = parseInt(document.getElementById('frameRateVal').value);
+            const totalFrames = Math.ceil(duration * frameRate);
+            const seed = document.getElementById('seedVal').value;
+
+            const statusEl = document.getElementById('exportStatus');
+            statusEl.classList.add('active');
+
+            resetSim();
+
+            const zip = new JSZip();
+
+            for (let i = 0; i < totalFrames; i++) {
+                statusEl.textContent = `Rendering frame ${i + 1} / ${totalFrames}`;
+                
+                update(1 / frameRate);
+                render();
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const base64Data = dataUrl.split(',')[1];
+                zip.file(`frame_${String(i).padStart(5, '0')}.png`, base64Data, {base64: true});
+                
+                currentFrame++;
+
+                // Yield to prevent browser freeze
+                if (i % 10 === 0) {
+                    await new Promise(r => setTimeout(r, 1));
+                }
+            }
+
+            statusEl.textContent = 'Creating ZIP file...';
+            
+            const blob = await zip.generateAsync({type: 'blob'}, (metadata) => {
+                statusEl.textContent = `Compressing... ${Math.round(metadata.percent)}%`;
+            });
+            
+            const link = document.createElement('a');
+            link.download = `particle-sim-seed${seed}-${Date.now()}.zip`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            statusEl.classList.remove('active');
+            resetSim();
+        }
+
+        async function exportAllLayers() {
+            const duration = parseFloat(document.getElementById('duration').value);
+            const frameRate = parseInt(document.getElementById('frameRateVal').value);
+            const totalFrames = Math.ceil(duration * frameRate);
+            const seed = document.getElementById('seedVal').value;
+
+            const statusEl = document.getElementById('exportStatus');
+            statusEl.classList.add('active');
+
+            const zip = new JSZip();
+            
+            // Layer configurations
+            const layers = [
+                { name: 'boundary', checkbox: 'showBoundary' },
+                { name: 'lithium', checkbox: 'showLithium' },
+                { name: 'neutrons', checkbox: 'showNeutrons' },
+                { name: 'helium', checkbox: 'showHelium' },
+                { name: 'tritium', checkbox: 'showTritium' },
+                { name: 'flash', checkbox: 'showFlash' }
+            ];
+
+            // Store original checkbox states
+            const originalStates = {};
+            layers.forEach(layer => {
+                originalStates[layer.checkbox] = document.getElementById(layer.checkbox).checked;
+            });
+
+            // Export each layer
+            for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
+                const layer = layers[layerIdx];
+                const folder = zip.folder(layer.name);
+
+                // Set only this layer visible
+                layers.forEach(l => {
+                    document.getElementById(l.checkbox).checked = (l.name === layer.name);
+                });
+
+                resetSim();
+
+                for (let i = 0; i < totalFrames; i++) {
+                    statusEl.textContent = `Exporting ${layer.name}: frame ${i + 1} / ${totalFrames}`;
+                    
+                    update(1 / frameRate);
+                    render();
+
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const base64Data = dataUrl.split(',')[1];
+                    folder.file(`${layer.name}_${String(i).padStart(5, '0')}.png`, base64Data, {base64: true});
+                    
+                    currentFrame++;
+
+                    if (i % 10 === 0) {
+                        await new Promise(r => setTimeout(r, 1));
+                    }
+                }
+            }
+
+            // Restore original checkbox states
+            layers.forEach(layer => {
+                document.getElementById(layer.checkbox).checked = originalStates[layer.checkbox];
+            });
+
+            statusEl.textContent = 'Creating ZIP file...';
+            
+            const blob = await zip.generateAsync({type: 'blob'}, (metadata) => {
+                statusEl.textContent = `Compressing... ${Math.round(metadata.percent)}%`;
+            });
+            
+            const link = document.createElement('a');
+            link.download = `particle-sim-layers-seed${seed}-${Date.now()}.zip`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            statusEl.classList.remove('active');
+            resetSim();
+        }
+
+        function exportCurrentFrame() {
+            const link = document.createElement('a');
+            link.download = `frame_${String(currentFrame).padStart(5, '0')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Preset save/load
+        function savePreset() {
+            const preset = {
+                version: '2.0',
+                canvas: {
+                    width: document.getElementById('canvasWidth').value,
+                    height: document.getElementById('canvasHeight').value,
+                    bgColor: document.getElementById('bgColor').value
+                },
+                camera: {
+                    focalLength: document.getElementById('focalLengthVal').value,
+                    rotateX: document.getElementById('rotateXVal').value,
+                    rotateY: document.getElementById('rotateYVal').value,
+                    zoom: document.getElementById('zoomVal').value,
+                    depthScale: document.getElementById('depthScaleVal').value,
+                    depthDarken: document.getElementById('depthDarkenVal').value
+                },
+                container: {
+                    width: document.getElementById('boundaryWidthVal').value,
+                    height: document.getElementById('boundaryHeightVal').value,
+                    depth: document.getElementById('boundaryDepthVal').value,
+                    chamfer: document.getElementById('chamferSizeVal').value,
+                    strokeWidth: document.getElementById('boundaryStrokeVal').value,
+                    color: document.getElementById('boundaryColor').value
+                },
+                lithium: {
+                    count: document.getElementById('lithiumCountVal').value,
+                    size: document.getElementById('lithiumSizeVal').value,
+                    densityFalloff: document.getElementById('densityFalloffVal').value,
+                    color: document.getElementById('lithiumColor').value
+                },
+                neutron: {
+                    emissionRate: document.getElementById('emissionRateVal').value,
+                    maxNeutrons: document.getElementById('maxNeutronsVal').value,
+                    speed: document.getElementById('neutronSpeedVal').value,
+                    size: document.getElementById('neutronSizeVal').value,
+                    color: document.getElementById('neutronColor').value,
+                    trailLength: document.getElementById('neutronTrailLengthVal').value,
+                    trailOpacity: document.getElementById('neutronTrailOpacityVal').value,
+                    collisionStart: document.getElementById('collisionStartVal').value,
+                    collisionRamp: document.getElementById('collisionRampVal').value
+                },
+                products: {
+                    speed: document.getElementById('productSpeedVal').value,
+                    fadeDistance: document.getElementById('fadeDistanceVal').value,
+                    heliumSize: document.getElementById('heliumSizeVal').value,
+                    heliumColor: document.getElementById('heliumColor').value,
+                    heliumTrailLength: document.getElementById('heliumTrailLengthVal').value,
+                    heliumTrailOpacity: document.getElementById('heliumTrailOpacityVal').value,
+                    tritiumSize: document.getElementById('tritiumSizeVal').value,
+                    tritiumColor: document.getElementById('tritiumColor').value,
+                    tritiumTrailLength: document.getElementById('tritiumTrailLengthVal').value,
+                    tritiumTrailOpacity: document.getElementById('tritiumTrailOpacityVal').value
+                },
+                flash: {
+                    size: document.getElementById('flashSizeVal').value,
+                    color: document.getElementById('flashColor').value,
+                    fadeIn: document.getElementById('flashFadeInVal').value,
+                    fadeOut: document.getElementById('flashFadeOutVal').value,
+                    rings: document.getElementById('flashRingsVal').value
+                },
+                layers: {
+                    showBoundary: document.getElementById('showBoundary').checked,
+                    showLithium: document.getElementById('showLithium').checked,
+                    showNeutrons: document.getElementById('showNeutrons').checked,
+                    showHelium: document.getElementById('showHelium').checked,
+                    showTritium: document.getElementById('showTritium').checked,
+                    showFlash: document.getElementById('showFlash').checked
+                },
+                playback: {
+                    frameRate: document.getElementById('frameRateVal').value,
+                    duration: document.getElementById('duration').value,
+                    seed: document.getElementById('seedVal').value
+                }
+            };
+
+            const text = JSON.stringify(preset, null, 2);
+            const blob = new Blob([text], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.download = `particle-sim-preset-${Date.now()}.txt`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        }
+
+        function loadPreset(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const preset = JSON.parse(e.target.result);
+                    applyPreset(preset);
+                } catch (err) {
+                    alert('Error loading preset: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset so same file can be loaded again
+        }
+
+        function applyPreset(preset) {
+            // Canvas
+            if (preset.canvas) {
+                document.getElementById('canvasWidth').value = preset.canvas.width || 1920;
+                document.getElementById('canvasHeight').value = preset.canvas.height || 1080;
+                document.getElementById('bgColor').value = preset.canvas.bgColor || '#000000';
+                applyCanvasSize();
+            }
+
+            // Camera
+            if (preset.camera) {
+                setSliderAndInput('focalLength', preset.camera.focalLength || 85);
+                setSliderAndInput('rotateX', preset.camera.rotateX || 20);
+                setSliderAndInput('rotateY', preset.camera.rotateY || 30);
+                setSliderAndInput('zoom', preset.camera.zoom || 1);
+                setSliderAndInput('depthScale', preset.camera.depthScale || 1);
+                setSliderAndInput('depthDarken', preset.camera.depthDarken || 0.3);
+            }
+
+            // Container
+            if (preset.container) {
+                setSliderAndInput('boundaryWidth', preset.container.width || 400);
+                setSliderAndInput('boundaryHeight', preset.container.height || 400);
+                setSliderAndInput('boundaryDepth', preset.container.depth || 400);
+                setSliderAndInput('chamferSize', preset.container.chamfer || 50);
+                setSliderAndInput('boundaryStroke', preset.container.strokeWidth || 2);
+                document.getElementById('boundaryColor').value = preset.container.color || '#ffffff';
+            }
+
+            // Lithium
+            if (preset.lithium) {
+                setSliderAndInput('lithiumCount', preset.lithium.count || 200);
+                setSliderAndInput('lithiumSize', preset.lithium.size || 10);
+                setSliderAndInput('densityFalloff', preset.lithium.densityFalloff || 2);
+                document.getElementById('lithiumColor').value = preset.lithium.color || '#3366cc';
+            }
+
+            // Neutron
+            if (preset.neutron) {
+                setSliderAndInput('emissionRate', preset.neutron.emissionRate || 1);
+                setSliderAndInput('maxNeutrons', preset.neutron.maxNeutrons || 10);
+                setSliderAndInput('neutronSpeed', preset.neutron.speed || 200);
+                setSliderAndInput('neutronSize', preset.neutron.size || 8);
+                document.getElementById('neutronColor').value = preset.neutron.color || '#ffff00';
+                setSliderAndInput('neutronTrailLength', preset.neutron.trailLength || 0);
+                setSliderAndInput('neutronTrailOpacity', preset.neutron.trailOpacity || 0.5);
+                setSliderAndInput('collisionStart', preset.neutron.collisionStart || 0.3);
+                setSliderAndInput('collisionRamp', preset.neutron.collisionRamp || 2);
+            }
+
+            // Products
+            if (preset.products) {
+                setSliderAndInput('productSpeed', preset.products.speed || 100);
+                setSliderAndInput('fadeDistance', preset.products.fadeDistance || 80);
+                setSliderAndInput('heliumSize', preset.products.heliumSize || 8);
+                document.getElementById('heliumColor').value = preset.products.heliumColor || '#ff00ff';
+                setSliderAndInput('heliumTrailLength', preset.products.heliumTrailLength || 0);
+                setSliderAndInput('heliumTrailOpacity', preset.products.heliumTrailOpacity || 0.5);
+                setSliderAndInput('tritiumSize', preset.products.tritiumSize || 8);
+                document.getElementById('tritiumColor').value = preset.products.tritiumColor || '#cc0000';
+                setSliderAndInput('tritiumTrailLength', preset.products.tritiumTrailLength || 0);
+                setSliderAndInput('tritiumTrailOpacity', preset.products.tritiumTrailOpacity || 0.5);
+            }
+
+            // Flash
+            if (preset.flash) {
+                setSliderAndInput('flashSize', preset.flash.size || 30);
+                document.getElementById('flashColor').value = preset.flash.color || '#ffffff';
+                setSliderAndInput('flashFadeIn', preset.flash.fadeIn || 1);
+                setSliderAndInput('flashFadeOut', preset.flash.fadeOut || 8);
+                setSliderAndInput('flashRings', preset.flash.rings || 3);
+            }
+
+            // Layers
+            if (preset.layers) {
+                document.getElementById('showBoundary').checked = preset.layers.showBoundary !== false;
+                document.getElementById('showLithium').checked = preset.layers.showLithium !== false;
+                document.getElementById('showNeutrons').checked = preset.layers.showNeutrons !== false;
+                document.getElementById('showHelium').checked = preset.layers.showHelium !== false;
+                document.getElementById('showTritium').checked = preset.layers.showTritium !== false;
+                document.getElementById('showFlash').checked = preset.layers.showFlash !== false;
+            }
+
+            // Playback
+            if (preset.playback) {
+                setSliderAndInput('frameRate', preset.playback.frameRate || 30);
+                document.getElementById('duration').value = preset.playback.duration || 5;
+                document.getElementById('seedVal').value = preset.playback.seed || 12345;
+            }
+
+            updateColorPreviews();
+            initRng();
+            regenerateLithium();
+            render();
+        }
+
+        function setSliderAndInput(id, value) {
+            document.getElementById(id).value = value;
+            document.getElementById(id + 'Val').value = value;
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

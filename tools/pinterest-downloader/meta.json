@@ -1,0 +1,8 @@
+{
+    "name": "Pinterest Board Downloader",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 30",
+    "description": "Download all images from a selected Pinterest board. Note this tool needs access to Terminal."
+}

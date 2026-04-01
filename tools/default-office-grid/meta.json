@@ -1,0 +1,8 @@
+{
+    "name": "Default Office Grid",
+    "category": "Animation",
+    "project": "Default Office",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Generate the Default Office black and white random grid, and export as a PNG sequence"
+}

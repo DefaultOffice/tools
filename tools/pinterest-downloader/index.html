@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinterest Board Downloader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Suisse+Int'l:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: #ffffff;
+            color: #1a1a1a;
+            min-height: 100vh;
+            padding: 24px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .back-link {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            font-size: 13px;
+            color: #666;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s;
+        }
+        
+        .back-link:hover {
+            color: #1a1a1a;
+        }
+        
+        .container {
+            max-width: 520px;
+            margin: 80px auto 0;
+        }
+        
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+        }
+        
+        .section {
+            margin-bottom: 32px;
+        }
+        
+        .section-title {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #999;
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            font-size: 13px;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        
+        input:focus {
+            border-color: #1a1a1a;
+        }
+        
+        input::placeholder {
+            color: #aaa;
+        }
+        
+        .output-box {
+            background: #f7f7f7;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #333;
+            word-break: break-all;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .output-box.empty {
+            color: #999;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #1a1a1a;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        button:hover {
+            background: #333;
+        }
+        
+        button.secondary {
+            background: #fff;
+            color: #1a1a1a;
+        }
+        
+        button.secondary:hover {
+            background: #f5f5f5;
+        }
+        
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+            min-height: 20px;
+        }
+        
+        .status.success {
+            color: #22863a;
+        }
+        
+        .status.error {
+            color: #cb2431;
+        }
+        
+        .instructions {
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .instructions h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .step-number {
+            width: 24px;
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            padding-top: 2px;
+        }
+        
+        .step-content p {
+            color: #444;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+        
+        .prereq {
+            background: #fffbeb;
+            border: 1px solid #f5e6b3;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        
+        .prereq strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .prereq code {
+            background: rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Back</a>
+    
+    <div class="container">
+        <h1>Pinterest Board Downloader</h1>
+        <p class="subtitle">Download all images from a Pinterest board via Terminal</p>
+        
+        <div class="section">
+            <label for="url">Pinterest Board URL</label>
+            <input type="text" id="url" placeholder="https://pin.it/... or https://pinterest.com/user/board">
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Terminal Command</div>
+            <div class="output-box empty" id="output">Enter a URL above to generate command</div>
+            <div class="button-row">
+                <button id="generate-btn" onclick="generate()">Generate Command</button>
+                <button class="secondary" id="copy-btn" onclick="copyCommand()" disabled>Copy</button>
+            </div>
+            <p class="status" id="status"></p>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to use</h2>
+            
+            <div class="prereq">
+                <strong>First time setup</strong>
+                Run this once in Terminal to install the download tool:<br>
+                <code>pip3 install gallery-dl</code>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <p>Paste your Pinterest board URL above</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <p>Click <strong>Generate Command</strong> then <strong>Copy</strong></p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <p>Open <strong>Terminal</strong> (Applications → Utilities → Terminal)</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <p>Paste the command (<code>⌘V</code>) and press <strong>Enter</strong></p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <p>Images will download to <code>~/Downloads/Pinterest/</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCommand = '';
+        
+        function generate() {
+            const url = document.getElementById('url').value.trim();
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            if (!url) {
+                status.textContent = 'Please enter a Pinterest URL';
+                status.className = 'status error';
+                return;
+            }
+            
+            if (!url.includes('pinterest') && !url.includes('pin.it')) {
+                status.textContent = 'Please enter a valid Pinterest URL';
+                status.className = 'status error';
+                return;
+            }
+            
+            currentCommand = `~/Library/Python/3.9/bin/gallery-dl -d ~/Downloads/Pinterest "${url}"`;
+            
+            output.textContent = currentCommand;
+            output.className = 'output-box';
+            copyBtn.disabled = false;
+            status.textContent = '';
+        }
+        
+        function copyCommand() {
+            if (!currentCommand) return;
+            
+            const status = document.getElementById('status');
+            
+            navigator.clipboard.writeText(currentCommand).then(() => {
+                status.textContent = 'Copied to clipboard — paste in Terminal';
+                status.className = 'status success';
+            }).catch(() => {
+                status.textContent = 'Failed to copy — select and copy manually';
+                status.className = 'status error';
+            });
+        }
+        
+        // Generate on Enter key
+        document.getElementById('url').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') generate();
+        });
+        
+        // Auto-generate when pasting
+        document.getElementById('url').addEventListener('paste', () => {
+            setTimeout(generate, 50);
+        });
+    </script>
+</body>
+</html>

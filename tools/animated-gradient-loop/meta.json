@@ -1,0 +1,8 @@
+{
+    "name": "Animated Gradient Loop",
+    "category": "Animation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Create a custom gradient map with adjustable stops and midpoints, then animate it as a seamless loop with configurable speed and direction. Export as a PNG sequence."
+}

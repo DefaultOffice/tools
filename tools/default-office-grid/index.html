@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Default Office Grid</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            color: #666;
+            text-decoration: none;
+            font-size: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            z-index: 1000;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover {
+            color: #aaa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .controls {
+            width: 420px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-right: 1px solid #3a3a3a;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .section {
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group.compact {
+            margin-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #aaa;
+        }
+
+        .hint {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
+
+        input[type="number"], select, input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+        }
+
+        input[type="number"]:focus, select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #555;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .row .control-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .col-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .col-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .preset-btn {
+            flex: 1;
+            padding: 6px 4px;
+            background: #3a3a3a;
+            border: none;
+            border-radius: 4px;
+            color: #aaa;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .preset-btn:hover {
+            background: #4a4a4a;
+            color: white;
+        }
+
+        .preset-btn.active {
+            background: #555;
+            color: white;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background: white;
+            border: none;
+            border-radius: 4px;
+            color: black;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #3a3a3a;
+            color: white;
+        }
+
+        button.secondary:hover:not(:disabled) {
+            background: #4a4a4a;
+        }
+
+        .progress-container {
+            margin-top: 12px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #3a3a3a;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .progress-text {
+            font-size: 10px;
+            color: #666;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        .preview-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #111;
+            overflow: hidden;
+            min-width: 0;
+            position: relative;
+        }
+
+        #preview-canvas {
+            background: white;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+
+        .divider {
+            height: 1px;
+            background: #3a3a3a;
+            margin: 16px 0;
+        }
+
+        .status {
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .status.recording {
+            color: #ff4444;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            background: #3a3a3a;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .icon-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .seed-copied {
+            animation: flash 0.3s ease;
+        }
+
+        @keyframes flash {
+            0% { background: #4a4a4a; }
+            50% { background: #666; }
+            100% { background: #4a4a4a; }
+        }
+
+        /* Range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: #3a3a3a;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Collapsible sections */
+        details {
+            margin-bottom: 12px;
+        }
+
+        details summary {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #555;
+            cursor: pointer;
+            padding: 6px 0;
+            user-select: none;
+            list-style: none;
+        }
+
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details summary::before {
+            content: '▶ ';
+            font-size: 8px;
+        }
+
+        details[open] summary::before {
+            content: '▼ ';
+        }
+
+        details summary:hover {
+            color: #888;
+        }
+
+        details .detail-content {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        /* Resolution display */
+        .resolution-display {
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .resolution-display .res-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .resolution-display .res-note {
+            font-size: 10px;
+            color: #555;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: white;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-row span {
+            font-size: 9px;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .slider-row input[type="range"] {
+            flex: 1;
+        }
+
+        .slider-value {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        /* Seed input row */
+        .seed-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .seed-row input {
+            flex: 1;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+        }
+
+        /* Main mode tabs */
+        .mode-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: #1a1a1a;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: #888;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin: 0;
+        }
+
+        .mode-tab:hover {
+            color: #ccc;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .mode-tab.active {
+            background: #3a3a3a;
+            color: white;
+        }
+
+        /* Video-only and Editor-only sections */
+        .video-only, .editor-only {
+            display: none;
+        }
+
+        body.mode-video .video-only {
+            display: block;
+        }
+
+        body.mode-editor .editor-only {
+            display: block;
+        }
+
+        /* Editor tools */
+        .editor-tools {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .tool-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tool-btn {
+            flex: 1;
+            padding: 8px;
+            background: #3a3a3a;
+            border: none;
+            border-radius: 4px;
+            color: #aaa;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin: 0;
+        }
+
+        .tool-btn:hover {
+            background: #4a4a4a;
+            color: white;
+        }
+
+        .tool-btn.active {
+            background: #555;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Back</a>
+    <div class="controls">
+        <div class="header">
+            <h1>Default Office Grid</h1>
+            <span class="subtitle">Pattern Generator</span>
+        </div>
+
+        <!-- Main Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mainmode="video">Video</button>
+            <button class="mode-tab" data-mainmode="editor">Editor</button>
+        </div>
+
+        <!-- Output Settings -->
+        <div class="section">
+            <div class="section-title">Output</div>
+            
+            <div class="col-2" style="margin-bottom: 10px;">
+                <div>
+                    <label>Aspect Ratio</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn ratio-btn active" data-ratio="16:9">16:9</button>
+                        <button class="preset-btn ratio-btn" data-ratio="9:16">9:16</button>
+                        <button class="preset-btn ratio-btn" data-ratio="4:5">4:5</button>
+                        <button class="preset-btn ratio-btn" data-ratio="1:1">1:1</button>
+                        <button class="preset-btn ratio-btn" data-ratio="custom">Custom</button>
+                    </div>
+                    <div id="customRatioInput" style="display: none; margin-top: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="number" id="ratioW" value="16" min="1" max="100" style="width: 60px; text-align: center;">
+                            <span style="color: #666;">:</span>
+                            <input type="number" id="ratioH" value="9" min="1" max="100" style="width: 60px; text-align: center;">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label>Quality</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn quality-btn" data-quality="hd">HD</button>
+                        <button class="preset-btn quality-btn active" data-quality="fhd">FHD</button>
+                        <button class="preset-btn quality-btn" data-quality="qhd">2K</button>
+                        <button class="preset-btn quality-btn" data-quality="uhd">4K</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-2 video-only" style="margin-bottom: 10px;">
+                <div class="control-group compact">
+                    <label>Duration (s)</label>
+                    <input type="number" id="duration" value="10" min="1" max="300">
+                </div>
+                <div class="control-group compact">
+                    <label>Frame Rate</label>
+                    <select id="framerate">
+                        <option value="24">24 fps</option>
+                        <option value="30" selected>30 fps</option>
+                        <option value="60">60 fps</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="resolution-display">
+                <span class="res-value" id="calculatedRes">1920 × 1080</span>
+                <span class="res-note" id="resNote">60px grid unit</span>
+            </div>
+
+            <!-- Hidden inputs -->
+            <input type="hidden" id="width" value="1920">
+            <input type="hidden" id="height" value="1080">
+            <input type="hidden" id="currentRatio" value="16:9">
+            <input type="hidden" id="currentQuality" value="fhd">
+        </div>
+
+        <!-- Instagram Presets -->
+        <div class="section video-only">
+            <div class="section-title">Instagram Presets</div>
+            <div class="preset-buttons">
+                <button class="preset-btn ig-preset" data-ratio="9:16" data-duration="15" data-fps="30">📱 Story</button>
+                <button class="preset-btn ig-preset" data-ratio="4:5" data-duration="60" data-fps="30">📷 Post</button>
+                <button class="preset-btn ig-preset" data-ratio="1:1" data-duration="60" data-fps="30">⬜ Square</button>
+                <button class="preset-btn ig-preset" data-ratio="9:16" data-duration="30" data-fps="30">🎬 Reel</button>
+            </div>
+        </div>
+
+        <div class="divider video-only"></div>
+
+        <!-- Grid & Animation (Video mode) -->
+        <div class="section video-only">
+            <div class="section-title">Grid & Animation</div>
+            
+            <div class="control-group compact" style="margin-bottom: 10px;">
+                <label>Mode</label>
+                <div class="preset-buttons">
+                    <button class="preset-btn mode-btn active" data-mode="normal">Normal</button>
+                    <button class="preset-btn mode-btn" data-mode="evencheck">Even Check</button>
+                </div>
+                <div class="hint" id="modeHint">Original website algorithm</div>
+            </div>
+            <input type="hidden" id="currentMode" value="normal">
+            
+            <div class="col-2">
+                <div class="control-group compact">
+                    <label>Grid Density</label>
+                    <input type="number" id="gridDensity" value="32" min="8" max="128">
+                    <div class="hint">Squares across (default: 32)</div>
+                </div>
+                <div class="control-group compact">
+                    <label>Flicker Speed</label>
+                    <div class="slider-row">
+                        <input type="range" id="flickerSpeed" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    <div class="slider-value" id="speedDisplay">1.0×</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Tools -->
+        <div class="section editor-only">
+            <div class="section-title">Editor</div>
+            
+            <div class="col-2" style="margin-bottom: 10px;">
+                <div class="control-group compact">
+                    <label>Grid Density</label>
+                    <input type="number" id="editorGridDensity" value="32" min="8" max="128">
+                </div>
+                <div class="control-group compact">
+                    <label>Seed</label>
+                    <input type="text" id="editorSeed" value="" placeholder="Random">
+                </div>
+            </div>
+            
+            <div class="editor-tools">
+                <div class="tool-row">
+                    <button class="tool-btn" id="editorGenerate">🎲 New Grid</button>
+                    <button class="tool-btn" id="editorRandomize">🔀 Randomize</button>
+                </div>
+                <div class="tool-row">
+                    <button class="tool-btn" id="editorFillBlack">⬛ Fill Black</button>
+                    <button class="tool-btn" id="editorFillWhite">⬜ Fill White</button>
+                </div>
+                <div class="tool-row">
+                    <button class="tool-btn" id="editorInvert">🔄 Invert All</button>
+                </div>
+                <div class="divider" style="margin: 8px 0;"></div>
+                <div class="control-group compact">
+                    <label>Click Tool</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn tool-select-btn active" data-tool="toggle">Toggle</button>
+                        <button class="preset-btn tool-select-btn" data-tool="break">Break</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hint" style="margin-bottom: 12px;">Click squares to toggle white/black</div>
+            
+            <button id="editorExport" class="secondary">💾 Export PNG</button>
+        </div>
+
+        <!-- Logo Hotspot -->
+        <details id="hotspotSection" class="video-only">
+            <summary>Logo Hotspot</summary>
+            <div class="detail-content">
+                <div class="control-group compact">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="hotspotEnabled">
+                        Enable hotspot bias
+                    </label>
+                </div>
+                
+                <div id="hotspotControls">
+                    <div class="control-group compact">
+                        <label>Effect</label>
+                        <div class="slider-row">
+                            <span>Black</span>
+                            <input type="range" id="hotspotBias" min="0" max="100" step="5" value="80">
+                            <span>White</span>
+                        </div>
+                        <div class="slider-value" id="hotspotBiasDisplay">80% white</div>
+                    </div>
+
+                    <div class="col-3">
+                        <div class="control-group compact">
+                            <label>Width %</label>
+                            <input type="number" id="hotspotWidth" value="50" min="10" max="100" step="5">
+                        </div>
+                        <div class="control-group compact">
+                            <label>Height %</label>
+                            <input type="number" id="hotspotHeight" value="25" min="10" max="100" step="5">
+                        </div>
+                        <div class="control-group compact">
+                            <label>Y Pos %</label>
+                            <input type="number" id="hotspotY" value="50" min="0" max="100" step="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Advanced Settings -->
+        <details class="video-only">
+            <summary>Advanced Flicker Settings</summary>
+            <div class="detail-content">
+                <div class="col-2" style="margin-bottom: 8px;">
+                    <div class="control-group compact">
+                        <label>Min Interval (s)</label>
+                        <input type="number" id="flickerMin" value="0.5" min="0.1" max="10" step="0.1">
+                    </div>
+                    <div class="control-group compact">
+                        <label>Max Interval (s)</label>
+                        <input type="number" id="flickerMax" value="4.5" min="0.1" max="20" step="0.1">
+                    </div>
+                </div>
+
+                <div class="col-2" style="margin-bottom: 8px;">
+                    <div class="control-group compact">
+                        <label>Initial Min (s)</label>
+                        <input type="number" id="initialDelayMin" value="1" min="0" max="30" step="0.1">
+                    </div>
+                    <div class="control-group compact">
+                        <label>Initial Max (s)</label>
+                        <input type="number" id="initialDelayMax" value="6" min="0" max="60" step="0.1">
+                    </div>
+                </div>
+
+                <div class="col-2">
+                    <div class="control-group compact">
+                        <label>Toggle Chance %</label>
+                        <input type="number" id="toggleChance" value="15" min="1" max="100" step="1">
+                    </div>
+                    <div class="control-group compact">
+                        <label>White Ratio %</label>
+                        <input type="number" id="targetWhiteRatio" value="50" min="0" max="100" step="1">
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Seed -->
+        <details class="video-only">
+            <summary>Seed (Reproducibility)</summary>
+            <div class="detail-content">
+                <div class="seed-row">
+                    <input type="text" id="seed" value="" placeholder="Auto-generated">
+                    <button class="icon-btn" id="newSeedBtn" title="New seed">🎲</button>
+                    <button class="icon-btn" id="copySeedBtn" title="Copy">📋</button>
+                </div>
+                <div class="hint" style="margin-top: 4px;">Same seed = identical pattern</div>
+            </div>
+        </details>
+
+        <div class="divider video-only"></div>
+
+        <!-- Export Options -->
+        <div class="control-group compact video-only" style="margin-bottom: 12px;">
+            <label>Export Format</label>
+            <div class="preset-buttons">
+                <button class="preset-btn format-btn active" data-format="video">Video</button>
+                <button class="preset-btn format-btn" data-format="sequence">PNG Sequence</button>
+            </div>
+            <div class="hint" id="formatHint">MP4 or WebM video file</div>
+        </div>
+        <input type="hidden" id="exportFormat" value="video">
+
+        <!-- Action Buttons (Video Mode) -->
+        <div class="btn-row video-only">
+            <button id="previewBtn">▶ Preview</button>
+            <button id="startBtn" class="secondary">⏺ Record</button>
+            <button id="stopBtn" class="secondary hidden">⏹ Stop</button>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">Rendering...</p>
+        </div>
+
+        <p class="status" id="status"></p>
+    </div>
+
+    <div class="preview-container" id="previewContainer">
+        <canvas id="preview-canvas"></canvas>
+    </div>
+
+    <script>
+        // Seeded PRNG using mulberry32 algorithm
+        // Fast, good distribution, reproducible from a single 32-bit seed
+        class SeededRandom {
+            constructor(seed) {
+                this.seed = seed;
+                this.state = seed;
+            }
+            
+            // Mulberry32 PRNG
+            next() {
+                let t = this.state += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+            
+            // Reset to initial seed state
+            reset() {
+                this.state = this.seed;
+            }
+            
+            // Generate a random seed
+            static generateSeed() {
+                return Math.floor(Math.random() * 2147483647);
+            }
+        }
+
+        class GridVideoGenerator {
+            constructor() {
+                this.canvas = document.getElementById('preview-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.previewContainer = document.getElementById('previewContainer');
+                
+                this.squares = [];
+                this.flickeringSquares = new Set();
+                this.nextFlickerTime = new Map();
+                this.squareRngs = new Map(); // Individual RNG per square
+                this.rng = null; // Seeded random number generator
+                this.currentSeed = null;
+                this.lastProcessedTime = 0;
+                
+                this.isRecording = false;
+                this.isPreviewing = false;
+                this.mediaRecorder = null;
+                this.recordedChunks = [];
+                this.animationFrame = null;
+                this.startTime = 0;
+                
+                this.setupEventListeners();
+                
+                // Generate initial seed
+                this.generateNewSeed();
+                
+                // Handle window resize
+                window.addEventListener('resize', () => this.scaleCanvasToFit());
+            }
+
+            // Scale the canvas display to fit the preview container while maintaining aspect ratio
+            // This only affects CSS display size, not the actual canvas resolution
+            scaleCanvasToFit() {
+                const container = this.previewContainer;
+                const containerWidth = container.clientWidth - 48; // Account for padding
+                const containerHeight = container.clientHeight - 48;
+                
+                const canvasWidth = this.canvas.width;
+                const canvasHeight = this.canvas.height;
+                
+                if (canvasWidth === 0 || canvasHeight === 0) return;
+                
+                const scaleX = containerWidth / canvasWidth;
+                const scaleY = containerHeight / canvasHeight;
+                const scale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 1:1
+                
+                this.canvas.style.width = (canvasWidth * scale) + 'px';
+                this.canvas.style.height = (canvasHeight * scale) + 'px';
+            }
+
+            setupEventListeners() {
+                // Resolution calculation function
+                this.calculateResolution = () => {
+                    const ratio = document.getElementById('currentRatio').value;
+                    const quality = document.getElementById('currentQuality').value;
+                    const gridDensity = parseInt(document.getElementById('gridDensity').value);
+                    
+                    // Parse ratio
+                    const [ratioW, ratioH] = ratio.split(':').map(Number);
+                    
+                    // Quality base widths (these will be adjusted for clean grid division)
+                    const qualityBases = {
+                        'hd': 1280,
+                        'fhd': 1920,
+                        'qhd': 2560,
+                        'uhd': 3840
+                    };
+                    
+                    let targetWidth = qualityBases[quality];
+                    
+                    // For portrait ratios, we want the height to be the "main" dimension
+                    const isPortrait = ratioH > ratioW;
+                    
+                    // Calculate base unit size - the smallest square unit
+                    // baseSize = (width / gridDensity) * 4, and we want baseSize to be a whole number
+                    // So width should be divisible by gridDensity, ideally giving a nice baseSize
+                    
+                    // Find the nearest width that divides evenly by gridDensity
+                    // and results in a baseSize that's a clean number
+                    const baseUnit = Math.round(targetWidth / gridDensity);
+                    const cleanWidth = baseUnit * gridDensity;
+                    
+                    // Calculate height from ratio
+                    let width, height;
+                    if (isPortrait) {
+                        // For portrait, calculate based on height being the larger dimension
+                        height = cleanWidth;
+                        width = Math.round(height * ratioW / ratioH);
+                        // Adjust width to be clean
+                        const widthBaseUnit = Math.round(width / gridDensity);
+                        width = widthBaseUnit * gridDensity;
+                        // Recalculate height to maintain ratio
+                        height = Math.round(width * ratioH / ratioW);
+                    } else {
+                        width = cleanWidth;
+                        height = Math.round(width * ratioH / ratioW);
+                    }
+                    
+                    // Ensure height is also reasonably clean (divisible by 8 for video encoding)
+                    height = Math.round(height / 8) * 8;
+                    
+                    // Calculate actual base size for display
+                    const baseSize = (width / gridDensity) * 4;
+                    
+                    // Update hidden inputs
+                    document.getElementById('width').value = width;
+                    document.getElementById('height').value = height;
+                    
+                    // Update display
+                    document.getElementById('calculatedRes').textContent = `${width} × ${height}`;
+                    document.getElementById('resNote').textContent = `Clean grid: ${baseSize.toFixed(1)}px base unit`;
+                };
+                
+                // Ratio buttons
+                document.querySelectorAll('.ratio-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        const customInput = document.getElementById('customRatioInput');
+                        
+                        if (btn.dataset.ratio === 'custom') {
+                            // Show custom input
+                            customInput.style.display = 'block';
+                            const ratioW = document.getElementById('ratioW').value;
+                            const ratioH = document.getElementById('ratioH').value;
+                            document.getElementById('currentRatio').value = `${ratioW}:${ratioH}`;
+                        } else {
+                            // Hide custom input, use preset
+                            customInput.style.display = 'none';
+                            document.getElementById('currentRatio').value = btn.dataset.ratio;
+                        }
+                        this.calculateResolution();
+                    });
+                });
+                
+                // Custom ratio inputs
+                document.getElementById('ratioW').addEventListener('change', () => {
+                    const ratioW = document.getElementById('ratioW').value;
+                    const ratioH = document.getElementById('ratioH').value;
+                    document.getElementById('currentRatio').value = `${ratioW}:${ratioH}`;
+                    this.calculateResolution();
+                });
+                
+                document.getElementById('ratioH').addEventListener('change', () => {
+                    const ratioW = document.getElementById('ratioW').value;
+                    const ratioH = document.getElementById('ratioH').value;
+                    document.getElementById('currentRatio').value = `${ratioW}:${ratioH}`;
+                    this.calculateResolution();
+                });
+                
+                // Quality buttons
+                document.querySelectorAll('.quality-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.getElementById('currentQuality').value = btn.dataset.quality;
+                        this.calculateResolution();
+                    });
+                });
+                
+                // Grid density changes
+                document.getElementById('gridDensity').addEventListener('change', () => {
+                    this.calculateResolution();
+                });
+                
+                // Instagram presets
+                document.querySelectorAll('.ig-preset').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Set ratio
+                        document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+                        const ratioBtn = document.querySelector(`.ratio-btn[data-ratio="${btn.dataset.ratio}"]`);
+                        if (ratioBtn) ratioBtn.classList.add('active');
+                        document.getElementById('currentRatio').value = btn.dataset.ratio;
+                        document.getElementById('customRatioInput').style.display = 'none';
+                        
+                        // Set duration and fps
+                        if (btn.dataset.duration) {
+                            document.getElementById('duration').value = btn.dataset.duration;
+                        }
+                        if (btn.dataset.fps) {
+                            document.getElementById('framerate').value = btn.dataset.fps;
+                        }
+                        
+                        this.calculateResolution();
+                    });
+                });
+
+                document.getElementById('previewBtn').addEventListener('click', () => this.startPreview());
+                document.getElementById('startBtn').addEventListener('click', () => this.startRecording());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopRecording());
+                
+                // Seed controls
+                document.getElementById('newSeedBtn').addEventListener('click', () => this.generateNewSeed());
+                document.getElementById('copySeedBtn').addEventListener('click', () => this.copySeed());
+                
+                // Mode buttons
+                const modeHints = {
+                    'normal': 'Original website algorithm',
+                    'evencheck': 'Spatially balanced random distribution'
+                };
+                
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.getElementById('currentMode').value = btn.dataset.mode;
+                        document.getElementById('modeHint').textContent = modeHints[btn.dataset.mode];
+                    });
+                });
+                
+                // Export format buttons
+                const formatHints = {
+                    'video': 'MP4 or WebM video file',
+                    'sequence': 'Zipped PNG image sequence'
+                };
+                
+                document.querySelectorAll('.format-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.getElementById('exportFormat').value = btn.dataset.format;
+                        document.getElementById('formatHint').textContent = formatHints[btn.dataset.format];
+                    });
+                });
+                
+                // Flicker speed slider
+                const speedSlider = document.getElementById('flickerSpeed');
+                const speedDisplay = document.getElementById('speedDisplay');
+                
+                // Store base values (the "1x" defaults)
+                this.baseFlickerMin = 0.5;
+                this.baseFlickerMax = 4.5;
+                this.baseInitialDelayMin = 1;
+                this.baseInitialDelayMax = 6;
+                
+                speedSlider.addEventListener('input', () => {
+                    const speed = parseFloat(speedSlider.value);
+                    
+                    // Update display
+                    speedDisplay.textContent = speed.toFixed(1) + '×';
+                    
+                    // Speed up = shorter intervals, so divide by speed
+                    document.getElementById('flickerMin').value = (this.baseFlickerMin / speed).toFixed(2);
+                    document.getElementById('flickerMax').value = (this.baseFlickerMax / speed).toFixed(2);
+                    document.getElementById('initialDelayMin').value = (this.baseInitialDelayMin / speed).toFixed(2);
+                    document.getElementById('initialDelayMax').value = (this.baseInitialDelayMax / speed).toFixed(2);
+                });
+
+                // Hotspot controls
+                const hotspotEnabled = document.getElementById('hotspotEnabled');
+                const hotspotControls = document.getElementById('hotspotControls');
+                const hotspotBias = document.getElementById('hotspotBias');
+                const hotspotBiasDisplay = document.getElementById('hotspotBiasDisplay');
+
+                // Toggle hotspot controls visibility and auto-open the details
+                hotspotEnabled.addEventListener('change', () => {
+                    hotspotControls.style.opacity = hotspotEnabled.checked ? '1' : '0.4';
+                    hotspotControls.style.pointerEvents = hotspotEnabled.checked ? 'auto' : 'none';
+                });
+                
+                // Initialize hotspot controls state
+                hotspotControls.style.opacity = '0.4';
+                hotspotControls.style.pointerEvents = 'none';
+
+                hotspotBias.addEventListener('input', () => {
+                    const bias = parseInt(hotspotBias.value);
+                    if (bias === 50) {
+                        hotspotBiasDisplay.textContent = 'No bias';
+                    } else if (bias > 50) {
+                        hotspotBiasDisplay.textContent = `${bias}% white`;
+                    } else {
+                        hotspotBiasDisplay.textContent = `${100 - bias}% black`;
+                    }
+                });
+            }
+
+            generateNewSeed() {
+                const seed = SeededRandom.generateSeed();
+                document.getElementById('seed').value = seed;
+                this.currentSeed = seed;
+            }
+
+            copySeed() {
+                const seedInput = document.getElementById('seed');
+                const seedValue = seedInput.value || this.currentSeed;
+                navigator.clipboard.writeText(seedValue.toString()).then(() => {
+                    const btn = document.getElementById('copySeedBtn');
+                    btn.classList.add('seed-copied');
+                    setTimeout(() => btn.classList.remove('seed-copied'), 300);
+                });
+            }
+
+            getSeed() {
+                const inputValue = document.getElementById('seed').value.trim();
+                if (inputValue === '') {
+                    // Generate and display a new seed if empty
+                    this.generateNewSeed();
+                    return this.currentSeed;
+                }
+                // Parse as integer, or hash if it's a string
+                const parsed = parseInt(inputValue);
+                if (!isNaN(parsed)) {
+                    this.currentSeed = parsed;
+                    return parsed;
+                }
+                // Hash string to number
+                let hash = 0;
+                for (let i = 0; i < inputValue.length; i++) {
+                    const char = inputValue.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                this.currentSeed = Math.abs(hash);
+                document.getElementById('seed').value = this.currentSeed;
+                return this.currentSeed;
+            }
+
+            getSettings() {
+                const width = parseInt(document.getElementById('width').value);
+                const height = parseInt(document.getElementById('height').value);
+                
+                // Hotspot settings
+                const hotspotEnabled = document.getElementById('hotspotEnabled').checked;
+                const hotspotWidthPct = parseFloat(document.getElementById('hotspotWidth').value) / 100;
+                const hotspotHeightPct = parseFloat(document.getElementById('hotspotHeight').value) / 100;
+                const hotspotYPct = parseFloat(document.getElementById('hotspotY').value) / 100;
+                const hotspotBias = parseFloat(document.getElementById('hotspotBias').value) / 100;
+                
+                // Calculate hotspot bounds in pixels
+                const hotspotW = width * hotspotWidthPct;
+                const hotspotH = height * hotspotHeightPct;
+                const hotspotLeft = (width - hotspotW) / 2;
+                const hotspotTop = (height * hotspotYPct) - (hotspotH / 2);
+                
+                return {
+                    width,
+                    height,
+                    gridDensity: parseInt(document.getElementById('gridDensity').value),
+                    duration: parseInt(document.getElementById('duration').value),
+                    framerate: parseInt(document.getElementById('framerate').value),
+                    // Flicker parameters (defaults match original website)
+                    flickerMin: parseFloat(document.getElementById('flickerMin').value) * 1000, // convert to ms
+                    flickerMax: parseFloat(document.getElementById('flickerMax').value) * 1000,
+                    initialDelayMin: parseFloat(document.getElementById('initialDelayMin').value) * 1000,
+                    initialDelayMax: parseFloat(document.getElementById('initialDelayMax').value) * 1000,
+                    toggleChance: parseFloat(document.getElementById('toggleChance').value) / 100, // convert to 0-1
+                    targetWhiteRatio: parseFloat(document.getElementById('targetWhiteRatio').value) / 100, // convert to 0-1
+                    // Hotspot parameters
+                    hotspotEnabled,
+                    hotspotBias, // 0-1 where 0.5 = no bias, >0.5 = more white, <0.5 = more black
+                    hotspotBounds: {
+                        left: hotspotLeft,
+                        top: hotspotTop,
+                        right: hotspotLeft + hotspotW,
+                        bottom: hotspotTop + hotspotH
+                    },
+                    // Mode
+                    mode: document.getElementById('currentMode').value
+                };
+            }
+
+            // Exact algorithm from Default Office website (now seeded, with configurable parameters)
+            initializeGrid(width, height, gridDensity) {
+                this.squares = [];
+                this.flickeringSquares.clear();
+                this.nextFlickerTime.clear();
+                this.squareRngs = new Map(); // Each square gets its own RNG
+                
+                const settings = this.getSettings();
+                
+                // Initialize seeded RNG for grid layout
+                const seed = this.getSeed();
+                this.rng = new SeededRandom(seed);
+                
+                // Calculate baseSize exactly as the website does
+                // Website: const baseSquares = 32; this.baseSize = (this.canvasWidth / baseSquares) * 4;
+                const baseSize = (width / gridDensity) * 4;
+                
+                // Initial delay range (default: 1000-6000ms matching website)
+                const initialDelayRange = settings.initialDelayMax - settings.initialDelayMin;
+                
+                let y = 0;
+                let squareIndex = 0;
+                
+                while (y < height) {
+                    let x = 0;
+                    
+                    while (x < width) {
+                        // Exact probability distribution from website (now seeded)
+                        const rand = this.rng.next();
+                        let sizeMultiplier;
+                        if (rand < 0.33) sizeMultiplier = 1;        // Large
+                        else if (rand < 0.66) sizeMultiplier = 0.5; // Medium
+                        else sizeMultiplier = 0.25;                 // Small
+                        
+                        const squareSize = sizeMultiplier * baseSize;
+                        const w = Math.min(squareSize, width - x);
+                        const h = Math.min(squareSize, height - y);
+                        
+                        this.squares.push({
+                            x, y, 
+                            width: w, 
+                            height: h,
+                            index: squareIndex
+                        });
+                        
+                        // Each square gets its own RNG seeded uniquely
+                        // This ensures deterministic behavior regardless of processing order
+                        const squareSeed = seed + squareIndex * 7919; // Use prime multiplier for good distribution
+                        this.squareRngs.set(squareIndex, new SeededRandom(squareSeed));
+                        
+                        // Initial flicker delay (default: 1-6 seconds matching website)
+                        const squareRng = this.squareRngs.get(squareIndex);
+                        const initialDelay = squareRng.next() * initialDelayRange + settings.initialDelayMin;
+                        this.nextFlickerTime.set(squareIndex, initialDelay);
+                        
+                        x += w;
+                        squareIndex++;
+                    }
+                    
+                    // Row stepping exactly as website: y += baseSize * 0.25
+                    y += baseSize * 0.25;
+                }
+                
+                // Track last processed time for incremental updates
+                this.lastProcessedTime = 0;
+                
+                console.log(`Grid initialized: ${this.squares.length} squares, seed: ${seed}`);
+            }
+
+            // Update flicker state based on elapsed time
+            // Each square uses its own RNG for deterministic results
+            updateFlickerState(targetTimeMs) {
+                const settings = this.getSettings();
+                const flickerRange = settings.flickerMax - settings.flickerMin;
+                
+                // Even Check mode: Spatially balanced distribution
+                if (settings.mode === 'evencheck') {
+                    this.updateFlickerStateEvenCheck(targetTimeMs, settings);
+                    return;
+                }
+                
+                // Normal mode - original algorithm
+                this.squares.forEach((square, index) => {
+                    const squareRng = this.squareRngs.get(index);
+                    let nextFlicker = this.nextFlickerTime.get(index);
+                    
+                    // Check if square is in hotspot
+                    let whiteRatio = settings.targetWhiteRatio;
+                    if (settings.hotspotEnabled) {
+                        const squareCenterX = square.x + square.width / 2;
+                        const squareCenterY = square.y + square.height / 2;
+                        const bounds = settings.hotspotBounds;
+                        
+                        if (squareCenterX >= bounds.left && squareCenterX <= bounds.right &&
+                            squareCenterY >= bounds.top && squareCenterY <= bounds.bottom) {
+                            // Square is in hotspot - use hotspot bias instead
+                            whiteRatio = settings.hotspotBias;
+                        }
+                    }
+                    
+                    // Process all flicker events that should have happened by targetTimeMs
+                    while (nextFlicker <= targetTimeMs) {
+                        const rand = squareRng.next();
+                        const isCurrentlyWhite = this.flickeringSquares.has(index);
+                        
+                        // Bias toggle chance based on white ratio (global or hotspot)
+                        // At 50% (0.5), both directions have equal chance = original behaviour
+                        // The formula: chance_to_white = base * ratio * 2, chance_to_black = base * (1-ratio) * 2
+                        // At 50%: both = base * 0.5 * 2 = base (original)
+                        // At 25%: to_white = base * 0.5, to_black = base * 1.5 (more black)
+                        // At 75%: to_white = base * 1.5, to_black = base * 0.5 (more white)
+                        let effectiveToggleChance;
+                        if (isCurrentlyWhite) {
+                            // Chance of turning black
+                            effectiveToggleChance = settings.toggleChance * (1 - whiteRatio) * 2;
+                        } else {
+                            // Chance of turning white
+                            effectiveToggleChance = settings.toggleChance * whiteRatio * 2;
+                        }
+                        
+                        if (rand < effectiveToggleChance) {
+                            if (isCurrentlyWhite) {
+                                this.flickeringSquares.delete(index);
+                            } else {
+                                this.flickeringSquares.add(index);
+                            }
+                        }
+                        
+                        // Next flicker interval (default: 0.5-4.5 seconds matching website)
+                        const nextDelay = squareRng.next() * flickerRange + settings.flickerMin;
+                        nextFlicker = nextFlicker + nextDelay;
+                        this.nextFlickerTime.set(index, nextFlicker);
+                    }
+                });
+            }
+
+            // Even Check mode: Spatially balanced random distribution
+            // Same as normal mode but with spatial awareness to ensure even coverage
+            updateFlickerStateEvenCheck(targetTimeMs, settings) {
+                const flickerRange = settings.flickerMax - settings.flickerMin;
+                
+                // Divide canvas into grid regions for spatial distribution
+                const regionsX = 8;
+                const regionsY = Math.max(1, Math.round(regionsX * (settings.height / settings.width)));
+                const regionWidth = settings.width / regionsX;
+                const regionHeight = settings.height / regionsY;
+                
+                // Track white squares per region
+                const regionWhiteCounts = new Map();
+                const regionTotalCounts = new Map();
+                
+                // Initialize region counts
+                for (let ry = 0; ry < regionsY; ry++) {
+                    for (let rx = 0; rx < regionsX; rx++) {
+                        const key = `${rx},${ry}`;
+                        regionWhiteCounts.set(key, 0);
+                        regionTotalCounts.set(key, 0);
+                    }
+                }
+                
+                // Count squares per region and current white squares
+                this.squares.forEach((square, index) => {
+                    const rx = Math.min(Math.floor((square.x + square.width / 2) / regionWidth), regionsX - 1);
+                    const ry = Math.min(Math.floor((square.y + square.height / 2) / regionHeight), regionsY - 1);
+                    const key = `${rx},${ry}`;
+                    
+                    regionTotalCounts.set(key, regionTotalCounts.get(key) + 1);
+                    if (this.flickeringSquares.has(index)) {
+                        regionWhiteCounts.set(key, regionWhiteCounts.get(key) + 1);
+                    }
+                });
+                
+                this.squares.forEach((square, index) => {
+                    const squareRng = this.squareRngs.get(index);
+                    let nextFlicker = this.nextFlickerTime.get(index);
+                    
+                    // Determine which region this square is in
+                    const rx = Math.min(Math.floor((square.x + square.width / 2) / regionWidth), regionsX - 1);
+                    const ry = Math.min(Math.floor((square.y + square.height / 2) / regionHeight), regionsY - 1);
+                    const regionKey = `${rx},${ry}`;
+                    
+                    // Calculate region's current white ratio
+                    const regionTotal = regionTotalCounts.get(regionKey);
+                    const regionWhite = regionWhiteCounts.get(regionKey);
+                    const regionWhiteRatio = regionTotal > 0 ? regionWhite / regionTotal : 0;
+                    
+                    // Target white ratio (default 50% or from settings)
+                    let targetWhite = settings.targetWhiteRatio;
+                    
+                    // Check hotspot
+                    if (settings.hotspotEnabled) {
+                        const squareCenterX = square.x + square.width / 2;
+                        const squareCenterY = square.y + square.height / 2;
+                        const bounds = settings.hotspotBounds;
+                        
+                        if (squareCenterX >= bounds.left && squareCenterX <= bounds.right &&
+                            squareCenterY >= bounds.top && squareCenterY <= bounds.bottom) {
+                            targetWhite = settings.hotspotBias;
+                        }
+                    }
+                    
+                    // Process flicker events
+                    while (nextFlicker <= targetTimeMs) {
+                        const rand = squareRng.next();
+                        const isCurrentlyWhite = this.flickeringSquares.has(index);
+                        
+                        // Spatial balancing: adjust probability based on region's current state
+                        // If region is under-white relative to target, increase chance to turn white
+                        // If region is over-white, increase chance to turn black
+                        const regionDeviation = regionWhiteRatio - targetWhite;
+                        
+                        let effectiveToggleChance;
+                        
+                        if (isCurrentlyWhite) {
+                            // Chance of turning black
+                            // If region has too much white, increase chance to turn black
+                            const spatialBias = 1 + (regionDeviation * 2);
+                            effectiveToggleChance = settings.toggleChance * (1 - targetWhite) * 2;
+                            effectiveToggleChance *= Math.max(0.2, Math.min(2, spatialBias));
+                        } else {
+                            // Chance of turning white
+                            // If region has too little white, increase chance to turn white
+                            const spatialBias = 1 - (regionDeviation * 2);
+                            effectiveToggleChance = settings.toggleChance * targetWhite * 2;
+                            effectiveToggleChance *= Math.max(0.2, Math.min(2, spatialBias));
+                        }
+                        
+                        if (rand < effectiveToggleChance) {
+                            if (isCurrentlyWhite) {
+                                this.flickeringSquares.delete(index);
+                                regionWhiteCounts.set(regionKey, regionWhiteCounts.get(regionKey) - 1);
+                            } else {
+                                this.flickeringSquares.add(index);
+                                regionWhiteCounts.set(regionKey, regionWhiteCounts.get(regionKey) + 1);
+                            }
+                        }
+                        
+                        // Same interval timing as normal mode
+                        const nextDelay = squareRng.next() * flickerRange + settings.flickerMin;
+                        nextFlicker = nextFlicker + nextDelay;
+                        this.nextFlickerTime.set(index, nextFlicker);
+                    }
+                });
+            }
+
+            render(showHotspotGuide = false) {
+                const settings = this.getSettings();
+                const { width, height } = settings;
+                
+                // White background
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, width, height);
+                
+                // Draw black squares (non-flickering)
+                this.ctx.fillStyle = 'black';
+                this.squares.forEach((square, index) => {
+                    if (!this.flickeringSquares.has(index)) {
+                        // Add 0.5px to width/height to prevent gaps (as website does)
+                        this.ctx.fillRect(square.x, square.y, square.width + 0.5, square.height + 0.5);
+                    }
+                });
+                
+                // Draw hotspot guide (preview only, not in recording)
+                if (showHotspotGuide && settings.hotspotEnabled) {
+                    const bounds = settings.hotspotBounds;
+                    this.ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([10, 10]);
+                    this.ctx.strokeRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+                    this.ctx.setLineDash([]);
+                }
+            }
+
+            startPreview() {
+                if (this.isRecording) return;
+                
+                const settings = this.getSettings();
+                this.canvas.width = settings.width;
+                this.canvas.height = settings.height;
+                this.scaleCanvasToFit(); // Scale display to fit container
+                
+                this.initializeGrid(settings.width, settings.height, settings.gridDensity);
+                
+                this.isPreviewing = true;
+                this.lastProcessedTime = 0;
+                this.startTime = performance.now();
+                
+                document.getElementById('status').textContent = 'Preview running...';
+                document.getElementById('status').className = 'status';
+                
+                const frameInterval = 1000 / settings.framerate;
+                
+                const animate = () => {
+                    if (!this.isPreviewing) return;
+                    
+                    // Calculate which frame we should be on based on real time
+                    const realElapsed = performance.now() - this.startTime;
+                    const targetFrame = Math.floor(realElapsed / frameInterval);
+                    const targetTime = targetFrame * frameInterval;
+                    
+                    // Only update if we've moved to a new frame
+                    if (targetTime > this.lastProcessedTime) {
+                        this.updateFlickerState(targetTime);
+                        this.lastProcessedTime = targetTime;
+                        this.render(true); // Show hotspot guide in preview
+                    }
+                    
+                    this.animationFrame = requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+
+            async startRecording() {
+                const settings = this.getSettings();
+                const exportFormat = document.getElementById('exportFormat').value;
+                
+                // Stop any existing preview
+                this.isPreviewing = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+                
+                // Route to appropriate export method
+                if (exportFormat === 'sequence') {
+                    await this.exportImageSequence(settings);
+                    return;
+                }
+                
+                // Video recording
+                this.canvas.width = settings.width;
+                this.canvas.height = settings.height;
+                
+                // Reinitialize grid for fresh recording
+                this.initializeGrid(settings.width, settings.height, settings.gridDensity);
+                
+                this.isRecording = true;
+                this.recordedChunks = [];
+                
+                // Setup MediaRecorder with captureStream(0) for manual frame control
+                // Using 0 means we control exactly when frames are captured
+                const stream = this.canvas.captureStream(0);
+                const videoTrack = stream.getVideoTracks()[0];
+                
+                // Try to use H.264 for Safari compatibility, fallback to VP9/VP8
+                const mimeTypes = [
+                    'video/mp4; codecs="avc1.42E01E"',  // H.264 baseline (Safari)
+                    'video/mp4; codecs="avc1.4D401F"',  // H.264 main
+                    'video/mp4',
+                    'video/webm; codecs="vp9"',
+                    'video/webm; codecs="vp8"',
+                    'video/webm'
+                ];
+                
+                let selectedMimeType = '';
+                for (const mimeType of mimeTypes) {
+                    if (MediaRecorder.isTypeSupported(mimeType)) {
+                        selectedMimeType = mimeType;
+                        break;
+                    }
+                }
+                
+                if (!selectedMimeType) {
+                    alert('No supported video format found in this browser');
+                    return;
+                }
+                
+                console.log('Using codec:', selectedMimeType);
+                
+                // Calculate appropriate bitrate - higher for larger resolutions
+                // Using a quality factor that scales well
+                const pixelCount = settings.width * settings.height;
+                const bitrate = Math.max(5000000, pixelCount * 8); // Minimum 5Mbps, scale with resolution
+                
+                this.mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: selectedMimeType,
+                    videoBitsPerSecond: bitrate
+                });
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.recordedChunks.push(event.data);
+                    }
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    this.exportVideo(selectedMimeType);
+                };
+                
+                // UI updates
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                document.getElementById('progressContainer').style.display = 'block';
+                document.getElementById('status').textContent = 'Recording...';
+                document.getElementById('status').className = 'status recording';
+                
+                // Start recording - request data less frequently to avoid chunking issues
+                this.mediaRecorder.start(1000); // Collect data every 1 second
+                
+                const totalDuration = settings.duration * 1000;
+                const frameInterval = 1000 / settings.framerate;
+                let frameCount = 0;
+                const totalFrames = settings.duration * settings.framerate;
+                
+                // Use a more precise timing approach
+                const renderFrame = () => {
+                    if (!this.isRecording) return;
+                    
+                    const currentTime = frameCount * frameInterval;
+                    
+                    // Check if we've reached the end
+                    if (currentTime >= totalDuration) {
+                        this.stopRecording();
+                        return;
+                    }
+                    
+                    // Update state and render
+                    this.updateFlickerState(currentTime);
+                    this.render();
+                    
+                    // Manually request a frame capture
+                    // This ensures each rendered frame is captured
+                    if (videoTrack.requestFrame) {
+                        videoTrack.requestFrame();
+                    }
+                    
+                    frameCount++;
+                    
+                    // Update progress
+                    const progress = (frameCount / totalFrames) * 100;
+                    document.getElementById('progressFill').style.width = progress + '%';
+                    document.getElementById('progressText').textContent = 
+                        `Rendering: ${Math.round(progress)}% (${frameCount}/${totalFrames} frames)`;
+                    
+                    // Use setTimeout for next frame
+                    // The exact timing matters less since we're using requestFrame()
+                    setTimeout(renderFrame, frameInterval);
+                };
+                
+                // Small delay to ensure MediaRecorder is ready
+                await new Promise(resolve => setTimeout(resolve, 100));
+                renderFrame();
+            }
+
+            stopRecording() {
+                if (!this.isRecording) return;
+                
+                this.isRecording = false;
+                
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    this.mediaRecorder.stop();
+                }
+                
+                document.getElementById('startBtn').classList.remove('hidden');
+                document.getElementById('stopBtn').classList.add('hidden');
+                document.getElementById('status').textContent = 'Processing video...';
+                document.getElementById('status').className = 'status';
+            }
+
+            async exportImageSequence(settings) {
+                this.canvas.width = settings.width;
+                this.canvas.height = settings.height;
+                
+                // Reinitialize grid
+                this.initializeGrid(settings.width, settings.height, settings.gridDensity);
+                
+                this.isRecording = true;
+                
+                // UI updates
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                document.getElementById('progressContainer').style.display = 'block';
+                document.getElementById('status').textContent = 'Generating frames...';
+                document.getElementById('status').className = 'status recording';
+                
+                const zip = new JSZip();
+                const folder = zip.folder(`grid_sequence_${settings.width}x${settings.height}_seed${this.currentSeed}`);
+                
+                const totalDuration = settings.duration * 1000;
+                const frameInterval = 1000 / settings.framerate;
+                const totalFrames = settings.duration * settings.framerate;
+                
+                // Generate frames
+                for (let frameCount = 0; frameCount < totalFrames; frameCount++) {
+                    if (!this.isRecording) break;
+                    
+                    const currentTime = frameCount * frameInterval;
+                    
+                    // Update state and render
+                    this.updateFlickerState(currentTime);
+                    this.render();
+                    
+                    // Get frame as PNG blob
+                    const blob = await new Promise(resolve => {
+                        this.canvas.toBlob(resolve, 'image/png');
+                    });
+                    
+                    // Add to zip with zero-padded frame number
+                    const frameNum = String(frameCount).padStart(6, '0');
+                    folder.file(`frame_${frameNum}.png`, blob);
+                    
+                    // Update progress
+                    const progress = ((frameCount + 1) / totalFrames) * 100;
+                    document.getElementById('progressFill').style.width = progress + '%';
+                    document.getElementById('progressText').textContent = 
+                        `Rendering: ${Math.round(progress)}% (${frameCount + 1}/${totalFrames} frames)`;
+                    
+                    // Yield to UI occasionally
+                    if (frameCount % 10 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+                
+                if (!this.isRecording) {
+                    // Cancelled
+                    document.getElementById('startBtn').classList.remove('hidden');
+                    document.getElementById('stopBtn').classList.add('hidden');
+                    document.getElementById('progressContainer').style.display = 'none';
+                    document.getElementById('status').textContent = 'Cancelled';
+                    document.getElementById('status').className = 'status';
+                    return;
+                }
+                
+                // Generate zip
+                document.getElementById('status').textContent = 'Compressing ZIP...';
+                document.getElementById('progressText').textContent = 'Compressing...';
+                
+                const zipBlob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                }, (metadata) => {
+                    document.getElementById('progressFill').style.width = metadata.percent + '%';
+                });
+                
+                // Download
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `default_office_grid_${settings.width}x${settings.height}_${settings.duration}s_${settings.framerate}fps_seed${this.currentSeed}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.isRecording = false;
+                document.getElementById('startBtn').classList.remove('hidden');
+                document.getElementById('stopBtn').classList.add('hidden');
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('status').textContent = `Exported ${totalFrames} PNG frames`;
+                document.getElementById('status').className = 'status';
+                
+                console.log('Image sequence exported:', zipBlob.size, 'bytes');
+            }
+
+            exportVideo(mimeType) {
+                const blob = new Blob(this.recordedChunks, { 
+                    type: mimeType.split(';')[0] // Just the container type
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Determine file extension
+                const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                const settings = this.getSettings();
+                a.download = `default_office_grid_${settings.width}x${settings.height}_${settings.duration}s_seed${this.currentSeed}.${extension}`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(url);
+                
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('status').textContent = `Video exported as ${extension.toUpperCase()}`;
+                document.getElementById('status').className = 'status';
+                
+                console.log('Video exported:', blob.size, 'bytes');
+            }
+
+            // ===== EDITOR MODE =====
+            
+            initEditor() {
+                this.editorMode = false;
+                this.editorSquares = []; // Separate square data for editor
+                this.editorWhiteSquares = new Set();
+                this.editorTool = 'toggle'; // 'toggle' or 'break'
+                
+                // Editor grid density (separate from video)
+                const editorDensity = document.getElementById('editorGridDensity');
+                editorDensity.addEventListener('change', () => {
+                    if (this.editorMode) {
+                        this.generateEditorGrid();
+                    }
+                });
+                
+                // Tool selection
+                document.querySelectorAll('.tool-select-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.tool-select-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.editorTool = btn.dataset.tool;
+                    });
+                });
+                
+                // Editor buttons
+                document.getElementById('editorGenerate').addEventListener('click', () => {
+                    document.getElementById('editorSeed').value = ''; // Clear seed for new random
+                    this.generateEditorGrid();
+                });
+                
+                document.getElementById('editorFillBlack').addEventListener('click', () => {
+                    this.editorWhiteSquares.clear();
+                    this.renderEditor();
+                });
+                
+                document.getElementById('editorFillWhite').addEventListener('click', () => {
+                    this.editorSquares.forEach((_, index) => {
+                        this.editorWhiteSquares.add(index);
+                    });
+                    this.renderEditor();
+                });
+                
+                document.getElementById('editorInvert').addEventListener('click', () => {
+                    const newWhite = new Set();
+                    this.editorSquares.forEach((_, index) => {
+                        if (!this.editorWhiteSquares.has(index)) {
+                            newWhite.add(index);
+                        }
+                    });
+                    this.editorWhiteSquares = newWhite;
+                    this.renderEditor();
+                });
+                
+                document.getElementById('editorRandomize').addEventListener('click', () => {
+                    this.editorWhiteSquares.clear();
+                    this.editorSquares.forEach((_, index) => {
+                        if (Math.random() < 0.5) {
+                            this.editorWhiteSquares.add(index);
+                        }
+                    });
+                    this.renderEditor();
+                });
+                
+                document.getElementById('editorExport').addEventListener('click', () => {
+                    this.exportEditorPNG();
+                });
+                
+                // Canvas click handler for editor
+                this.canvas.addEventListener('click', (e) => {
+                    if (!this.editorMode) return;
+                    this.handleEditorClick(e);
+                });
+            }
+            
+            generateEditorGrid() {
+                const settings = this.getSettings();
+                const gridDensity = parseInt(document.getElementById('editorGridDensity').value);
+                
+                this.canvas.width = settings.width;
+                this.canvas.height = settings.height;
+                this.scaleCanvasToFit();
+                
+                this.editorSquares = [];
+                this.editorWhiteSquares.clear();
+                
+                // Get seed for reproducible grid
+                const seedInput = document.getElementById('editorSeed').value.trim();
+                let seed;
+                if (seedInput === '') {
+                    seed = SeededRandom.generateSeed();
+                    document.getElementById('editorSeed').value = seed;
+                } else {
+                    seed = parseInt(seedInput) || Math.abs(seedInput.split('').reduce((a, c) => ((a << 5) - a) + c.charCodeAt(0), 0));
+                }
+                
+                const rng = new SeededRandom(seed);
+                
+                // Calculate base unit size
+                const baseUnit = settings.width / gridDensity;
+                
+                // Create a grid to track which cells are filled
+                const gridCols = gridDensity;
+                const gridRows = Math.ceil(settings.height / baseUnit);
+                const filled = Array(gridRows).fill(null).map(() => Array(gridCols).fill(false));
+                
+                // Generate non-overlapping chunks
+                for (let row = 0; row < gridRows; row++) {
+                    for (let col = 0; col < gridCols; col++) {
+                        if (filled[row][col]) continue;
+                        
+                        // Randomly choose chunk size: 1x1, 2x2, or 4x4 base units
+                        const rand = rng.next();
+                        let size;
+                        if (rand < 0.5) {
+                            size = 1;
+                        } else if (rand < 0.8) {
+                            size = 2;
+                        } else {
+                            size = 4;
+                        }
+                        
+                        // Check if this size fits
+                        let fits = true;
+                        for (let dr = 0; dr < size && fits; dr++) {
+                            for (let dc = 0; dc < size && fits; dc++) {
+                                const r = row + dr;
+                                const c = col + dc;
+                                if (r >= gridRows || c >= gridCols || filled[r][c]) {
+                                    fits = false;
+                                }
+                            }
+                        }
+                        
+                        // If doesn't fit, try smaller sizes
+                        if (!fits && size > 2) {
+                            size = 2;
+                            fits = true;
+                            for (let dr = 0; dr < size && fits; dr++) {
+                                for (let dc = 0; dc < size && fits; dc++) {
+                                    const r = row + dr;
+                                    const c = col + dc;
+                                    if (r >= gridRows || c >= gridCols || filled[r][c]) {
+                                        fits = false;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!fits && size > 1) {
+                            size = 1;
+                            fits = true;
+                        }
+                        
+                        // Mark cells as filled and create square
+                        for (let dr = 0; dr < size; dr++) {
+                            for (let dc = 0; dc < size; dc++) {
+                                const r = row + dr;
+                                const c = col + dc;
+                                if (r < gridRows && c < gridCols) {
+                                    filled[r][c] = true;
+                                }
+                            }
+                        }
+                        
+                        const x = col * baseUnit;
+                        const y = row * baseUnit;
+                        const w = size * baseUnit;
+                        const h = size * baseUnit;
+                        
+                        // Clip to canvas bounds
+                        const clippedW = Math.min(w, settings.width - x);
+                        const clippedH = Math.min(h, settings.height - y);
+                        
+                        if (clippedW > 0 && clippedH > 0) {
+                            this.editorSquares.push({ 
+                                x, 
+                                y, 
+                                width: clippedW, 
+                                height: clippedH 
+                            });
+                        }
+                    }
+                }
+                
+                this.renderEditor();
+                console.log(`Editor grid: ${this.editorSquares.length} non-overlapping squares, seed: ${seed}`);
+            }
+            
+            handleEditorClick(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                const clickX = (e.clientX - rect.left) * scaleX;
+                const clickY = (e.clientY - rect.top) * scaleY;
+                
+                // Find the square that contains this click (no overlaps, so just one)
+                for (let i = 0; i < this.editorSquares.length; i++) {
+                    const sq = this.editorSquares[i];
+                    if (clickX >= sq.x && clickX < sq.x + sq.width &&
+                        clickY >= sq.y && clickY < sq.y + sq.height) {
+                        
+                        if (this.editorTool === 'toggle') {
+                            // Toggle this square
+                            if (this.editorWhiteSquares.has(i)) {
+                                this.editorWhiteSquares.delete(i);
+                            } else {
+                                this.editorWhiteSquares.add(i);
+                            }
+                        } else if (this.editorTool === 'break') {
+                            // Break this square into smaller pieces
+                            this.breakSquare(i);
+                        }
+                        
+                        this.renderEditor();
+                        break;
+                    }
+                }
+            }
+            
+            breakSquare(index) {
+                const sq = this.editorSquares[index];
+                const settings = this.getSettings();
+                const gridDensity = parseInt(document.getElementById('editorGridDensity').value);
+                const baseUnit = settings.width / gridDensity;
+                
+                // Calculate how many base units this square spans
+                const unitsWide = Math.round(sq.width / baseUnit);
+                const unitsHigh = Math.round(sq.height / baseUnit);
+                
+                // If it's already 1x1, can't break further
+                if (unitsWide <= 1 && unitsHigh <= 1) {
+                    return;
+                }
+                
+                // Remember if original was white
+                const wasWhite = this.editorWhiteSquares.has(index);
+                
+                // Remove the original square
+                this.editorSquares.splice(index, 1);
+                if (wasWhite) {
+                    this.editorWhiteSquares.delete(index);
+                }
+                
+                // Adjust indices in editorWhiteSquares for removed element
+                const newWhiteSquares = new Set();
+                this.editorWhiteSquares.forEach(idx => {
+                    if (idx < index) {
+                        newWhiteSquares.add(idx);
+                    } else if (idx > index) {
+                        newWhiteSquares.add(idx - 1);
+                    }
+                });
+                this.editorWhiteSquares = newWhiteSquares;
+                
+                // Generate new smaller squares to fill the space
+                const newSquares = [];
+                const rng = new SeededRandom(Date.now());
+                
+                // Create a mini-grid for this area
+                const filled = Array(unitsHigh).fill(null).map(() => Array(unitsWide).fill(false));
+                
+                for (let row = 0; row < unitsHigh; row++) {
+                    for (let col = 0; col < unitsWide; col++) {
+                        if (filled[row][col]) continue;
+                        
+                        // Try to place a chunk (prefer smaller when breaking)
+                        const rand = rng.next();
+                        let size;
+                        if (rand < 0.6) {
+                            size = 1;
+                        } else if (rand < 0.9) {
+                            size = 2;
+                        } else {
+                            size = Math.min(2, unitsWide - col, unitsHigh - row); // Max 2 when breaking
+                        }
+                        
+                        // Check if this size fits
+                        let fits = true;
+                        for (let dr = 0; dr < size && fits; dr++) {
+                            for (let dc = 0; dc < size && fits; dc++) {
+                                const r = row + dr;
+                                const c = col + dc;
+                                if (r >= unitsHigh || c >= unitsWide || filled[r][c]) {
+                                    fits = false;
+                                }
+                            }
+                        }
+                        
+                        if (!fits) {
+                            size = 1;
+                        }
+                        
+                        // Mark cells as filled
+                        for (let dr = 0; dr < size; dr++) {
+                            for (let dc = 0; dc < size; dc++) {
+                                const r = row + dr;
+                                const c = col + dc;
+                                if (r < unitsHigh && c < unitsWide) {
+                                    filled[r][c] = true;
+                                }
+                            }
+                        }
+                        
+                        // Create the new square
+                        const newX = sq.x + col * baseUnit;
+                        const newY = sq.y + row * baseUnit;
+                        const newW = size * baseUnit;
+                        const newH = size * baseUnit;
+                        
+                        newSquares.push({
+                            x: newX,
+                            y: newY,
+                            width: Math.min(newW, sq.x + sq.width - newX),
+                            height: Math.min(newH, sq.y + sq.height - newY),
+                            wasWhite: wasWhite
+                        });
+                    }
+                }
+                
+                // Add new squares and preserve white state
+                const insertIndex = index;
+                newSquares.forEach((newSq, i) => {
+                    this.editorSquares.splice(insertIndex + i, 0, {
+                        x: newSq.x,
+                        y: newSq.y,
+                        width: newSq.width,
+                        height: newSq.height
+                    });
+                    if (newSq.wasWhite) {
+                        // Shift existing white indices up
+                        const shiftedWhite = new Set();
+                        this.editorWhiteSquares.forEach(idx => {
+                            if (idx >= insertIndex + i) {
+                                shiftedWhite.add(idx + 1);
+                            } else {
+                                shiftedWhite.add(idx);
+                            }
+                        });
+                        shiftedWhite.add(insertIndex + i);
+                        this.editorWhiteSquares = shiftedWhite;
+                    } else {
+                        // Just shift indices
+                        const shiftedWhite = new Set();
+                        this.editorWhiteSquares.forEach(idx => {
+                            if (idx >= insertIndex + i) {
+                                shiftedWhite.add(idx + 1);
+                            } else {
+                                shiftedWhite.add(idx);
+                            }
+                        });
+                        this.editorWhiteSquares = shiftedWhite;
+                    }
+                });
+            }
+            
+            renderEditor() {
+                const settings = this.getSettings();
+                
+                // White background
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, settings.width, settings.height);
+                
+                // Draw black squares (non-white)
+                this.ctx.fillStyle = 'black';
+                this.editorSquares.forEach((square, index) => {
+                    if (!this.editorWhiteSquares.has(index)) {
+                        this.ctx.fillRect(square.x, square.y, square.width + 0.5, square.height + 0.5);
+                    }
+                });
+            }
+            
+            exportEditorPNG() {
+                const settings = this.getSettings();
+                
+                this.canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `default_office_grid_${settings.width}x${settings.height}_editor.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 'image/png');
+            }
+            
+            enterEditorMode() {
+                this.editorMode = true;
+                this.isPreviewing = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+                
+                // Always generate a fresh grid when entering editor mode
+                this.generateEditorGrid();
+                
+                this.canvas.style.cursor = 'pointer';
+            }
+            
+            exitEditorMode() {
+                this.editorMode = false;
+                this.canvas.style.cursor = 'default';
+                
+                // Re-render video preview
+                const settings = this.getSettings();
+                this.canvas.width = settings.width;
+                this.canvas.height = settings.height;
+                this.scaleCanvasToFit();
+                this.initializeGrid(settings.width, settings.height, settings.gridDensity);
+                this.render(true);
+            }
+        }
+
+        // Initialize
+        const generator = new GridVideoGenerator();
+        generator.initEditor();
+        
+        // Main mode tabs
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const mode = tab.dataset.mainmode;
+                document.body.classList.remove('mode-video', 'mode-editor');
+                document.body.classList.add(`mode-${mode}`);
+                
+                if (mode === 'editor') {
+                    generator.enterEditorMode();
+                } else {
+                    generator.exitEditorMode();
+                }
+            });
+        });
+        
+        // Set initial mode
+        document.body.classList.add('mode-video');
+        
+        // Render initial static preview
+        window.addEventListener('load', () => {
+            // Calculate initial resolution
+            generator.calculateResolution();
+            
+            const settings = generator.getSettings();
+            generator.canvas.width = settings.width;
+            generator.canvas.height = settings.height;
+            generator.initializeGrid(settings.width, settings.height, settings.gridDensity);
+            generator.render(true); // Show hotspot guide
+            generator.scaleCanvasToFit(); // Scale to fit container
+        });
+    </script>
+</body>
+</html>

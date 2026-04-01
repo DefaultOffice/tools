@@ -1,0 +1,8 @@
+{
+  "name": "WaveMesh Generator",
+  "category": "Animation",
+  "project": "General",
+  "owner": "Alex",
+  "date": "2026 03 08",
+  "description": "Animated dot-grid pattern generator with wave modulation, tiling controls, and post-processing effects. Exports PNG sequences."
+}

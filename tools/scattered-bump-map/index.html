@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scattered Bump Map Generator</title>
+<style>
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ── Tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg:         #EEEEED;
+  --surface:    #FFFFFF;
+  --border:     #DDDDD9;
+  --border-mid: #C6C6C0;
+  --text:       #111111;
+  --muted:      #888884;
+  --dim:        #BBBBB5;
+  --accent:     #0047FF;
+  --accent-fg:  #FFFFFF;
+
+  --f:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Consolas', monospace;
+
+  --ribbon-h: 44px;
+  --panel-w:  304px;
+  --u:   8px;
+  --u2: 16px;
+  --u3: 24px;
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--f);
+  font-size: 11px;
+  line-height: 1.4;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Ribbon ─────────────────────────────────────────────────── */
+.ribbon {
+  height: var(--ribbon-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--u2);
+  gap: 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.back-link {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: color 70ms;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+.back-link:hover { color: var(--text); }
+
+.wordmark {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ribbon-div {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.rib-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.rib-lbl {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.seg {
+  display: flex;
+  border: 1px solid var(--border);
+}
+.seg button {
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 9px;
+  height: 26px;
+  cursor: pointer;
+  transition: background 70ms, color 70ms;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.seg button:last-child { border-right: none; }
+.seg button:hover { background: var(--bg); color: var(--text); }
+.seg button.active { background: var(--text); color: var(--surface); }
+
+.cust-res {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.cust-res.on { display: flex; }
+.cust-res input {
+  width: 52px; height: 26px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 0 6px;
+  outline: none;
+}
+.cust-res input:focus { border-color: var(--text); }
+.cust-res span { font-size: 10px; color: var(--muted); }
+
+.bg-seg {
+  display: flex;
+  border: 1px solid var(--border);
+}
+.bg-seg button {
+  background: var(--surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  font-family: var(--f);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 13px;
+  height: 26px;
+  cursor: pointer;
+  transition: background 70ms, color 70ms;
+  color: var(--muted);
+}
+.bg-seg button:last-child { border-right: none; }
+#bg-white.active { background: #FFFFFF; color: #111; font-weight: 500; }
+#bg-black.active { background: #111111; color: #FFFFFF; font-weight: 500; }
+
+.rib-spacer { flex: 1; }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--f);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0 14px;
+  height: 28px;
+  cursor: pointer;
+  transition: border-color 70ms, background 70ms;
+  flex-shrink: 0;
+}
+.btn-outline:hover { border-color: var(--text); background: var(--bg); }
+.btn-outline:disabled { opacity: 0.28; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  border: none;
+  color: var(--accent-fg);
+  font-family: var(--f);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0 22px;
+  height: 28px;
+  cursor: pointer;
+  transition: opacity 70ms;
+  flex-shrink: 0;
+}
+.btn-primary:hover { opacity: 0.86; }
+.btn-primary:active { opacity: 0.7; }
+.btn-primary:disabled { opacity: 0.28; cursor: not-allowed; }
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.layout {
+  display: flex;
+  height: calc(100vh - var(--ribbon-h));
+  overflow: hidden;
+}
+
+/* ── Panel ──────────────────────────────────────────────────── */
+.panel {
+  width: var(--panel-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.layer-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ltab {
+  flex: 1;
+  height: 36px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--f);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 70ms, border-color 70ms;
+  position: relative;
+}
+.ltab:hover { color: var(--text); }
+.ltab.active { color: var(--text); border-bottom-color: var(--text); }
+.ltab.loaded::after {
+  content: '';
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.lpanel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.lpanel.active { display: flex; }
+
+.upload-block {
+  padding: var(--u2) var(--u2) var(--u) var(--u2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.blk-head {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+
+.upload-zone {
+  height: 48px;
+  border: 1px dashed var(--border-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 70ms, background 70ms;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(0,71,255,0.03);
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.upload-zone-txt {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  pointer-events: none;
+  transition: color 70ms;
+}
+.upload-zone:hover .upload-zone-txt { color: var(--muted); }
+
+.file-meta {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.file-meta.on { display: flex; }
+.fthumb {
+  height: 22px;
+  max-width: 52px;
+  object-fit: contain;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.fname {
+  flex: 1;
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-remove {
+  background: none;
+  border: none;
+  font-family: var(--f);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 2px 0;
+  flex-shrink: 0;
+  transition: color 70ms;
+}
+.btn-remove:hover { color: var(--text); }
+
+.ctrl-block {
+  padding: var(--u2);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ctrl {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ctrl:last-child { border-bottom: none; }
+
+.ctrl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.ctrl-name {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ctrl-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  min-width: 42px;
+  text-align: right;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  outline: none;
+  display: block;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text);
+  cursor: pointer;
+  transition: transform 100ms;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.45); }
+input[type="range"]::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--text);
+  border: none;
+  cursor: pointer;
+}
+
+.seed-ctrl {
+  padding: 11px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.seed-input {
+  flex: 1;
+  height: 26px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 0 8px;
+  outline: none;
+  min-width: 0;
+}
+.seed-input:focus { border-color: var(--text); }
+.btn-rand {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--f);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0 9px;
+  height: 26px;
+  cursor: pointer;
+  transition: border-color 70ms, color 70ms;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-rand:hover { border-color: var(--text); color: var(--text); }
+
+.stack-bar {
+  border-top: 1px solid var(--border);
+  padding: 8px var(--u2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sbar-lbl {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex-shrink: 0;
+  margin-right: 3px;
+}
+.schip {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  transition: color 70ms, border-color 70ms, background 70ms;
+}
+.schip.loaded {
+  color: var(--text);
+  border-color: var(--border-mid);
+  background: var(--bg);
+}
+.sarr { font-size: 9px; color: var(--border); flex-shrink: 0; }
+.sbar-note {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-left: 3px;
+}
+
+/* ── Canvas ─────────────────────────────────────────────────── */
+.canvas-area {
+  flex: 1;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--u3);
+  overflow: auto;
+  gap: var(--u);
+  min-width: 0;
+}
+
+.canvas-frame {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  position: relative;
+  line-height: 0;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+#preview-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - var(--ribbon-h) - 72px);
+}
+
+.canvas-empty {
+  position: absolute; inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.canvas-empty span {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.stats-row {
+  display: none;
+  align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+}
+.stats-row.on { display: flex; }
+.si { display: flex; align-items: baseline; gap: 6px; }
+.si-lbl { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.si-val { font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+.busy {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(255,255,255,0.6);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.busy.on { display: flex; }
+.busy span {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+</style>
+</head>
+<body>
+
+<!-- ── Ribbon ───────────────────────────────────────────────── -->
+<div class="ribbon">
+  <a class="back-link" href="/">← Back</a>
+  <span class="wordmark">Scattered Bump Map Generator</span>
+  <div class="ribbon-div"></div>
+
+  <div class="rib-group">
+    <span class="rib-lbl">Resolution</span>
+    <div class="seg" id="res-seg">
+      <button data-res="512">512</button>
+      <button data-res="1024">1K</button>
+      <button data-res="2048" class="active">2K</button>
+      <button data-res="4096">4K</button>
+      <button data-res="8192">8K</button>
+      <button data-res="custom">Custom</button>
+    </div>
+    <div class="cust-res" id="cust-res">
+      <input type="number" id="cw" placeholder="W" min="64" max="16384" value="2048">
+      <span>×</span>
+      <input type="number" id="ch" placeholder="H" min="64" max="16384" value="2048">
+    </div>
+  </div>
+
+  <div class="ribbon-div"></div>
+
+  <div class="rib-group">
+    <span class="rib-lbl">Background</span>
+    <div class="bg-seg">
+      <button id="bg-white" class="active">White</button>
+      <button id="bg-black">Black</button>
+    </div>
+  </div>
+
+  <div class="rib-spacer"></div>
+
+  <button class="btn-outline" id="btn-export" disabled>Export PNG</button>
+  <button class="btn-primary" id="btn-generate" disabled>Generate</button>
+</div>
+
+<!-- ── Layout ───────────────────────────────────────────────── -->
+<div class="layout">
+
+  <div class="panel">
+
+    <div class="layer-tabs">
+      <button class="ltab active" data-layer="1">Layer 1</button>
+      <button class="ltab" data-layer="2">Layer 2</button>
+      <button class="ltab" data-layer="3">Layer 3</button>
+    </div>
+
+    <!-- Layer 1 -->
+    <div class="lpanel active" id="lpanel-1">
+      <div class="upload-block">
+        <div class="blk-head">Source · Layer 1 — Top / Foreground</div>
+        <div class="upload-zone" id="zone-1">
+          <input type="file" id="file-1" accept="image/png,image/svg+xml,image/jpeg,image/webp">
+          <span class="upload-zone-txt">Click or drag to upload</span>
+        </div>
+        <div class="file-meta" id="meta-1">
+          <img class="fthumb" id="thumb-1" alt="">
+          <span class="fname" id="fname-1"></span>
+          <button class="btn-remove" id="clear-1">Remove</button>
+        </div>
+      </div>
+      <div class="ctrl-block">
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size</span><span class="ctrl-val" id="vl1-size">80px</span></div><input type="range" id="l1-size" min="4" max="600" value="80" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Spacing</span><span class="ctrl-val" id="vl1-gap">16px</span></div><input type="range" id="l1-gap" min="0" max="300" value="16" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Coverage</span><span class="ctrl-val" id="vl1-fill">100%</span></div><input type="range" id="l1-fill" min="5" max="100" value="100" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Rotation</span><span class="ctrl-val" id="vl1-rot">±0°</span></div><input type="range" id="l1-rot" min="0" max="180" value="0" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size Variation</span><span class="ctrl-val" id="vl1-jsize">0%</span></div><input type="range" id="l1-jsize" min="0" max="80" value="0" step="1"></div>
+        <div class="seed-ctrl">
+          <input type="number" class="seed-input" id="l1-seed" value="42" min="0" max="999999">
+          <button class="btn-rand" onclick="rSeed('l1-seed')">Randomise</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 2 -->
+    <div class="lpanel" id="lpanel-2">
+      <div class="upload-block">
+        <div class="blk-head">Source · Layer 2 — Middle</div>
+        <div class="upload-zone" id="zone-2">
+          <input type="file" id="file-2" accept="image/png,image/svg+xml,image/jpeg,image/webp">
+          <span class="upload-zone-txt">Click or drag to upload</span>
+        </div>
+        <div class="file-meta" id="meta-2">
+          <img class="fthumb" id="thumb-2" alt="">
+          <span class="fname" id="fname-2"></span>
+          <button class="btn-remove" id="clear-2">Remove</button>
+        </div>
+      </div>
+      <div class="ctrl-block">
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size</span><span class="ctrl-val" id="vl2-size">120px</span></div><input type="range" id="l2-size" min="4" max="600" value="120" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Spacing</span><span class="ctrl-val" id="vl2-gap">20px</span></div><input type="range" id="l2-gap" min="0" max="300" value="20" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Coverage</span><span class="ctrl-val" id="vl2-fill">100%</span></div><input type="range" id="l2-fill" min="5" max="100" value="100" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Rotation</span><span class="ctrl-val" id="vl2-rot">±0°</span></div><input type="range" id="l2-rot" min="0" max="180" value="0" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size Variation</span><span class="ctrl-val" id="vl2-jsize">0%</span></div><input type="range" id="l2-jsize" min="0" max="80" value="0" step="1"></div>
+        <div class="seed-ctrl">
+          <input type="number" class="seed-input" id="l2-seed" value="77" min="0" max="999999">
+          <button class="btn-rand" onclick="rSeed('l2-seed')">Randomise</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 3 -->
+    <div class="lpanel" id="lpanel-3">
+      <div class="upload-block">
+        <div class="blk-head">Source · Layer 3 — Base / Background</div>
+        <div class="upload-zone" id="zone-3">
+          <input type="file" id="file-3" accept="image/png,image/svg+xml,image/jpeg,image/webp">
+          <span class="upload-zone-txt">Click or drag to upload</span>
+        </div>
+        <div class="file-meta" id="meta-3">
+          <img class="fthumb" id="thumb-3" alt="">
+          <span class="fname" id="fname-3"></span>
+          <button class="btn-remove" id="clear-3">Remove</button>
+        </div>
+      </div>
+      <div class="ctrl-block">
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size</span><span class="ctrl-val" id="vl3-size">200px</span></div><input type="range" id="l3-size" min="4" max="600" value="200" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Spacing</span><span class="ctrl-val" id="vl3-gap">30px</span></div><input type="range" id="l3-gap" min="0" max="300" value="30" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Coverage</span><span class="ctrl-val" id="vl3-fill">100%</span></div><input type="range" id="l3-fill" min="5" max="100" value="100" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Rotation</span><span class="ctrl-val" id="vl3-rot">±0°</span></div><input type="range" id="l3-rot" min="0" max="180" value="0" step="1"></div>
+        <div class="ctrl"><div class="ctrl-row"><span class="ctrl-name">Size Variation</span><span class="ctrl-val" id="vl3-jsize">0%</span></div><input type="range" id="l3-jsize" min="0" max="80" value="0" step="1"></div>
+        <div class="seed-ctrl">
+          <input type="number" class="seed-input" id="l3-seed" value="123" min="0" max="999999">
+          <button class="btn-rand" onclick="rSeed('l3-seed')">Randomise</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack-bar">
+      <span class="sbar-lbl">Order</span>
+      <div class="schip" id="chip-1">L1</div>
+      <span class="sarr">›</span>
+      <div class="schip" id="chip-2">L2</div>
+      <span class="sarr">›</span>
+      <div class="schip" id="chip-3">L3</div>
+      <span class="sbar-note">top → base</span>
+    </div>
+
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-area">
+    <div class="canvas-frame">
+      <canvas id="preview-canvas" width="2048" height="2048"></canvas>
+      <div class="canvas-empty" id="canvas-empty">
+        <span>Upload an image on any layer to begin</span>
+      </div>
+    </div>
+    <div class="stats-row" id="stats-row">
+      <div class="si"><span class="si-lbl">L1</span><span class="si-val" id="stat-l1">—</span></div>
+      <div class="si"><span class="si-lbl">L2</span><span class="si-val" id="stat-l2">—</span></div>
+      <div class="si"><span class="si-lbl">L3</span><span class="si-val" id="stat-l3">—</span></div>
+      <div class="si"><span class="si-lbl">Canvas</span><span class="si-val" id="stat-res">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="busy" id="busy"><span>Generating…</span></div>
+
+<script>
+'use strict';
+
+const layers = {1:null, 2:null, 3:null};
+let outputRes = 2048, custW = 2048, custH = 2048, generated = false;
+
+function mkRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s |= 0; s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function poissonDisk(W, H, minDist, rng, k) {
+  k = k || 30;
+  const cell = minDist / Math.SQRT2;
+  const gw = Math.ceil(W / cell) + 1;
+  const gh = Math.ceil(H / cell) + 1;
+  const grid = new Int32Array(gw * gh).fill(-1);
+  const pts = [];
+  const active = [];
+  const gi = (gx, gy) => gx + gy * gw;
+
+  function addPt(x, y) {
+    const idx = pts.length;
+    pts.push([x, y]);
+    active.push(idx);
+    grid[gi(Math.floor(x / cell), Math.floor(y / cell))] = idx;
+  }
+
+  function valid(x, y) {
+    if (x < 0 || x >= W || y < 0 || y >= H) return false;
+    const gx = Math.floor(x / cell);
+    const gy = Math.floor(y / cell);
+    const x0 = Math.max(0, gx - 2), x1 = Math.min(gw - 1, gx + 2);
+    const y0 = Math.max(0, gy - 2), y1 = Math.min(gh - 1, gy + 2);
+    const md2 = minDist * minDist;
+    for (let iy = y0; iy <= y1; iy++) {
+      for (let ix = x0; ix <= x1; ix++) {
+        const pid = grid[gi(ix, iy)];
+        if (pid === -1) continue;
+        const p = pts[pid];
+        const dx = p[0] - x, dy = p[1] - y;
+        if (dx * dx + dy * dy < md2) return false;
+      }
+    }
+    return true;
+  }
+
+  addPt(rng() * W, rng() * H);
+
+  while (active.length) {
+    const ai = Math.floor(rng() * active.length);
+    const [ax, ay] = pts[active[ai]];
+    let found = false;
+    for (let attempt = 0; attempt < k; attempt++) {
+      const angle = rng() * Math.PI * 2;
+      const r = minDist * (1 + rng());
+      const nx = ax + Math.cos(angle) * r;
+      const ny = ay + Math.sin(angle) * r;
+      if (valid(nx, ny)) { addPt(nx, ny); found = true; break; }
+    }
+    if (!found) { active[ai] = active[active.length - 1]; active.pop(); }
+  }
+  return pts;
+}
+
+const $ = id => document.getElementById(id);
+function rSeed(id) { $(id).value = Math.floor(Math.random() * 999999); }
+
+function bindSlider(rid, vid, fmt) {
+  const r = $(rid), v = $(vid);
+  r.addEventListener('input', () => { v.textContent = fmt(+r.value); });
+  v.textContent = fmt(+r.value);
+}
+
+[1,2,3].forEach(n => {
+  const p = 'l' + n;
+  bindSlider(p+'-size',  'v'+p+'-size',  x => x+'px');
+  bindSlider(p+'-gap',   'v'+p+'-gap',   x => x+'px');
+  bindSlider(p+'-fill',  'v'+p+'-fill',  x => x+'%');
+  bindSlider(p+'-rot',   'v'+p+'-rot',   x => '±'+x+'°');
+  bindSlider(p+'-jsize', 'v'+p+'-jsize', x => x+'%');
+});
+
+document.querySelectorAll('#res-seg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#res-seg button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (btn.dataset.res === 'custom') { $('cust-res').classList.add('on'); outputRes = null; }
+    else { $('cust-res').classList.remove('on'); outputRes = +btn.dataset.res; }
+  });
+});
+$('cw').addEventListener('input', () => { custW = +$('cw').value || 2048; });
+$('ch').addEventListener('input', () => { custH = +$('ch').value || 2048; });
+
+function getBg() { return $('bg-black').classList.contains('active') ? '#000000' : '#FFFFFF'; }
+['bg-white','bg-black'].forEach(id => {
+  $(id).addEventListener('click', () => {
+    $('bg-white').classList.remove('active'); $('bg-black').classList.remove('active');
+    $(id).classList.add('active');
+    if (generated) generate();
+  });
+});
+
+document.querySelectorAll('.ltab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.ltab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.lpanel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('lpanel-' + tab.dataset.layer).classList.add('active');
+  });
+});
+
+function loadFile(file, n) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      layers[n] = img;
+      $('thumb-' + n).src = e.target.result;
+      $('fname-' + n).textContent = file.name;
+      $('meta-' + n).classList.add('on');
+      $('zone-' + n).querySelector('.upload-zone-txt').textContent = 'Replace';
+      document.querySelector('.ltab[data-layer="' + n + '"]').classList.add('loaded');
+      $('chip-' + n).classList.add('loaded');
+      $('btn-generate').disabled = false;
+    };
+    if (file.type === 'image/svg+xml') {
+      img.src = URL.createObjectURL(new Blob([e.target.result], {type:'image/svg+xml'}));
+    } else { img.src = e.target.result; }
+  };
+  if (file.type === 'image/svg+xml') reader.readAsText(file); else reader.readAsDataURL(file);
+}
+
+function clearLayer(n) {
+  layers[n] = null;
+  $('thumb-' + n).src = '';
+  $('meta-' + n).classList.remove('on');
+  $('zone-' + n).querySelector('.upload-zone-txt').textContent = 'Click or drag to upload';
+  document.querySelector('.ltab[data-layer="' + n + '"]').classList.remove('loaded');
+  $('chip-' + n).classList.remove('loaded');
+  if (!layers[1] && !layers[2] && !layers[3]) $('btn-generate').disabled = true;
+  if (generated) generate();
+}
+
+[1,2,3].forEach(n => {
+  const fi = $('file-' + n), zone = $('zone-' + n);
+  fi.addEventListener('change', () => loadFile(fi.files[0], n));
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); loadFile(e.dataTransfer.files[0], n); });
+  $('clear-' + n).addEventListener('click', () => clearLayer(n));
+});
+
+function scatterLayer(ctx, img, W, H, cfg) {
+  const rng = mkRng(cfg.seed);
+  const rotFactor = cfg.rot > 0 ? Math.SQRT2 : 1;
+  const bRadius = (cfg.size / 2) * rotFactor;
+  const minDist = bRadius * 2 + cfg.gap;
+  const pts = poissonDisk(W, H, minDist, rng);
+  const asp = img.naturalWidth / img.naturalHeight;
+  let placed = 0;
+  ctx.save();
+  for (const [cx, cy] of pts) {
+    if (rng() > cfg.fill) continue;
+    const sz = cfg.size * (1 + (rng() * 2 - 1) * cfg.sizeVar);
+    const angle = (rng() * 2 - 1) * cfg.rot * Math.PI / 180;
+    const dw = asp >= 1 ? sz : sz * asp;
+    const dh = asp >= 1 ? sz / asp : sz;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.globalCompositeOperation = cfg.blend;
+    ctx.drawImage(img, -dw/2, -dh/2, dw, dh);
+    ctx.restore();
+    placed++;
+  }
+  ctx.restore();
+  return placed;
+}
+
+function generate() {
+  if (!layers[1] && !layers[2] && !layers[3]) return;
+  const W = outputRes || custW, H = outputRes || custH;
+  const bg = getBg();
+  const blend = bg === '#FFFFFF' ? 'multiply' : 'screen';
+  $('busy').classList.add('on');
+  setTimeout(() => {
+    const oc = document.createElement('canvas');
+    oc.width = W; oc.height = H;
+    const ctx = oc.getContext('2d');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const counts = {};
+    [3,2,1].forEach(n => {
+      if (!layers[n]) { counts[n] = null; return; }
+      const p = 'l' + n;
+      counts[n] = scatterLayer(ctx, layers[n], W, H, {
+        size:    +$(p+'-size').value,
+        gap:     +$(p+'-gap').value,
+        fill:    +$(p+'-fill').value / 100,
+        rot:     +$(p+'-rot').value,
+        sizeVar: +$(p+'-jsize').value / 100,
+        seed:    +$(p+'-seed').value || 42,
+        blend,
+      });
+    });
+    const pc = $('preview-canvas');
+    pc.width = W; pc.height = H;
+    pc.getContext('2d').drawImage(oc, 0, 0);
+    pc._oc = oc;
+    $('stat-l1').textContent = counts[1] !== null ? counts[1] : '—';
+    $('stat-l2').textContent = counts[2] !== null ? counts[2] : '—';
+    $('stat-l3').textContent = counts[3] !== null ? counts[3] : '—';
+    $('stat-res').textContent = W + '×' + H;
+    $('canvas-empty').style.display = 'none';
+    $('stats-row').classList.add('on');
+    $('btn-export').disabled = false;
+    generated = true;
+    $('busy').classList.remove('on');
+  }, 20);
+}
+
+$('btn-generate').addEventListener('click', generate);
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && (layers[1]||layers[2]||layers[3])) generate(); });
+
+$('btn-export').addEventListener('click', () => {
+  const pc = $('preview-canvas');
+  const src = pc._oc || pc;
+  const a = document.createElement('a');
+  a.download = 'scatter_' + src.width + 'x' + src.height + '.png';
+  a.href = src.toDataURL('image/png');
+  a.click();
+});
+
+[1,2,3].forEach(n => {
+  const p = 'l' + n;
+  [p+'-size', p+'-gap', p+'-fill', p+'-rot', p+'-jsize', p+'-seed'].forEach(id => {
+    $(id).addEventListener('change', () => { if (generated) generate(); });
+  });
+});
+</script>
+</body>
+</html>

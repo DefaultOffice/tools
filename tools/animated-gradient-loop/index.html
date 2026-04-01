@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animated Gradient Loop</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-hover: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #e0e0e0;
+      --text-dim: #808080;
+      --accent: #fff;
+      --input-bg: #0d0d0d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+      font-size: 12px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-link {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+    }
+
+    h1 {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .panel-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+
+    .canvas-size-inputs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .size-input {
+      width: 56px;
+      padding: 5px 6px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .size-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .size-separator {
+      color: var(--text-dim);
+      font-size: 10px;
+    }
+
+    .canvas-wrapper {
+      background: repeating-conic-gradient(#1a1a1a 0% 25%, #0d0d0d 0% 50%) 50% / 12px 12px;
+      border-radius: 2px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
+      max-height: 300px;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    canvas {
+      display: block;
+      box-shadow: 0 0 0 1px var(--border);
+      max-width: 100%;
+      height: auto;
+    }
+
+    .gradient-editor {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .editor-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .gradient-track-container {
+      position: relative;
+      padding: 20px 10px 36px 10px;
+    }
+
+    .gradient-track {
+      height: 28px;
+      border-radius: 2px;
+      position: relative;
+      cursor: crosshair;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .gradient-stop {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--bg);
+      border: 2px solid var(--accent);
+      border-radius: 1px;
+      transform: translateX(-50%) rotate(45deg);
+      cursor: grab;
+      top: -16px;
+      z-index: 10;
+      transition: transform 0.1s;
+    }
+
+    .gradient-stop:hover {
+      transform: translateX(-50%) rotate(45deg) scale(1.1);
+    }
+
+    .gradient-stop.dragging {
+      cursor: grabbing;
+      transform: translateX(-50%) rotate(45deg) scale(1.15);
+    }
+
+    .gradient-stop.selected {
+      border-color: #4a9eff;
+      box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3);
+    }
+
+    .midpoint {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      background: var(--surface);
+      border: 1px solid var(--text-dim);
+      transform: translateX(-50%) rotate(45deg);
+      cursor: ew-resize;
+      top: 38px;
+      z-index: 5;
+      transition: border-color 0.1s;
+    }
+
+    .midpoint:hover {
+      border-color: var(--accent);
+    }
+
+    .stop-value-label {
+      position: absolute;
+      top: -32px;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+
+    .control-input {
+      width: 70px;
+      padding: 6px 8px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+    }
+
+    .control-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .control-input.wide {
+      width: 90px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-dim);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .btn.primary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn.danger {
+      border-color: #ff4a4a;
+      color: #ff4a4a;
+    }
+
+    .btn.danger:hover {
+      background: #ff4a4a;
+      color: var(--bg);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .stop-controls {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .animation-controls {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 12px;
+    }
+
+    .direction-btns {
+      display: flex;
+      gap: 2px;
+    }
+
+    .direction-btn {
+      padding: 6px 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .direction-btn:hover {
+      border-color: var(--text-dim);
+    }
+
+    .direction-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .playback-controls {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .export-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .progress-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.05s linear;
+    }
+
+    .info-text {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .keyboard-hint {
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-top: 10px;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 1px 4px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      font-family: inherit;
+      font-size: 9px;
+    }
+
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <a href="/" class="back-link">← Back</a>
+        <h1>Animated Gradient Loop</h1>
+      </div>
+      <div class="canvas-size-inputs">
+        <input type="number" id="canvas-width" class="size-input" value="800" min="1" max="4096">
+        <span class="size-separator">×</span>
+        <input type="number" id="canvas-height" class="size-input" value="400" min="1" max="4096">
+        <span class="size-separator">px</span>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Left: Gradient Editor -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Gradient Editor</span>
+        </div>
+        
+        <div class="canvas-wrapper">
+          <canvas id="preview-canvas" width="800" height="400"></canvas>
+        </div>
+
+        <div class="gradient-editor">
+          <div class="editor-title">Gradient Stops</div>
+          <div class="gradient-track-container">
+            <div id="gradient-track" class="gradient-track"></div>
+          </div>
+          
+          <div class="stop-controls">
+            <div class="control-group">
+              <label class="control-label">Position %</label>
+              <input type="number" id="stop-position" class="control-input" min="0" max="100" step="0.1" disabled>
+            </div>
+            <div class="control-group">
+              <label class="control-label">Value</label>
+              <input type="number" id="stop-value" class="control-input" min="0" max="255" step="1" disabled>
+            </div>
+            <button id="delete-stop" class="btn danger" disabled>Delete</button>
+          </div>
+
+          <div class="keyboard-hint">
+            <kbd>Click</kbd> track to add · <kbd>Drag</kbd> stops · <kbd>Del</kbd> remove selected · <kbd>Dbl-click</kbd> midpoint to reset
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Animation Preview -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Animation Preview</span>
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            Live
+          </div>
+        </div>
+        
+        <div class="canvas-wrapper">
+          <canvas id="animation-canvas" width="800" height="400"></canvas>
+        </div>
+
+        <div class="animation-controls">
+          <div class="editor-title">Animation Settings</div>
+          <div class="controls-grid">
+            <div class="control-group">
+              <label class="control-label">Duration (s)</label>
+              <input type="number" id="loop-duration" class="control-input" value="2" min="0.1" max="60" step="0.1">
+            </div>
+            <div class="control-group">
+              <label class="control-label">Frames</label>
+              <input type="number" id="frame-count" class="control-input" value="60" min="2" max="600" step="1">
+            </div>
+            <div class="control-group">
+              <label class="control-label">Shift %</label>
+              <input type="number" id="shift-distance" class="control-input" value="100" min="1" max="1000" step="1">
+            </div>
+            <div class="control-group">
+              <label class="control-label">Direction</label>
+              <div class="direction-btns">
+                <button class="direction-btn active" data-dir="left">←</button>
+                <button class="direction-btn" data-dir="right">→</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="playback-controls">
+            <button id="play-btn" class="btn primary">Play</button>
+            <button id="pause-btn" class="btn">Pause</button>
+            <button id="stop-btn" class="btn">Reset</button>
+          </div>
+          
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+
+          <div class="export-section">
+            <button id="export-btn" class="btn primary">Export PNG Sequence</button>
+            <span class="info-text" id="export-info">60 frames</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    // State
+    let stops = [
+      { position: 0, value: 0 },
+      { position: 100, value: 255 }
+    ];
+    let midpoints = [0.5];
+    let selectedStopIndex = null;
+    let draggingStop = null;
+    let draggingMidpoint = null;
+
+    let canvasWidth = 800;
+    let canvasHeight = 400;
+
+    let animationId = null;
+    let isPlaying = true;
+    let isPaused = false;
+    let animationStartTime = null;
+    let pausedAt = 0;
+
+    // DOM Elements
+    const previewCanvas = document.getElementById('preview-canvas');
+    const previewCtx = previewCanvas.getContext('2d');
+    const animationCanvas = document.getElementById('animation-canvas');
+    const animationCtx = animationCanvas.getContext('2d');
+    const gradientTrack = document.getElementById('gradient-track');
+
+    const canvasWidthInput = document.getElementById('canvas-width');
+    const canvasHeightInput = document.getElementById('canvas-height');
+    const stopPositionInput = document.getElementById('stop-position');
+    const stopValueInput = document.getElementById('stop-value');
+    const deleteStopBtn = document.getElementById('delete-stop');
+
+    const loopDurationInput = document.getElementById('loop-duration');
+    const frameCountInput = document.getElementById('frame-count');
+    const shiftDistanceInput = document.getElementById('shift-distance');
+    const directionBtns = document.querySelectorAll('.direction-btn');
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const progressFill = document.getElementById('progress-fill');
+    const exportBtn = document.getElementById('export-btn');
+    const exportInfo = document.getElementById('export-info');
+
+    // Canvas size
+    function updateCanvasSize() {
+      canvasWidth = Math.max(1, Math.min(4096, parseInt(canvasWidthInput.value) || 800));
+      canvasHeight = Math.max(1, Math.min(4096, parseInt(canvasHeightInput.value) || 400));
+      
+      previewCanvas.width = canvasWidth;
+      previewCanvas.height = canvasHeight;
+      animationCanvas.width = canvasWidth;
+      animationCanvas.height = canvasHeight;
+      
+      renderPreview();
+      updateExportInfo();
+    }
+
+    canvasWidthInput.addEventListener('change', updateCanvasSize);
+    canvasHeightInput.addEventListener('change', updateCanvasSize);
+
+    // Gradient interpolation with midpoint
+    function interpolateValue(leftStop, rightStop, midpoint, normalizedPos) {
+      const leftVal = leftStop.value;
+      const rightVal = rightStop.value;
+      
+      let t = normalizedPos;
+      
+      if (midpoint !== 0.5 && midpoint > 0 && midpoint < 1) {
+        const k = Math.log(0.5) / Math.log(midpoint);
+        t = Math.pow(normalizedPos, k);
+      }
+      
+      return Math.round(leftVal + (rightVal - leftVal) * t);
+    }
+
+    function getValueAtPosition(position, offset = 0) {
+      let pos = (position - offset) % 100;
+      if (pos < 0) pos += 100;
+      
+      const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+      
+      const extendedStops = [];
+      sortedStops.forEach(s => {
+        extendedStops.push({ ...s, position: s.position - 100 });
+      });
+      extendedStops.push(...sortedStops);
+      sortedStops.forEach(s => {
+        extendedStops.push({ ...s, position: s.position + 100 });
+      });
+      
+      for (let i = 0; i < extendedStops.length - 1; i++) {
+        const left = extendedStops[i];
+        const right = extendedStops[i + 1];
+        
+        if (pos >= left.position && pos <= right.position) {
+          if (left.position === right.position) return left.value;
+          
+          const normalizedPos = (pos - left.position) / (right.position - left.position);
+          
+          const leftOrigIndex = sortedStops.findIndex(s => s.value === left.value && 
+            (s.position === left.position || s.position === left.position + 100 || s.position === left.position - 100));
+          const midpointIndex = leftOrigIndex % sortedStops.length;
+          const midpoint = midpoints[midpointIndex] ?? 0.5;
+          
+          return interpolateValue(left, right, midpoint, normalizedPos);
+        }
+      }
+      
+      return sortedStops[0].value;
+    }
+
+    function renderPreview(offset = 0) {
+      const imageData = previewCtx.createImageData(canvasWidth, canvasHeight);
+      const data = imageData.data;
+      
+      for (let x = 0; x < canvasWidth; x++) {
+        const position = (x / canvasWidth) * 100;
+        const value = getValueAtPosition(position, offset);
+        
+        for (let y = 0; y < canvasHeight; y++) {
+          const idx = (y * canvasWidth + x) * 4;
+          data[idx] = value;
+          data[idx + 1] = value;
+          data[idx + 2] = value;
+          data[idx + 3] = 255;
+        }
+      }
+      
+      previewCtx.putImageData(imageData, 0, 0);
+    }
+
+    function renderGradientTrack() {
+      const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+      
+      const gradientParts = sortedStops.map(s => {
+        const gray = s.value;
+        return `rgb(${gray},${gray},${gray}) ${s.position}%`;
+      });
+      
+      gradientTrack.style.background = `linear-gradient(to right, ${gradientParts.join(', ')})`;
+      
+      gradientTrack.querySelectorAll('.gradient-stop, .midpoint, .stop-value-label').forEach(el => el.remove());
+      
+      stops.forEach((stop, index) => {
+        const stopEl = document.createElement('div');
+        stopEl.className = 'gradient-stop' + (index === selectedStopIndex ? ' selected' : '');
+        stopEl.style.left = `${stop.position}%`;
+        stopEl.style.background = `rgb(${stop.value},${stop.value},${stop.value})`;
+        stopEl.dataset.index = index;
+        
+        const label = document.createElement('div');
+        label.className = 'stop-value-label';
+        label.style.left = `${stop.position}%`;
+        label.textContent = `${stop.value}`;
+        
+        gradientTrack.appendChild(stopEl);
+        gradientTrack.appendChild(label);
+        
+        stopEl.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          selectStop(index);
+          draggingStop = index;
+          stopEl.classList.add('dragging');
+        });
+      });
+      
+      for (let i = 0; i < sortedStops.length; i++) {
+        const left = sortedStops[i];
+        const right = sortedStops[(i + 1) % sortedStops.length];
+        
+        let leftPos = left.position;
+        let rightPos = right.position;
+        
+        if (rightPos <= leftPos) rightPos += 100;
+        
+        const midpoint = midpoints[i] ?? 0.5;
+        const midPos = leftPos + (rightPos - leftPos) * midpoint;
+        const displayPos = midPos % 100;
+        
+        if (displayPos >= 0 && displayPos <= 100) {
+          const midEl = document.createElement('div');
+          midEl.className = 'midpoint';
+          midEl.style.left = `${displayPos}%`;
+          midEl.dataset.index = i;
+          
+          midEl.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            draggingMidpoint = i;
+          });
+          
+          midEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            midpoints[i] = 0.5;
+            renderGradientTrack();
+            renderPreview();
+          });
+          
+          gradientTrack.appendChild(midEl);
+        }
+      }
+    }
+
+    function selectStop(index) {
+      selectedStopIndex = index;
+      
+      if (index !== null && stops[index]) {
+        stopPositionInput.disabled = false;
+        stopValueInput.disabled = false;
+        deleteStopBtn.disabled = stops.length <= 2;
+        
+        stopPositionInput.value = stops[index].position.toFixed(1);
+        stopValueInput.value = stops[index].value;
+      } else {
+        stopPositionInput.disabled = true;
+        stopValueInput.disabled = true;
+        deleteStopBtn.disabled = true;
+        stopPositionInput.value = '';
+        stopValueInput.value = '';
+      }
+      
+      renderGradientTrack();
+    }
+
+    gradientTrack.addEventListener('click', (e) => {
+      if (draggingStop !== null || draggingMidpoint !== null) return;
+      
+      const rect = gradientTrack.getBoundingClientRect();
+      const position = ((e.clientX - rect.left) / rect.width) * 100;
+      const value = getValueAtPosition(position);
+      
+      stops.push({ position: Math.round(position * 10) / 10, value });
+      
+      recalculateMidpoints();
+      
+      selectStop(stops.length - 1);
+      renderGradientTrack();
+      renderPreview();
+    });
+
+    function recalculateMidpoints() {
+      const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+      while (midpoints.length < sortedStops.length) {
+        midpoints.push(0.5);
+      }
+      while (midpoints.length > sortedStops.length) {
+        midpoints.pop();
+      }
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (draggingStop !== null) {
+        const rect = gradientTrack.getBoundingClientRect();
+        let position = ((e.clientX - rect.left) / rect.width) * 100;
+        position = Math.max(0, Math.min(100, position));
+        
+        stops[draggingStop].position = Math.round(position * 10) / 10;
+        
+        stopPositionInput.value = stops[draggingStop].position.toFixed(1);
+        
+        renderGradientTrack();
+        renderPreview();
+      }
+      
+      if (draggingMidpoint !== null) {
+        const sortedStops = [...stops].sort((a, b) => a.position - b.position);
+        const left = sortedStops[draggingMidpoint];
+        const right = sortedStops[(draggingMidpoint + 1) % sortedStops.length];
+        
+        let leftPos = left.position;
+        let rightPos = right.position;
+        if (rightPos <= leftPos) rightPos += 100;
+        
+        const rect = gradientTrack.getBoundingClientRect();
+        let mousePos = ((e.clientX - rect.left) / rect.width) * 100;
+        
+        let midpoint = (mousePos - leftPos) / (rightPos - leftPos);
+        midpoint = Math.max(0.05, Math.min(0.95, midpoint));
+        
+        midpoints[draggingMidpoint] = midpoint;
+        
+        renderGradientTrack();
+        renderPreview();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (draggingStop !== null) {
+        document.querySelectorAll('.gradient-stop').forEach(el => el.classList.remove('dragging'));
+      }
+      draggingStop = null;
+      draggingMidpoint = null;
+    });
+
+    stopPositionInput.addEventListener('change', () => {
+      if (selectedStopIndex !== null) {
+        stops[selectedStopIndex].position = Math.max(0, Math.min(100, parseFloat(stopPositionInput.value) || 0));
+        renderGradientTrack();
+        renderPreview();
+      }
+    });
+
+    stopValueInput.addEventListener('change', () => {
+      if (selectedStopIndex !== null) {
+        stops[selectedStopIndex].value = Math.max(0, Math.min(255, parseInt(stopValueInput.value) || 0));
+        renderGradientTrack();
+        renderPreview();
+      }
+    });
+
+    deleteStopBtn.addEventListener('click', () => {
+      if (selectedStopIndex !== null && stops.length > 2) {
+        stops.splice(selectedStopIndex, 1);
+        recalculateMidpoints();
+        selectStop(null);
+        renderGradientTrack();
+        renderPreview();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && 
+          selectedStopIndex !== null && 
+          stops.length > 2 &&
+          !e.target.matches('input')) {
+        stops.splice(selectedStopIndex, 1);
+        recalculateMidpoints();
+        selectStop(null);
+        renderGradientTrack();
+        renderPreview();
+      }
+    });
+
+    // Animation
+    function getDirection() {
+      return document.querySelector('.direction-btn.active').dataset.dir;
+    }
+
+    directionBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        directionBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    function updateExportInfo() {
+      const frames = parseInt(frameCountInput.value) || 60;
+      exportInfo.textContent = `${frames} frames`;
+    }
+
+    frameCountInput.addEventListener('change', updateExportInfo);
+
+    function animate(timestamp) {
+      if (!isPlaying || isPaused) return;
+      
+      if (!animationStartTime) {
+        animationStartTime = timestamp - pausedAt;
+      }
+      
+      const duration = (parseFloat(loopDurationInput.value) || 2) * 1000;
+      const elapsed = (timestamp - animationStartTime) % duration;
+      const progress = elapsed / duration;
+      
+      const shiftDistance = parseFloat(shiftDistanceInput.value) || 100;
+      const direction = getDirection();
+      const offset = direction === 'left' ? progress * shiftDistance : -progress * shiftDistance;
+      
+      const imageData = animationCtx.createImageData(canvasWidth, canvasHeight);
+      const data = imageData.data;
+      
+      for (let x = 0; x < canvasWidth; x++) {
+        const position = (x / canvasWidth) * 100;
+        const value = getValueAtPosition(position, offset);
+        
+        for (let y = 0; y < canvasHeight; y++) {
+          const idx = (y * canvasWidth + x) * 4;
+          data[idx] = value;
+          data[idx + 1] = value;
+          data[idx + 2] = value;
+          data[idx + 3] = 255;
+        }
+      }
+      
+      animationCtx.putImageData(imageData, 0, 0);
+      
+      progressFill.style.width = `${progress * 100}%`;
+      
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function startAnimation() {
+      isPlaying = true;
+      isPaused = false;
+      playBtn.textContent = 'Playing';
+      animationId = requestAnimationFrame(animate);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPaused) {
+        isPaused = false;
+        playBtn.textContent = 'Playing';
+        animationId = requestAnimationFrame(animate);
+      } else if (!isPlaying) {
+        startAnimation();
+      }
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (isPlaying && !isPaused) {
+        isPaused = true;
+        const duration = (parseFloat(loopDurationInput.value) || 2) * 1000;
+        pausedAt = (performance.now() - animationStartTime) % duration;
+        playBtn.textContent = 'Play';
+        if (animationId) cancelAnimationFrame(animationId);
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      isPlaying = false;
+      isPaused = false;
+      pausedAt = 0;
+      animationStartTime = null;
+      if (animationId) cancelAnimationFrame(animationId);
+      playBtn.textContent = 'Play';
+      progressFill.style.width = '0%';
+      
+      // Render frame 0
+      const imageData = animationCtx.createImageData(canvasWidth, canvasHeight);
+      const data = imageData.data;
+      
+      for (let x = 0; x < canvasWidth; x++) {
+        const position = (x / canvasWidth) * 100;
+        const value = getValueAtPosition(position, 0);
+        
+        for (let y = 0; y < canvasHeight; y++) {
+          const idx = (y * canvasWidth + x) * 4;
+          data[idx] = value;
+          data[idx + 1] = value;
+          data[idx + 2] = value;
+          data[idx + 3] = 255;
+        }
+      }
+      
+      animationCtx.putImageData(imageData, 0, 0);
+    });
+
+    // Export
+    exportBtn.addEventListener('click', async () => {
+      const frameCount = parseInt(frameCountInput.value) || 60;
+      const shiftDistance = parseFloat(shiftDistanceInput.value) || 100;
+      const direction = getDirection();
+      
+      // Pause animation during export
+      const wasPlaying = isPlaying && !isPaused;
+      if (wasPlaying) {
+        isPaused = true;
+        if (animationId) cancelAnimationFrame(animationId);
+      }
+      
+      exportBtn.disabled = true;
+      exportBtn.textContent = 'Exporting...';
+      
+      const zip = new JSZip();
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvasWidth;
+      tempCanvas.height = canvasHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      for (let frame = 0; frame < frameCount; frame++) {
+        const progress = frame / frameCount;
+        const offset = direction === 'left' ? progress * shiftDistance : -progress * shiftDistance;
+        
+        const imageData = tempCtx.createImageData(canvasWidth, canvasHeight);
+        const data = imageData.data;
+        
+        for (let x = 0; x < canvasWidth; x++) {
+          const position = (x / canvasWidth) * 100;
+          const value = getValueAtPosition(position, offset);
+          
+          for (let y = 0; y < canvasHeight; y++) {
+            const idx = (y * canvasWidth + x) * 4;
+            data[idx] = value;
+            data[idx + 1] = value;
+            data[idx + 2] = value;
+            data[idx + 3] = 255;
+          }
+        }
+        
+        tempCtx.putImageData(imageData, 0, 0);
+        
+        const dataUrl = tempCanvas.toDataURL('image/png');
+        const base64 = dataUrl.split(',')[1];
+        const frameNum = String(frame).padStart(4, '0');
+        zip.file(`frame_${frameNum}.png`, base64, { base64: true });
+        
+        progressFill.style.width = `${((frame + 1) / frameCount) * 100}%`;
+        
+        if (frame % 10 === 0) {
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+      
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gradient_frames_${canvasWidth}x${canvasHeight}_${frameCount}f.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      exportBtn.disabled = false;
+      exportBtn.textContent = 'Export PNG Sequence';
+      
+      // Resume animation if it was playing
+      if (wasPlaying) {
+        isPaused = false;
+        animationId = requestAnimationFrame(animate);
+      } else {
+        progressFill.style.width = '0%';
+      }
+    });
+
+    // Initialize
+    renderGradientTrack();
+    renderPreview();
+    updateExportInfo();
+    startAnimation();
+  </script>
+</body>
+</html>

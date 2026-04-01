@@ -1,0 +1,8 @@
+{
+  "name": "Nuclear Fusion Particle Sim",
+  "category": "Simulation",
+  "project": "Jupiter Volta",
+  "owner": "Alex",
+  "date": "2026 03 08",
+  "description": "3D particle simulation for lithium blanket nuclear fusion. Neutron emission, collision detection, helium/tritium products with trails and flash effects. Exportable as PNG sequence or layered ZIP."
+}

@@ -1,0 +1,8 @@
+{
+    "name": "SVG Line Animator",
+    "category": "Animation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 24",
+    "description": "SVG stroke reveal animation tool. Upload paths, set origin point, control stagger, trail, and easing. Exports PNG frame sequences."
+}
