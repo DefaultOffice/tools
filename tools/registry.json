@@ -1,0 +1,83 @@
+[
+  {
+    "folder": "pinterest-downloader",
+    "name": "Pinterest Board Downloader",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 30",
+    "description": "Download all images from a selected Pinterest board. Note this tool needs access to Terminal."
+  },
+  {
+    "folder": "svg-line-animator",
+    "name": "SVG Line Animator",
+    "category": "Animation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 24",
+    "description": "SVG stroke reveal animation tool. Upload paths, set origin point, control stagger, trail, and easing. Exports PNG frame sequences."
+  },
+  {
+    "folder": "scattered-bump-map",
+    "name": "Scattered Bump Map Generator",
+    "category": "Generator",
+    "project": "Default Office",
+    "owner": "Jake",
+    "date": "2026 03 18",
+    "description": "Scatter logo PNGs across a canvas using Poisson disk sampling to generate seamless bump map textures for 3D rendering. Three independent layers with full scatter controls."
+  },
+  {
+    "folder": "animated-gradient-loop",
+    "name": "Animated Gradient Loop",
+    "category": "Animation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Create a custom gradient map with adjustable stops and midpoints, then animate it as a seamless loop with configurable speed and direction. Export as a PNG sequence."
+  },
+  {
+    "folder": "default-office-grid",
+    "name": "Default Office Grid",
+    "category": "Animation",
+    "project": "Default Office",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Generate the Default Office black and white random grid, and export as a PNG sequence"
+  },
+  {
+    "folder": "fusion-particle-sim",
+    "name": "Nuclear Fusion Particle Sim",
+    "category": "Simulation",
+    "project": "Jupiter Volta",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "3D particle simulation for lithium blanket nuclear fusion. Neutron emission, collision detection, helium/tritium products with trails and flash effects. Exportable as PNG sequence or layered ZIP."
+  },
+  {
+    "folder": "radial-dot-pattern-generator",
+    "name": "Radial Dot Pattern Generator",
+    "category": "Pattern",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Create precise radial dot patterns with customizable rings, spacing, and dot arrangements. Export as PNG."
+  },
+  {
+    "folder": "terrain-studio",
+    "name": "Terrain Studio",
+    "category": "Environment",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": ""
+  },
+  {
+    "folder": "wavemesh-generator",
+    "name": "WaveMesh Generator",
+    "category": "Animation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 03 08",
+    "description": "Animated dot-grid pattern generator with wave modulation, tiling controls, and post-processing effects. Exports PNG sequences."
+  }
+]
