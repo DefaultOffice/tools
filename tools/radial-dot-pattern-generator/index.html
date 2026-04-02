@@ -3,8 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radial Dot Pattern Generator</title>
+    <title>Radial Dot Pattern Generator | Default Office Tools</title>
     <style>
+        @font-face {
+            font-family: 'SuisseIntl';
+            src: url('/fonts/SuisseIntl-Regular.otf') format('opentype');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'SuisseIntl';
+            src: url('/fonts/SuisseIntl-Medium.otf') format('opentype');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'SuisseIntl';
+            src: url('/fonts/SuisseIntl-Light.otf') format('opentype');
+            font-weight: 300;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,472 +28,380 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a1a;
-            min-height: 100vh;
-            padding: 20px;
-            color: #fff;
+            font-family: 'SuisseIntl', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            background: #fff;
+            color: #999;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            border-right: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid #e8e8e8;
+            flex-shrink: 0;
         }
 
         .back-link {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-            color: #aaa;
-            text-decoration: none;
-            font-size: 14px;
-            padding: 8px 12px;
-            background: rgba(42, 42, 42, 0.9);
-            border-radius: 6px;
-            transition: all 0.3s;
-        }
-
-        .back-link:hover {
-            color: #fff;
-            background: rgba(42, 42, 42, 1);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: #2a2a2a;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            margin-top: 60px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-bottom: 1px solid #3a3a3a;
-        }
-
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
-            font-weight: 300;
-            letter-spacing: 3px;
-        }
-
-        .main-content {
-            display: flex;
-            gap: 30px;
-            padding: 30px;
-        }
-
-        .controls-panel {
-            flex: 0 0 380px;
-            background: #333;
-            border-radius: 15px;
-            padding: 25px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .controls-panel::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .controls-panel::-webkit-scrollbar-track {
-            background: #2a2a2a;
-            border-radius: 4px;
-        }
-
-        .controls-panel::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 4px;
-        }
-
-        .canvas-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f0f0f0;
-            border-radius: 15px;
-            padding: 30px;
-        }
-
-        canvas {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            max-width: 100%;
-            height: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            background: white;
-        }
-
-        .control-group {
-            margin-bottom: 30px;
-            padding-bottom: 25px;
-            border-bottom: 1px solid #444;
-        }
-
-        .control-group:last-child {
-            border-bottom: none;
-        }
-
-        .control-group h3 {
-            margin-bottom: 20px;
-            color: #fff;
-            font-size: 0.9em;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.8;
-        }
-
-        .control-item {
-            margin-bottom: 20px;
-        }
-
-        label {
             display: block;
-            margin-bottom: 10px;
-            color: #aaa;
-            font-size: 0.95em;
+            color: #999;
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .back-link:hover { color: #000; }
+
+        .sidebar-header h1 {
+            font-size: 13px;
             font-weight: 400;
+            color: #000;
+            line-height: 1.3;
         }
 
-        input[type="range"] {
-            width: 100%;
-            margin-bottom: 5px;
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px;
+        }
+        .sidebar-content::-webkit-scrollbar { width: 0; }
+
+        /* Sections */
+        .control-section {
+            border-bottom: 1px solid #e8e8e8;
+            padding: 14px 0;
+        }
+        .control-section:last-child { border-bottom: none; }
+
+        .control-section h2 {
+            font-size: 11px;
+            font-weight: 500;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        /* Control rows */
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            min-height: 22px;
+        }
+        .control-row:last-child { margin-bottom: 0; }
+
+        .control-row label {
+            flex: 0 0 110px;
+            font-size: 13px;
+            color: #999;
+            line-height: 1;
+        }
+
+        /* Range inputs */
+        .control-row input[type="range"] {
+            flex: 1;
             -webkit-appearance: none;
-            appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: #444;
+            height: 1px;
+            background: #e0e0e0;
             outline: none;
+            cursor: pointer;
         }
-
-        input[type="range"]::-webkit-slider-thumb {
+        .control-row input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 11px;
+            height: 11px;
             border-radius: 50%;
-            background: #fff;
+            background: #000;
             cursor: pointer;
         }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+        .control-row input[type="range"]::-moz-range-thumb {
+            width: 11px;
+            height: 11px;
             border-radius: 50%;
-            background: #fff;
+            background: #000;
             cursor: pointer;
-        }
-
-        input[type="color"] {
-            width: 60px;
-            height: 40px;
             border: none;
-            border-radius: 8px;
+        }
+
+        /* Value display */
+        .value-display {
+            flex: 0 0 32px;
+            font-size: 13px;
+            color: #000;
+            text-align: right;
+        }
+
+        /* Select */
+        .control-row select {
+            flex: 1;
+            border: none;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: inherit;
+            font-size: 13px;
+            color: #000;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+            padding: 2px 0;
+            -webkit-appearance: none;
+        }
+
+        /* Checkboxes */
+        .control-row input[type="checkbox"] {
+            width: 13px;
+            height: 13px;
+            cursor: pointer;
+            accent-color: #000;
+        }
+
+        /* Colour row */
+        .color-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-top: 6px;
+        }
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .color-item span {
+            font-size: 13px;
+            color: #999;
+        }
+        .color-item input[type="color"] {
+            width: 24px;
+            height: 18px;
+            border: 1px solid #e0e0e0;
+            padding: 0;
             cursor: pointer;
             background: none;
         }
 
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #444;
-            border-radius: 8px;
-            background: #3a3a3a;
-            color: #fff;
-            font-size: 1em;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #666;
-        }
-
-        .value-display {
-            display: inline-block;
-            background: #555;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            min-width: 45px;
-            text-align: center;
-            margin-left: 10px;
-            font-family: 'Monaco', 'Courier New', monospace;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
-
-        button {
-            flex: 1;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #555 0%, #444 100%);
-            color: white;
-            border: 1px solid #666;
-            border-radius: 8px;
-            font-size: 0.95em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        button:hover {
-            background: linear-gradient(135deg, #666 0%, #555 100%);
-            transform: translateY(-1px);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .color-inputs {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .color-input-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .color-input-group small {
-            color: #888;
-            font-size: 0.75em;
-        }
-
-        .preset-buttons {
+        /* Presets */
+        .preset-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 15px;
+            gap: 6px;
         }
-
         .preset-btn {
-            padding: 10px 12px;
-            background: #3a3a3a;
-            border: 1px solid #555;
-            border-radius: 6px;
-            color: #fff;
-            font-size: 0.9em;
+            padding: 6px 8px;
+            border: 1px solid #e0e0e0;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            color: #999;
             cursor: pointer;
-            transition: all 0.3s;
+            text-align: center;
+        }
+        .preset-btn:hover { color: #000; border-color: #000; }
+
+        /* Action buttons */
+        .action-row {
+            display: flex;
+            gap: 8px;
+            padding: 14px 0;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #000;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            color: #000;
+            cursor: pointer;
+        }
+        .action-btn:hover { background: #000; color: #fff; }
+
+        /* Canvas area */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            overflow: hidden;
         }
 
-        .preset-btn:hover {
-            background: #444;
-            border-color: #666;
-        }
-
-        .info-text {
-            color: #888;
-            font-size: 0.85em;
-            margin-top: 5px;
-            font-style: italic;
-        }
-
-        @media (max-width: 1200px) {
-            .main-content {
-                flex-direction: column;
-            }
-            
-            .controls-panel {
-                flex: none;
-                max-height: none;
-            }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
         }
     </style>
 </head>
 <body>
-    <a href="/" class="back-link">← Back</a>
 
-    <div class="container">
-        <div class="header">
-            <h1>RADIAL DOT PATTERN GENERATOR</h1>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="back-link">← Back</a>
+            <h1>Radial Dot Pattern Generator</h1>
         </div>
-        
-        <div class="main-content">
-            <div class="controls-panel">
-                <div class="control-group">
-                    <h3>Canvas</h3>
-                    <div class="control-item">
-                        <label>Size: <span class="value-display" id="sizeValue">800</span></label>
-                        <input type="range" id="canvasSize" min="400" max="1600" value="800" step="100">
-                    </div>
-                </div>
+        <div class="sidebar-content">
 
-                <div class="control-group">
-                    <h3>Pattern Structure</h3>
-                    <div class="control-item">
-                        <label>Number of Rings: <span class="value-display" id="ringsValue">20</span></label>
-                        <input type="range" id="numRings" min="5" max="50" value="20">
-                    </div>
-                    <div class="control-item" id="startDotsControl">
-                        <label>Starting Dots (Inner Ring): <span class="value-display" id="startDotsValue">8</span></label>
-                        <input type="range" id="startDots" min="3" max="20" value="8">
-                        <div class="info-text">Number of dots in the innermost ring</div>
-                    </div>
-                    <div class="control-item" id="dotIncrementControl">
-                        <label>Dot Increment per Ring: <span class="value-display" id="dotIncrementValue">2</span></label>
-                        <input type="range" id="dotIncrement" min="0" max="8" value="2" step="1">
-                        <div class="info-text">How many dots to add per ring (use even numbers for better symmetry)</div>
-                    </div>
-                    <div class="control-item">
-                        <label>Ring Spacing: <span class="value-display" id="ringSpacingValue">15</span></label>
-                        <input type="range" id="ringSpacing" min="5" max="40" value="15">
-                    </div>
-                    <div class="control-item">
-                        <label>Inner Radius: <span class="value-display" id="innerRadiusValue">30</span></label>
-                        <input type="range" id="innerRadius" min="0" max="150" value="30">
-                        <div class="info-text">Distance to first ring from center</div>
-                    </div>
-                    <div class="control-item" id="symmetryControl">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="enforceSymmetry" checked>
-                            <label for="enforceSymmetry" style="margin: 0;">Enforce Radial Symmetry</label>
-                        </div>
-                        <div class="info-text">Ensures perfect rotational symmetry</div>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h3>Dot Appearance</h3>
-                    <div class="control-item">
-                        <label>Shape</label>
-                        <select id="dotShape">
-                            <option value="circle">Circle (Dots)</option>
-                            <option value="ring">Ring (Concentric Circles)</option>
-                            <option value="square">Square</option>
-                            <option value="diamond">Diamond</option>
-                            <option value="triangle">Triangle</option>
-                            <option value="hexagon">Hexagon</option>
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label id="sizeLabel">Base Size: <span class="value-display" id="dotSizeValue">5</span></label>
-                        <input type="range" id="dotSize" min="1" max="20" value="5">
-                    </div>
-                    <div class="control-item">
-                        <label>Size Progression</label>
-                        <select id="sizeProgression">
-                            <option value="constant">Constant</option>
-                            <option value="linear-decrease">Linear Decrease (Center → Edge)</option>
-                            <option value="linear-increase">Linear Increase (Center → Edge)</option>
-                            <option value="exponential-decrease">Exponential Decrease</option>
-                            <option value="exponential-increase">Exponential Increase</option>
-                            <option value="wave">Wave Pattern</option>
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label>Size Factor: <span class="value-display" id="sizeFactorValue">0.5</span></label>
-                        <input type="range" id="sizeFactor" min="0.1" max="2" value="0.5" step="0.1">
-                        <div class="info-text">Strength of size progression</div>
-                    </div>
-                </div>
-
-                <div class="control-group" id="alignmentGroup">
-                    <h3>Alignment & Rotation</h3>
-                    <div class="control-item" id="globalRotationControl">
-                        <label>Global Rotation: <span class="value-display" id="rotationValue">0°</span></label>
-                        <input type="range" id="rotation" min="0" max="360" value="0">
-                    </div>
-                    <div class="control-item" id="spiralOffsetControl">
-                        <label>Spiral Offset: <span class="value-display" id="spiralValue">0°</span></label>
-                        <input type="range" id="spiralOffset" min="0" max="45" value="0">
-                        <div class="info-text">Progressive rotation per ring</div>
-                    </div>
-                    <div class="control-item" id="alternateOffsetControl">
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" id="alternateOffset">
-                            <label for="alternateOffset" style="margin: 0;">Alternate Ring Offset</label>
-                        </div>
-                        <div class="info-text">Offset every other ring by half spacing</div>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h3>Colors</h3>
-                    <div class="control-item">
-                        <label>Color Mode</label>
-                        <select id="colorMode">
-                            <option value="solid">Solid Color</option>
-                            <option value="radial-gradient">Radial Gradient</option>
-                            <option value="alternating-rings">Alternating Rings</option>
-                            <option value="alternating-dots">Alternating Dots</option>
-                            <option value="fade-center">Fade from Center</option>
-                            <option value="fade-edge">Fade from Edge</option>
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label>Colors</label>
-                        <div class="color-inputs">
-                            <div class="color-input-group">
-                                <input type="color" id="color1" value="#000000">
-                                <small>Primary</small>
-                            </div>
-                            <div class="color-input-group">
-                                <input type="color" id="color2" value="#808080">
-                                <small>Secondary</small>
-                            </div>
-                            <div class="color-input-group">
-                                <input type="color" id="backgroundColor" value="#ffffff">
-                                <small>Background</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h3>Presets</h3>
-                    <div class="preset-buttons">
-                        <button class="preset-btn" onclick="applyPreset('classic')">Classic</button>
-                        <button class="preset-btn" onclick="applyPreset('dense')">Dense</button>
-                        <button class="preset-btn" onclick="applyPreset('spiral')">Spiral</button>
-                        <button class="preset-btn" onclick="applyPreset('halftone')">Halftone</button>
-                        <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
-                        <button class="preset-btn" onclick="applyPreset('flower')">Flower</button>
-                        <button class="preset-btn" onclick="applyPreset('rings')">Rings</button>
-                        <button class="preset-btn" onclick="applyPreset('target')">Target</button>
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button onclick="generatePattern()">Regenerate</button>
-                    <button onclick="exportImage()">Export PNG</button>
+            <div class="control-section">
+                <h2>Canvas</h2>
+                <div class="control-row">
+                    <label>Size</label>
+                    <input type="range" id="canvasSize" min="400" max="1600" value="800" step="100">
+                    <span class="value-display" id="sizeValue">800</span>
                 </div>
             </div>
 
-            <div class="canvas-container">
-                <canvas id="patternCanvas"></canvas>
+            <div class="control-section">
+                <h2>Pattern</h2>
+                <div class="control-row" id="startDotsControl">
+                    <label>Starting dots</label>
+                    <input type="range" id="startDots" min="3" max="20" value="8">
+                    <span class="value-display" id="startDotsValue">8</span>
+                </div>
+                <div class="control-row" id="dotIncrementControl">
+                    <label>Increment</label>
+                    <input type="range" id="dotIncrement" min="0" max="8" value="2" step="1">
+                    <span class="value-display" id="dotIncrementValue">2</span>
+                </div>
+                <div class="control-row">
+                    <label>Rings</label>
+                    <input type="range" id="numRings" min="5" max="50" value="20">
+                    <span class="value-display" id="ringsValue">20</span>
+                </div>
+                <div class="control-row">
+                    <label>Ring spacing</label>
+                    <input type="range" id="ringSpacing" min="5" max="40" value="15">
+                    <span class="value-display" id="ringSpacingValue">15</span>
+                </div>
+                <div class="control-row">
+                    <label>Inner radius</label>
+                    <input type="range" id="innerRadius" min="0" max="150" value="30">
+                    <span class="value-display" id="innerRadiusValue">30</span>
+                </div>
+                <div class="control-row" id="symmetryControl">
+                    <label>Radial symmetry</label>
+                    <input type="checkbox" id="enforceSymmetry" checked>
+                </div>
             </div>
+
+            <div class="control-section">
+                <h2>Dots</h2>
+                <div class="control-row">
+                    <label>Shape</label>
+                    <select id="dotShape">
+                        <option value="circle">Circle</option>
+                        <option value="ring">Ring</option>
+                        <option value="square">Square</option>
+                        <option value="diamond">Diamond</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="hexagon">Hexagon</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label id="sizeLabel">Base size</label>
+                    <input type="range" id="dotSize" min="1" max="20" value="5">
+                    <span class="value-display" id="dotSizeValue">5</span>
+                </div>
+                <div class="control-row">
+                    <label>Progression</label>
+                    <select id="sizeProgression">
+                        <option value="constant">Constant</option>
+                        <option value="linear-decrease">Linear −</option>
+                        <option value="linear-increase">Linear +</option>
+                        <option value="exponential-decrease">Exp −</option>
+                        <option value="exponential-increase">Exp +</option>
+                        <option value="wave">Wave</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>Size factor</label>
+                    <input type="range" id="sizeFactor" min="0.1" max="2" value="0.5" step="0.1">
+                    <span class="value-display" id="sizeFactorValue">0.5</span>
+                </div>
+            </div>
+
+            <div class="control-section" id="alignmentGroup">
+                <h2>Rotation</h2>
+                <div class="control-row" id="globalRotationControl">
+                    <label>Global</label>
+                    <input type="range" id="rotation" min="0" max="360" value="0">
+                    <span class="value-display" id="rotationValue">0°</span>
+                </div>
+                <div class="control-row" id="spiralOffsetControl">
+                    <label>Spiral offset</label>
+                    <input type="range" id="spiralOffset" min="0" max="45" value="0">
+                    <span class="value-display" id="spiralValue">0°</span>
+                </div>
+                <div class="control-row" id="alternateOffsetControl">
+                    <label>Alternate offset</label>
+                    <input type="checkbox" id="alternateOffset">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Colour</h2>
+                <div class="control-row">
+                    <label>Mode</label>
+                    <select id="colorMode">
+                        <option value="solid">Solid</option>
+                        <option value="radial-gradient">Radial gradient</option>
+                        <option value="alternating-rings">Alternating rings</option>
+                        <option value="alternating-dots">Alternating dots</option>
+                        <option value="fade-center">Fade from centre</option>
+                        <option value="fade-edge">Fade from edge</option>
+                    </select>
+                </div>
+                <div class="color-row">
+                    <div class="color-item">
+                        <input type="color" id="color1" value="#000000">
+                        <span>Primary</span>
+                    </div>
+                    <div class="color-item">
+                        <input type="color" id="color2" value="#808080">
+                        <span>Secondary</span>
+                    </div>
+                    <div class="color-item">
+                        <input type="color" id="backgroundColor" value="#ffffff">
+                        <span>BG</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h2>Presets</h2>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="applyPreset('classic')">Classic</button>
+                    <button class="preset-btn" onclick="applyPreset('dense')">Dense</button>
+                    <button class="preset-btn" onclick="applyPreset('spiral')">Spiral</button>
+                    <button class="preset-btn" onclick="applyPreset('halftone')">Halftone</button>
+                    <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+                    <button class="preset-btn" onclick="applyPreset('flower')">Flower</button>
+                    <button class="preset-btn" onclick="applyPreset('rings')">Rings</button>
+                    <button class="preset-btn" onclick="applyPreset('target')">Target</button>
+                </div>
+            </div>
+
+            <div class="action-row">
+                <button class="action-btn" onclick="generatePattern()">Regenerate</button>
+                <button class="action-btn" onclick="exportImage()">Export PNG</button>
+            </div>
+
         </div>
+    </div>
+
+    <div class="canvas-area">
+        <canvas id="patternCanvas"></canvas>
     </div>
 
     <script>
@@ -487,30 +411,17 @@
         function updateControlsVisibility() {
             const dotShape = document.getElementById('dotShape').value;
             const isRingMode = dotShape === 'ring';
-            
-            // Hide/show dot-specific controls
-            document.getElementById('startDotsControl').style.display = isRingMode ? 'none' : 'block';
-            document.getElementById('dotIncrementControl').style.display = isRingMode ? 'none' : 'block';
-            document.getElementById('symmetryControl').style.display = isRingMode ? 'none' : 'block';
-            document.getElementById('alternateOffsetControl').style.display = isRingMode ? 'none' : 'block';
-            document.getElementById('globalRotationControl').style.display = isRingMode ? 'none' : 'block';
-            document.getElementById('spiralOffsetControl').style.display = isRingMode ? 'none' : 'block';
-            
-            // Update alignment section title if needed
-            const alignmentGroup = document.getElementById('alignmentGroup');
-            if (isRingMode) {
-                alignmentGroup.style.display = 'none';
-            } else {
-                alignmentGroup.style.display = 'block';
-            }
-            
-            // Update size label
+
+            document.getElementById('startDotsControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('dotIncrementControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('symmetryControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('alternateOffsetControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('globalRotationControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('spiralOffsetControl').style.display = isRingMode ? 'none' : 'flex';
+            document.getElementById('alignmentGroup').style.display = isRingMode ? 'none' : 'block';
+
             const sizeLabel = document.getElementById('sizeLabel');
-            if (isRingMode) {
-                sizeLabel.innerHTML = 'Line Width: <span class="value-display" id="dotSizeValue">' + document.getElementById('dotSize').value + '</span>';
-            } else {
-                sizeLabel.innerHTML = 'Base Size: <span class="value-display" id="dotSizeValue">' + document.getElementById('dotSize').value + '</span>';
-            }
+            sizeLabel.textContent = isRingMode ? 'Line width' : 'Base size';
         }
 
         function updateCanvasSize() {
@@ -531,31 +442,21 @@
             document.getElementById('sizeFactorValue').textContent = document.getElementById('sizeFactor').value;
             document.getElementById('rotationValue').textContent = document.getElementById('rotation').value + '°';
             document.getElementById('spiralValue').textContent = document.getElementById('spiralOffset').value + '°';
-            
-            // Update size label based on shape
-            const dotShape = document.getElementById('dotShape').value;
-            const isRingMode = dotShape === 'ring';
-            const sizeLabel = document.getElementById('sizeLabel');
-            if (isRingMode) {
-                sizeLabel.innerHTML = 'Line Width: <span class="value-display" id="dotSizeValue">' + document.getElementById('dotSize').value + '</span>';
-            } else {
-                sizeLabel.innerHTML = 'Base Size: <span class="value-display" id="dotSizeValue">' + document.getElementById('dotSize').value + '</span>';
-            }
         }
 
         function getColorBetween(color1, color2, ratio) {
             const r1 = parseInt(color1.substr(1, 2), 16);
             const g1 = parseInt(color1.substr(3, 2), 16);
             const b1 = parseInt(color1.substr(5, 2), 16);
-            
+
             const r2 = parseInt(color2.substr(1, 2), 16);
             const g2 = parseInt(color2.substr(3, 2), 16);
             const b2 = parseInt(color2.substr(5, 2), 16);
-            
+
             const r = Math.round(r1 + (r2 - r1) * ratio);
             const g = Math.round(g1 + (g2 - g1) * ratio);
             const b = Math.round(b1 + (b2 - b1) * ratio);
-            
+
             return `rgb(${r}, ${g}, ${b})`;
         }
 
@@ -564,23 +465,23 @@
             ctx.translate(x, y);
             ctx.rotate(rotation * Math.PI / 180);
             ctx.fillStyle = color;
-            
+
             switch(shape) {
                 case 'circle':
                     ctx.beginPath();
                     ctx.arc(0, 0, size, 0, Math.PI * 2);
                     ctx.fill();
                     break;
-                
+
                 case 'square':
                     ctx.fillRect(-size, -size, size * 2, size * 2);
                     break;
-                
+
                 case 'diamond':
                     ctx.rotate(45 * Math.PI / 180);
                     ctx.fillRect(-size, -size, size * 2, size * 2);
                     break;
-                
+
                 case 'triangle':
                     ctx.beginPath();
                     ctx.moveTo(0, -size);
@@ -589,93 +490,76 @@
                     ctx.closePath();
                     ctx.fill();
                     break;
-                
+
                 case 'hexagon':
                     ctx.beginPath();
                     for (let i = 0; i < 6; i++) {
                         const angle = (i * Math.PI * 2) / 6;
                         const px = Math.cos(angle) * size;
                         const py = Math.sin(angle) * size;
-                        if (i === 0) {
-                            ctx.moveTo(px, py);
-                        } else {
-                            ctx.lineTo(px, py);
-                        }
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
                     }
                     ctx.closePath();
                     ctx.fill();
                     break;
-                
+
                 case 'ring':
-                    // This case is handled separately in generatePattern()
                     break;
             }
-            
+
             ctx.restore();
         }
 
         function calculateDotSize(ringIndex, totalRings, baseSize, progression, factor) {
             const ratio = ringIndex / totalRings;
             let size;
-            
+
             switch(progression) {
                 case 'constant':
                     size = baseSize;
                     break;
-                
                 case 'linear-decrease':
-                    size = baseSize * (1 - ratio * factor * 0.8); // Limited to 80% reduction
+                    size = baseSize * (1 - ratio * factor * 0.8);
                     break;
-                
                 case 'linear-increase':
                     size = baseSize * (1 + ratio * factor);
                     break;
-                
                 case 'exponential-decrease':
-                    size = baseSize * Math.pow(Math.max(0.2, 1 - factor * 0.5), ratio * 2); // Ensure minimum size
+                    size = baseSize * Math.pow(Math.max(0.2, 1 - factor * 0.5), ratio * 2);
                     break;
-                
                 case 'exponential-increase':
                     size = baseSize * Math.pow(1 + factor * 0.5, ratio);
                     break;
-                
                 case 'wave':
                     size = baseSize * (1 + Math.sin(ratio * Math.PI * 2) * factor * 0.5);
                     break;
-                
                 default:
                     size = baseSize;
             }
-            
-            // Ensure size is never negative or too small
+
             return Math.max(0.5, size);
         }
 
         function getColor(ringIndex, dotIndex, totalRings, totalDots, colorMode, color1, color2) {
             const ringRatio = ringIndex / totalRings;
             const dotRatio = dotIndex / totalDots;
-            
+
             switch(colorMode) {
                 case 'solid':
                     return color1;
-                
                 case 'radial-gradient':
                     return getColorBetween(color1, color2, ringRatio);
-                
                 case 'alternating-rings':
                     return ringIndex % 2 === 0 ? color1 : color2;
-                
                 case 'alternating-dots':
                     return dotIndex % 2 === 0 ? color1 : color2;
-                
                 case 'fade-center':
                     ctx.globalAlpha = Math.max(0.1, 1 - ringRatio * 0.9);
                     return color1;
-                
                 case 'fade-edge':
                     ctx.globalAlpha = Math.min(1, ringRatio * 0.9 + 0.1);
                     return color1;
-                
                 default:
                     return color1;
             }
@@ -701,32 +585,22 @@
             const color1 = document.getElementById('color1').value;
             const color2 = document.getElementById('color2').value;
             const bgColor = document.getElementById('backgroundColor').value;
-            
-            // Clear canvas with antialiasing
+
             ctx.fillStyle = bgColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Enable better rendering
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            
-            // Check if we're drawing rings or dots
+
             const isRingMode = dotShape === 'ring';
-            
-            // Calculate maximum drawable radius
             const maxRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
-            
-            // Generate rings
+
             for (let ring = 0; ring < numRings; ring++) {
                 const radius = innerRadius + (ring * ringSpacing);
-                
-                // Don't draw if radius exceeds canvas bounds
                 if (radius > maxRadius) break;
-                
+
                 const size = calculateDotSize(ring, numRings, dotSize, sizeProgression, sizeFactor);
-                
+
                 if (isRingMode) {
-                    // Draw concentric ring
                     ctx.globalAlpha = 1;
                     const color = getColor(ring, 0, numRings, 1, colorMode, color1, color2);
                     ctx.strokeStyle = color;
@@ -735,39 +609,32 @@
                     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                     ctx.stroke();
                 } else {
-                    // Draw dots in ring formation
                     let dotsInRing = Math.max(1, startDots + (ring * dotIncrement));
-                    
-                    // Enforce symmetry by ensuring dots are divisible by the starting number for radial alignment
+
                     if (enforceSymmetry && startDots > 0 && dotsInRing > 1) {
                         const symmetryFactor = Math.min(startDots, 8);
                         dotsInRing = Math.round(dotsInRing / symmetryFactor) * symmetryFactor;
                         if (dotsInRing < symmetryFactor) dotsInRing = symmetryFactor;
                     }
-                    
-                    // Calculate precise angle for perfect symmetry
+
                     const angleStep = (Math.PI * 2) / dotsInRing;
                     const ringRotationRad = (globalRotation + (ring * spiralOffset)) * Math.PI / 180;
                     const offsetAngle = alternateOffset && (ring % 2 === 1) ? angleStep / 2 : 0;
-                    
+
                     for (let dot = 0; dot < dotsInRing; dot++) {
-                        // Use high precision angle calculation
                         const angle = (dot * angleStep) + ringRotationRad + offsetAngle;
                         const x = centerX + Math.cos(angle) * radius;
                         const y = centerY + Math.sin(angle) * radius;
-                        
-                        ctx.globalAlpha = 1; // Reset alpha before getting color
+
+                        ctx.globalAlpha = 1;
                         const color = getColor(ring, dot, numRings, dotsInRing, colorMode, color1, color2);
-                        
-                        // Only draw if size is valid
-                        if (size > 0) {
-                            drawShape(x, y, size, dotShape, color, 0);
-                        }
+
+                        if (size > 0) drawShape(x, y, size, dotShape, color, 0);
                     }
                 }
             }
-            
-            ctx.globalAlpha = 1; // Reset alpha
+
+            ctx.globalAlpha = 1;
         }
 
         function exportImage() {
@@ -790,11 +657,13 @@
                     document.getElementById('sizeProgression').value = 'linear-decrease';
                     document.getElementById('sizeFactor').value = 0.5;
                     document.getElementById('colorMode').value = 'solid';
+                    document.getElementById('color1').value = '#000000';
+                    document.getElementById('color2').value = '#808080';
+                    document.getElementById('backgroundColor').value = '#ffffff';
                     document.getElementById('alternateOffset').checked = false;
                     document.getElementById('enforceSymmetry').checked = true;
                     document.getElementById('spiralOffset').value = 0;
                     break;
-                
                 case 'dense':
                     document.getElementById('numRings').value = 35;
                     document.getElementById('startDots').value = 12;
@@ -807,7 +676,6 @@
                     document.getElementById('colorMode').value = 'radial-gradient';
                     document.getElementById('enforceSymmetry').checked = true;
                     break;
-                
                 case 'spiral':
                     document.getElementById('numRings').value = 25;
                     document.getElementById('startDots').value = 6;
@@ -818,7 +686,6 @@
                     document.getElementById('sizeProgression').value = 'linear-increase';
                     document.getElementById('enforceSymmetry').checked = false;
                     break;
-                
                 case 'halftone':
                     document.getElementById('numRings').value = 30;
                     document.getElementById('startDots').value = 8;
@@ -832,7 +699,6 @@
                     document.getElementById('colorMode').value = 'fade-center';
                     document.getElementById('enforceSymmetry').checked = true;
                     break;
-                
                 case 'minimal':
                     document.getElementById('numRings').value = 10;
                     document.getElementById('startDots').value = 4;
@@ -845,7 +711,6 @@
                     document.getElementById('colorMode').value = 'solid';
                     document.getElementById('enforceSymmetry').checked = true;
                     break;
-                
                 case 'flower':
                     document.getElementById('numRings').value = 20;
                     document.getElementById('startDots').value = 8;
@@ -860,7 +725,6 @@
                     document.getElementById('alternateOffset').checked = true;
                     document.getElementById('enforceSymmetry').checked = true;
                     break;
-                    
                 case 'rings':
                     document.getElementById('numRings').value = 25;
                     document.getElementById('ringSpacing').value = 12;
@@ -870,7 +734,6 @@
                     document.getElementById('sizeProgression').value = 'constant';
                     document.getElementById('colorMode').value = 'solid';
                     break;
-                    
                 case 'target':
                     document.getElementById('numRings').value = 10;
                     document.getElementById('ringSpacing').value = 25;
@@ -891,22 +754,20 @@
 
         // Event listeners
         document.getElementById('canvasSize').addEventListener('input', updateCanvasSize);
-        
-        // Shape change listener
+
         document.getElementById('dotShape').addEventListener('change', () => {
             updateControlsVisibility();
             updateValueDisplays();
             generatePattern();
         });
 
-        // Add event listeners for all controls
         const controls = [
             'numRings', 'startDots', 'dotIncrement', 'ringSpacing', 'innerRadius',
             'dotSize', 'sizeProgression', 'sizeFactor',
             'rotation', 'spiralOffset', 'alternateOffset', 'enforceSymmetry',
             'colorMode', 'color1', 'color2', 'backgroundColor'
         ];
-        
+
         controls.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
