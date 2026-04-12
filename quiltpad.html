@@ -9,7 +9,7 @@
 <title>QuiltPad</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  
+
   :root {
     --sidebar-w: 88px;
     --toolbar-h: 52px;
@@ -64,8 +64,30 @@
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--text-light);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     opacity: 0.6;
+  }
+
+  /* ── ADD BUTTON (top of sidebar) ── */
+  .add-swatch-btn {
+    width: 64px; height: 64px;
+    border-radius: var(--radius);
+    border: 2.5px solid var(--accent);
+    background: rgba(212,136,106,0.12);
+    color: var(--accent);
+    font-size: 32px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+  }
+  .add-swatch-btn:active {
+    background: rgba(212,136,106,0.25);
+    transform: scale(0.93);
   }
 
   .swatches-scroll {
@@ -160,7 +182,14 @@
     opacity: 0.5;
   }
 
-  /* ── ERASER SWATCH ── */
+  /* ── ERASER SWATCH (bottom of sidebar) ── */
+  .eraser-wrap {
+    flex-shrink: 0;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
   .swatch-btn.eraser-swatch {
     background: var(--canvas-bg);
     display: flex;
@@ -168,26 +197,11 @@
     justify-content: center;
   }
   .swatch-btn.eraser-swatch svg { width: 28px; height: 28px; }
-
-  /* ── ADD BUTTON ── */
-  .add-swatch-btn {
-    width: 64px; height: 64px;
-    border-radius: var(--radius);
-    border: 2px dashed var(--sidebar-border);
-    background: transparent;
+  .eraser-label {
+    font-size: 9px;
     color: var(--text-light);
-    font-size: 28px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.2s, color 0.2s;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .add-swatch-btn:active {
-    border-color: var(--accent);
-    color: var(--accent);
+    opacity: 0.5;
+    margin-top: 3px;
   }
 
   /* ── MAIN AREA ── */
@@ -297,61 +311,6 @@
     cursor: crosshair;
   }
 
-  /* ── CAMERA OVERLAY ── */
-  .camera-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 100;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-  }
-  .camera-overlay.open { display: flex; }
-
-  .camera-preview-wrap {
-    position: relative;
-    width: 300px; height: 300px;
-  }
-  .camera-preview-wrap video {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    border-radius: 12px;
-  }
-  .crop-guide {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 200px; height: 200px;
-    transform: translate(-50%,-50%);
-    border: 3px solid var(--accent);
-    border-radius: 8px;
-    pointer-events: none;
-    box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
-  }
-
-  .camera-actions {
-    display: flex;
-    gap: 16px;
-  }
-  .cam-btn {
-    height: 48px;
-    padding: 0 28px;
-    border: none;
-    border-radius: 24px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .cam-btn:active { transform: scale(0.95); }
-  .cam-btn.primary { background: var(--accent); color: #fff; }
-  .cam-btn.secondary { background: rgba(255,255,255,0.15); color: #fff; }
-
-  /* Fallback file input approach for Safari */
-  .file-input-hidden { display: none; }
-
   /* ── TOAST ── */
   .toast {
     position: fixed;
@@ -394,6 +353,8 @@
     .swatch-item { width: auto; padding: 0 4px; }
     .swatch-scale { display: none !important; }
     .sidebar-title { display: none; }
+    .eraser-wrap { margin-top: 0; margin-left: 4px; }
+    .eraser-label { display: none; }
   }
 </style>
 </head>
@@ -403,18 +364,19 @@
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-title">Fabrics</div>
-    <div class="swatches-scroll" id="swatchList">
-      <!-- Eraser swatch -->
-      <div class="swatch-item active" data-id="eraser">
-        <button class="swatch-btn eraser-swatch active" data-id="eraser" title="Eraser">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
-            <path d="M6.5 13.5 11 18"/>
-          </svg>
-        </button>
-      </div>
-    </div>
     <button class="add-swatch-btn" id="addSwatchBtn" title="Add fabric">+</button>
+    <div class="swatches-scroll" id="swatchList">
+      <!-- fabric swatches rendered dynamically -->
+    </div>
+    <div class="eraser-wrap">
+      <button class="swatch-btn eraser-swatch active" id="eraserBtn" data-id="eraser" title="Eraser">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
+          <path d="M6.5 13.5 11 18"/>
+        </svg>
+      </button>
+      <span class="eraser-label">Eraser</span>
+    </div>
   </div>
 
   <!-- MAIN -->
@@ -457,7 +419,7 @@
 </div>
 
 <!-- Hidden file input for camera/photo library -->
-<input type="file" accept="image/*" capture="environment" class="file-input-hidden" id="fileInput">
+<input type="file" accept="image/*" capture="environment" class="file-input-hidden" id="fileInput" style="display:none">
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -468,12 +430,12 @@
 
   // ── STATE ──
   const state = {
-    swatches: [],        // { id, img, pattern, scale }
+    swatches: [],          // { id, img, pattern, scale }
     activeSwatchId: 'eraser',
     brushSize: 28,
     isDrawing: false,
-    history: [],         // canvas snapshots for undo
-    maxHistory: 25,
+    strokes: [],           // { swatchId, brushSize, points: [{x,y}] }
+    currentStroke: null,
   };
 
   let swatchIdCounter = 0;
@@ -484,6 +446,7 @@
   const canvasWrap = document.getElementById('canvasWrap');
   const swatchList = document.getElementById('swatchList');
   const addSwatchBtn = document.getElementById('addSwatchBtn');
+  const eraserBtn = document.getElementById('eraserBtn');
   const fileInput = document.getElementById('fileInput');
   const undoBtn = document.getElementById('undoBtn');
   const clearBtn = document.getElementById('clearBtn');
@@ -496,7 +459,6 @@
     const pad = 24;
     const maxW = wrap.clientWidth - pad;
     const maxH = wrap.clientHeight - pad;
-    // Maintain a nice ratio, fill available space
     const ratio = 4 / 3;
     let w, h;
     if (maxW / maxH > ratio) {
@@ -506,57 +468,74 @@
       w = maxW;
       h = w / ratio;
     }
-    // Use device pixel ratio for sharpness but cap it
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.style.width = Math.floor(w) + 'px';
     canvas.style.height = Math.floor(h) + 'px';
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     ctx.scale(dpr, dpr);
-    // Redraw from last history state if exists
-    if (state.history.length > 0) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.setTransform(1,0,0,1,0,0);
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dpr2 = Math.min(window.devicePixelRatio || 1, 2);
-        ctx.setTransform(dpr2,0,0,dpr2,0,0);
-      };
-      img.src = state.history[state.history.length - 1];
-    }
     // Rebuild patterns at new resolution
     state.swatches.forEach(s => rebuildPattern(s));
+    // Replay all strokes
+    replayAll();
   }
 
   window.addEventListener('resize', debounce(resizeCanvas, 200));
   resizeCanvas();
 
-  // ── HISTORY ──
-  function pushHistory() {
-    state.history.push(canvas.toDataURL('image/png'));
-    if (state.history.length > state.maxHistory) state.history.shift();
+  // ── REPLAY (stroke-based rendering) ──
+  function replayAll() {
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    for (const stroke of state.strokes) {
+      replayStroke(stroke);
+    }
   }
 
-  function undo() {
-    if (state.history.length === 0) return;
-    state.history.pop(); // remove current
-    if (state.history.length === 0) {
-      ctx.save();
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+  function replayStroke(stroke) {
+    const swatch = state.swatches.find(s => s.id === stroke.swatchId);
+    const points = stroke.points;
+    if (points.length === 0) return;
+
+    ctx.save();
+    if (stroke.swatchId === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+    } else if (swatch && swatch.pattern) {
+      ctx.fillStyle = swatch.pattern;
+    } else {
+      // Swatch was deleted — skip this stroke
       ctx.restore();
       return;
     }
-    const img = new Image();
-    img.onload = () => {
-      ctx.save();
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
-    };
-    img.src = state.history[state.history.length - 1];
+
+    const r = stroke.brushSize / 2;
+
+    // First point
+    ctx.beginPath();
+    ctx.arc(points[0].x, points[0].y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Interpolated lines between consecutive points
+    for (let i = 1; i < points.length; i++) {
+      const from = points[i - 1];
+      const to = points[i];
+      const dist = Math.hypot(to.x - from.x, to.y - from.y);
+      const steps = Math.max(1, Math.floor(dist / (stroke.brushSize * 0.25)));
+      for (let j = 0; j <= steps; j++) {
+        const t = j / steps;
+        const x = from.x + (to.x - from.x) * t;
+        const y = from.y + (to.y - from.y) * t;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
   }
 
   // ── DRAWING ──
@@ -569,68 +548,71 @@
     };
   }
 
-  let lastPos = null;
-
   function startDraw(e) {
     e.preventDefault();
     state.isDrawing = true;
-    lastPos = getPos(e);
-    pushHistory();
-    drawDot(lastPos);
-  }
-
-  function moveDraw(e) {
-    e.preventDefault();
-    if (!state.isDrawing) return;
     const pos = getPos(e);
-    drawLine(lastPos, pos);
-    lastPos = pos;
-  }
 
-  function endDraw(e) {
-    e.preventDefault();
-    state.isDrawing = false;
-    lastPos = null;
-  }
+    state.currentStroke = {
+      swatchId: state.activeSwatchId,
+      brushSize: state.brushSize,
+      points: [pos],
+    };
 
-  function drawDot(pos) {
+    // Draw the initial dot immediately
     const swatch = getActiveSwatch();
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, state.brushSize / 2, 0, Math.PI * 2);
-    if (swatch && swatch.pattern) {
-      ctx.fillStyle = swatch.pattern;
-    } else {
-      // Eraser
+    if (state.activeSwatchId === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.fillStyle = 'rgba(0,0,0,1)';
+    } else if (swatch && swatch.pattern) {
+      ctx.fillStyle = swatch.pattern;
     }
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, state.brushSize / 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
-  function drawLine(from, to) {
-    const swatch = getActiveSwatch();
-    const dist = Math.hypot(to.x - from.x, to.y - from.y);
-    const steps = Math.max(1, Math.floor(dist / (state.brushSize * 0.25)));
+  function moveDraw(e) {
+    e.preventDefault();
+    if (!state.isDrawing || !state.currentStroke) return;
+    const pos = getPos(e);
+    const points = state.currentStroke.points;
+    const from = points[points.length - 1];
+    points.push(pos);
 
+    // Draw this segment immediately
+    const swatch = getActiveSwatch();
     ctx.save();
-    if (swatch && swatch.pattern) {
-      ctx.fillStyle = swatch.pattern;
-    } else {
+    if (state.activeSwatchId === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.fillStyle = 'rgba(0,0,0,1)';
+    } else if (swatch && swatch.pattern) {
+      ctx.fillStyle = swatch.pattern;
     }
 
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = from.x + (to.x - from.x) * t;
-      const y = from.y + (to.y - from.y) * t;
+    const dist = Math.hypot(pos.x - from.x, pos.y - from.y);
+    const steps = Math.max(1, Math.floor(dist / (state.brushSize * 0.25)));
+    const r = state.brushSize / 2;
+    for (let j = 0; j <= steps; j++) {
+      const t = j / steps;
+      const x = from.x + (pos.x - from.x) * t;
+      const y = from.y + (pos.y - from.y) * t;
       ctx.beginPath();
-      ctx.arc(x, y, state.brushSize / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  function endDraw(e) {
+    e.preventDefault();
+    if (state.currentStroke && state.currentStroke.points.length > 0) {
+      state.strokes.push(state.currentStroke);
+    }
+    state.currentStroke = null;
+    state.isDrawing = false;
   }
 
   function getActiveSwatch() {
@@ -653,7 +635,6 @@
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // Create a square crop from centre
       const size = Math.min(img.width, img.height);
       const sx = (img.width - size) / 2;
       const sy = (img.height - size) / 2;
@@ -682,7 +663,7 @@
 
   function rebuildPattern(swatch) {
     const scale = swatch.scale;
-    const srcSize = swatch.img.width; // 256
+    const srcSize = swatch.img.width;
     const drawSize = Math.round(srcSize * scale);
     if (drawSize < 4) return;
     const pCanvas = document.createElement('canvas');
@@ -706,19 +687,13 @@
   }
 
   function renderSwatches() {
-    // Keep eraser, rebuild rest
-    const eraserItem = swatchList.querySelector('[data-id="eraser"]');
-    // Clear all non-eraser items
-    Array.from(swatchList.children).forEach(child => {
-      if (child.dataset.id !== 'eraser') child.remove();
-    });
+    // Clear swatch list (fabric swatches only — eraser is outside)
+    swatchList.innerHTML = '';
 
-    // Update eraser state
-    const eraserBtn = eraserItem.querySelector('.swatch-btn');
-    eraserItem.classList.toggle('active', state.activeSwatchId === 'eraser');
+    // Update eraser active state
     eraserBtn.classList.toggle('active', state.activeSwatchId === 'eraser');
 
-    // Add swatch items
+    // Add fabric swatch items
     state.swatches.forEach(swatch => {
       const item = document.createElement('div');
       item.className = 'swatch-item' + (state.activeSwatchId === swatch.id ? ' active' : '');
@@ -758,6 +733,7 @@
       scaleInput.addEventListener('input', (e) => {
         swatch.scale = parseFloat(e.target.value);
         rebuildPattern(swatch);
+        replayAll(); // Live update everywhere on canvas
       });
       scaleWrap.appendChild(scaleLabel);
       scaleWrap.appendChild(scaleInput);
@@ -767,9 +743,10 @@
     });
   }
 
+  // ── ERASER SELECTION ──
+  eraserBtn.addEventListener('click', () => selectSwatch('eraser'));
+
   // ── ADD SWATCH VIA FILE INPUT ──
-  // Safari on iPad doesn't reliably support getUserMedia,
-  // but <input type="file" capture> works perfectly — opens camera or photo library
   addSwatchBtn.addEventListener('click', () => {
     fileInput.click();
   });
@@ -782,7 +759,7 @@
       addSwatch(ev.target.result);
     };
     reader.readAsDataURL(file);
-    fileInput.value = ''; // reset so same file can be re-selected
+    fileInput.value = '';
   });
 
   // ── BRUSH SIZES ──
@@ -795,20 +772,20 @@
   });
 
   // ── TOOLBAR ACTIONS ──
-  undoBtn.addEventListener('click', undo);
+  undoBtn.addEventListener('click', () => {
+    if (state.strokes.length === 0) return;
+    state.strokes.pop();
+    replayAll();
+  });
 
   clearBtn.addEventListener('click', () => {
-    if (state.history.length === 0) return;
-    pushHistory();
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
+    if (state.strokes.length === 0) return;
+    state.strokes = [];
+    replayAll();
     toast('Canvas cleared');
   });
 
   saveBtn.addEventListener('click', () => {
-    // Flatten to white background
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = canvas.width;
     exportCanvas.height = canvas.height;
@@ -840,7 +817,6 @@
   }
 
   // ── INITIAL STATE ──
-  pushHistory(); // blank canvas as first history state
   renderSwatches();
 
   // Prevent bounce/scroll on iOS Safari
