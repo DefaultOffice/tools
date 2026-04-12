@@ -13,16 +13,15 @@
   :root {
     --sidebar-w: 88px;
     --toolbar-h: 52px;
-    --bg: #f5f0eb;
-    --sidebar-bg: #2c2825;
-    --sidebar-border: #3d3835;
-    --text: #2c2825;
-    --text-light: #c8bfb6;
+    --ribbon-h: 72px;
+    --bg: #faf3ed;
+    --sidebar-bg: #131414;
+    --sidebar-border: #2a2d2e;
+    --text: #131414;
+    --text-light: #9ba8b0;
     --accent: #d4886a;
     --accent-hover: #c07050;
     --swatch-ring: #d4886a;
-    --btn-bg: rgba(255,255,255,0.08);
-    --btn-hover: rgba(255,255,255,0.15);
     --canvas-bg: #ffffff;
     --radius: 10px;
   }
@@ -100,7 +99,7 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 4px 0 12px;
+    padding: 4px 0 8px;
     scrollbar-width: none;
   }
   .swatches-scroll::-webkit-scrollbar { display: none; }
@@ -148,44 +147,63 @@
   }
   .swatch-btn.active .delete-x { display: flex; }
 
-  /* Scale slider — only visible for active swatch */
-  .swatch-scale {
-    width: 64px;
-    margin-top: 4px;
-    display: none;
+  /* ── SIDEBAR BOTTOM BUTTONS ── */
+  .sidebar-bottom {
+    flex-shrink: 0;
+    display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
+    margin-top: 4px;
   }
-  .swatch-item.active .swatch-scale { display: flex; }
 
-  .swatch-scale input[type=range] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 4px;
-    background: var(--sidebar-border);
-    border-radius: 2px;
-    outline: none;
-  }
-  .swatch-scale input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--sidebar-bg);
-    cursor: pointer;
-  }
-  .swatch-scale label {
-    font-size: 9px;
+  .template-btn {
+    width: 64px; height: 44px;
+    border-radius: 8px;
+    border: 2px dashed var(--sidebar-border);
+    background: transparent;
     color: var(--text-light);
-    opacity: 0.5;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: border-color 0.2s, color 0.2s;
+    position: relative;
   }
+  .template-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .template-btn.has-template {
+    border-style: solid;
+    border-color: var(--text-light);
+    opacity: 0.8;
+  }
+  .template-btn svg { width: 18px; height: 18px; }
+  .template-btn .template-remove {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #fff;
+    line-height: 1;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+  .template-btn.has-template .template-remove { display: flex; }
 
-  /* ── ERASER SWATCH (bottom of sidebar) ── */
   .eraser-wrap {
     flex-shrink: 0;
-    margin-top: 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -236,7 +254,6 @@
     padding: 0 14px;
     border: none;
     border-radius: 8px;
-    background: var(--btn-bg);
     color: var(--text);
     font-size: 13px;
     font-weight: 500;
@@ -311,6 +328,60 @@
     cursor: crosshair;
   }
 
+  /* ── EDIT RIBBON ── */
+  .edit-ribbon {
+    height: 0;
+    overflow: hidden;
+    background: var(--bg);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 0 24px;
+    transition: height 0.25s ease;
+    flex-shrink: 0;
+  }
+  .edit-ribbon.visible {
+    height: var(--ribbon-h);
+  }
+
+  .edit-slider-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    max-width: 280px;
+  }
+  .edit-slider-group label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    opacity: 0.5;
+    min-width: 56px;
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .edit-slider-group input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 3px;
+    outline: none;
+  }
+  .edit-slider-group input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
   /* ── TOAST ── */
   .toast {
     position: fixed;
@@ -351,10 +422,14 @@
       padding: 0;
     }
     .swatch-item { width: auto; padding: 0 4px; }
-    .swatch-scale { display: none !important; }
     .sidebar-title { display: none; }
-    .eraser-wrap { margin-top: 0; margin-left: 4px; }
+    .sidebar-bottom { flex-direction: row; margin-top: 0; margin-left: 4px; }
+    .eraser-wrap { margin-top: 0; }
     .eraser-label { display: none; }
+    .template-btn { width: 44px; height: 44px; font-size: 9px; }
+    .edit-ribbon { gap: 16px; padding: 0 12px; }
+    .edit-slider-group { max-width: 200px; }
+    .edit-slider-group label { min-width: 40px; font-size: 10px; }
   }
 </style>
 </head>
@@ -365,17 +440,26 @@
   <div class="sidebar">
     <div class="sidebar-title">Fabrics</div>
     <button class="add-swatch-btn" id="addSwatchBtn" title="Add fabric">+</button>
-    <div class="swatches-scroll" id="swatchList">
-      <!-- fabric swatches rendered dynamically -->
-    </div>
-    <div class="eraser-wrap">
-      <button class="swatch-btn eraser-swatch active" id="eraserBtn" data-id="eraser" title="Eraser">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
-          <path d="M6.5 13.5 11 18"/>
+    <div class="swatches-scroll" id="swatchList"></div>
+    <div class="sidebar-bottom">
+      <button class="template-btn" id="templateBtn" title="Add template">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="3" x2="9" y2="21"/>
         </svg>
+        <span>Template</span>
+        <button class="template-remove" id="templateRemoveBtn">×</button>
       </button>
-      <span class="eraser-label">Eraser</span>
+      <div class="eraser-wrap">
+        <button class="swatch-btn eraser-swatch active" id="eraserBtn" data-id="eraser" title="Eraser">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
+            <path d="M6.5 13.5 11 18"/>
+          </svg>
+        </button>
+        <span class="eraser-label">Eraser</span>
+      </div>
     </div>
   </div>
 
@@ -415,11 +499,28 @@
     <div class="canvas-wrap" id="canvasWrap">
       <canvas id="canvas"></canvas>
     </div>
+
+    <!-- EDIT RIBBON -->
+    <div class="edit-ribbon" id="editRibbon">
+      <div class="edit-slider-group">
+        <label>Scale</label>
+        <input type="range" id="editScale" min="0.15" max="3" step="0.05" value="1">
+      </div>
+      <div class="edit-slider-group">
+        <label>Bright</label>
+        <input type="range" id="editBrightness" min="0.3" max="2" step="0.05" value="1">
+      </div>
+      <div class="edit-slider-group">
+        <label>Sat</label>
+        <input type="range" id="editSaturation" min="0" max="2.5" step="0.05" value="1">
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Hidden file input for camera/photo library -->
-<input type="file" accept="image/*" capture="environment" class="file-input-hidden" id="fileInput" style="display:none">
+<!-- Hidden file inputs -->
+<input type="file" accept="image/*" id="fileInput" style="display:none">
+<input type="file" accept="image/*" id="templateInput" style="display:none">
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -430,12 +531,13 @@
 
   // ── STATE ──
   const state = {
-    swatches: [],          // { id, img, pattern, scale }
+    swatches: [],          // { id, img, pattern, scale, brightness, saturation, thumbSrc }
     activeSwatchId: 'eraser',
     brushSize: 28,
     isDrawing: false,
     strokes: [],           // { swatchId, brushSize, points: [{x,y}] }
     currentStroke: null,
+    templateImg: null,     // HTMLImageElement for background template
   };
 
   let swatchIdCounter = 0;
@@ -447,11 +549,18 @@
   const swatchList = document.getElementById('swatchList');
   const addSwatchBtn = document.getElementById('addSwatchBtn');
   const eraserBtn = document.getElementById('eraserBtn');
+  const templateBtn = document.getElementById('templateBtn');
+  const templateRemoveBtn = document.getElementById('templateRemoveBtn');
   const fileInput = document.getElementById('fileInput');
+  const templateInput = document.getElementById('templateInput');
   const undoBtn = document.getElementById('undoBtn');
   const clearBtn = document.getElementById('clearBtn');
   const saveBtn = document.getElementById('saveBtn');
   const toastEl = document.getElementById('toast');
+  const editRibbon = document.getElementById('editRibbon');
+  const editScale = document.getElementById('editScale');
+  const editBrightness = document.getElementById('editBrightness');
+  const editSaturation = document.getElementById('editSaturation');
 
   // ── CANVAS SIZING ──
   function resizeCanvas() {
@@ -474,9 +583,7 @@
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     ctx.scale(dpr, dpr);
-    // Rebuild patterns at new resolution
     state.swatches.forEach(s => rebuildPattern(s));
-    // Replay all strokes
     replayAll();
   }
 
@@ -485,10 +592,29 @@
 
   // ── REPLAY (stroke-based rendering) ──
   function replayAll() {
+    const cssW = parseFloat(canvas.style.width);
+    const cssH = parseFloat(canvas.style.height);
+
     ctx.save();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
+
+    // Draw template background if present
+    if (state.templateImg) {
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      const iw = state.templateImg.naturalWidth || state.templateImg.width;
+      const ih = state.templateImg.naturalHeight || state.templateImg.height;
+      const scale = Math.max(cssW / iw, cssH / ih);
+      const sw = iw * scale;
+      const sh = ih * scale;
+      const sx = (cssW - sw) / 2;
+      const sy = (cssH - sh) / 2;
+      ctx.drawImage(state.templateImg, sx, sy, sw, sh);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
 
     for (const stroke of state.strokes) {
       replayStroke(stroke);
@@ -507,19 +633,16 @@
     } else if (swatch && swatch.pattern) {
       ctx.fillStyle = swatch.pattern;
     } else {
-      // Swatch was deleted — skip this stroke
       ctx.restore();
       return;
     }
 
     const r = stroke.brushSize / 2;
 
-    // First point
     ctx.beginPath();
     ctx.arc(points[0].x, points[0].y, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // Interpolated lines between consecutive points
     for (let i = 1; i < points.length; i++) {
       const from = points[i - 1];
       const to = points[i];
@@ -559,7 +682,6 @@
       points: [pos],
     };
 
-    // Draw the initial dot immediately
     const swatch = getActiveSwatch();
     ctx.save();
     if (state.activeSwatchId === 'eraser') {
@@ -582,7 +704,6 @@
     const from = points[points.length - 1];
     points.push(pos);
 
-    // Draw this segment immediately
     const swatch = getActiveSwatch();
     ctx.save();
     if (state.activeSwatchId === 'eraser') {
@@ -619,7 +740,6 @@
     return state.swatches.find(s => s.id === state.activeSwatchId) || null;
   }
 
-  // Canvas events
   canvas.addEventListener('touchstart', startDraw, { passive: false });
   canvas.addEventListener('touchmove', moveDraw, { passive: false });
   canvas.addEventListener('touchend', endDraw, { passive: false });
@@ -651,11 +771,14 @@
         thumbSrc: offscreen.toDataURL('image/jpeg', 0.8),
         pattern: null,
         scale: 1,
+        brightness: 1,
+        saturation: 1,
       };
       rebuildPattern(swatch);
       state.swatches.push(swatch);
       state.activeSwatchId = id;
       renderSwatches();
+      updateEditRibbon();
       toast('Fabric added');
     };
     img.src = imgSrc;
@@ -670,30 +793,39 @@
     pCanvas.width = drawSize;
     pCanvas.height = drawSize;
     const pctx = pCanvas.getContext('2d');
+    pctx.filter = 'brightness(' + swatch.brightness + ') saturate(' + swatch.saturation + ')';
     pctx.drawImage(swatch.img, 0, 0, drawSize, drawSize);
+    pctx.filter = 'none';
     swatch.pattern = ctx.createPattern(pCanvas, 'repeat');
+
+    // Update thumbnail to reflect adjustments
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 128;
+    thumbCanvas.height = 128;
+    const tctx = thumbCanvas.getContext('2d');
+    tctx.filter = 'brightness(' + swatch.brightness + ') saturate(' + swatch.saturation + ')';
+    tctx.drawImage(swatch.img, 0, 0, 128, 128);
+    swatch.thumbSrc = thumbCanvas.toDataURL('image/jpeg', 0.8);
   }
 
   function removeSwatch(id) {
     state.swatches = state.swatches.filter(s => s.id !== id);
     if (state.activeSwatchId === id) state.activeSwatchId = 'eraser';
     renderSwatches();
+    updateEditRibbon();
     toast('Fabric removed');
   }
 
   function selectSwatch(id) {
     state.activeSwatchId = id;
     renderSwatches();
+    updateEditRibbon();
   }
 
   function renderSwatches() {
-    // Clear swatch list (fabric swatches only — eraser is outside)
     swatchList.innerHTML = '';
-
-    // Update eraser active state
     eraserBtn.classList.toggle('active', state.activeSwatchId === 'eraser');
 
-    // Add fabric swatch items
     state.swatches.forEach(swatch => {
       const item = document.createElement('div');
       item.className = 'swatch-item' + (state.activeSwatchId === swatch.id ? ' active' : '');
@@ -708,10 +840,9 @@
       img.alt = 'Fabric swatch';
       btn.appendChild(img);
 
-      // Delete X
       const del = document.createElement('span');
       del.className = 'delete-x';
-      del.textContent = '×';
+      del.textContent = '\u00d7';
       del.addEventListener('click', (e) => { e.stopPropagation(); removeSwatch(swatch.id); });
       del.addEventListener('touchend', (e) => { e.stopPropagation(); e.preventDefault(); removeSwatch(swatch.id); });
       btn.appendChild(del);
@@ -719,32 +850,74 @@
       btn.addEventListener('click', () => selectSwatch(swatch.id));
       item.appendChild(btn);
 
-      // Scale slider
-      const scaleWrap = document.createElement('div');
-      scaleWrap.className = 'swatch-scale';
-      const scaleLabel = document.createElement('label');
-      scaleLabel.textContent = 'scale';
-      const scaleInput = document.createElement('input');
-      scaleInput.type = 'range';
-      scaleInput.min = '0.15';
-      scaleInput.max = '3';
-      scaleInput.step = '0.05';
-      scaleInput.value = swatch.scale;
-      scaleInput.addEventListener('input', (e) => {
-        swatch.scale = parseFloat(e.target.value);
-        rebuildPattern(swatch);
-        replayAll(); // Live update everywhere on canvas
-      });
-      scaleWrap.appendChild(scaleLabel);
-      scaleWrap.appendChild(scaleInput);
-      item.appendChild(scaleWrap);
-
       swatchList.appendChild(item);
     });
   }
 
-  // ── ERASER SELECTION ──
+  // ── EDIT RIBBON ──
+  function updateEditRibbon() {
+    const swatch = getActiveSwatch();
+    if (swatch) {
+      editRibbon.classList.add('visible');
+      editScale.value = swatch.scale;
+      editBrightness.value = swatch.brightness;
+      editSaturation.value = swatch.saturation;
+    } else {
+      editRibbon.classList.remove('visible');
+    }
+  }
+
+  function onEditSlider() {
+    const swatch = getActiveSwatch();
+    if (!swatch) return;
+    swatch.scale = parseFloat(editScale.value);
+    swatch.brightness = parseFloat(editBrightness.value);
+    swatch.saturation = parseFloat(editSaturation.value);
+    rebuildPattern(swatch);
+    replayAll();
+    // Update thumbnail in sidebar
+    const thumbEl = swatchList.querySelector('[data-id="' + swatch.id + '"] img');
+    if (thumbEl) thumbEl.src = swatch.thumbSrc;
+  }
+
+  editScale.addEventListener('input', onEditSlider);
+  editBrightness.addEventListener('input', onEditSlider);
+  editSaturation.addEventListener('input', onEditSlider);
+
+  // ── ERASER ──
   eraserBtn.addEventListener('click', () => selectSwatch('eraser'));
+
+  // ── TEMPLATE ──
+  templateBtn.addEventListener('click', (e) => {
+    if (e.target === templateRemoveBtn || e.target.closest('.template-remove')) return;
+    templateInput.click();
+  });
+
+  templateRemoveBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.templateImg = null;
+    templateBtn.classList.remove('has-template');
+    replayAll();
+    toast('Template removed');
+  });
+
+  templateInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        state.templateImg = img;
+        templateBtn.classList.add('has-template');
+        replayAll();
+        toast('Template added');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    templateInput.value = '';
+  });
 
   // ── ADD SWATCH VIA FILE INPUT ──
   addSwatchBtn.addEventListener('click', () => {
@@ -794,12 +967,29 @@
     ectx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
     ectx.drawImage(canvas, 0, 0);
 
+    exportCanvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'QuiltPad.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          toast('Saved');
+        } catch (err) {
+          if (err.name !== 'AbortError') downloadFallback(exportCanvas);
+        }
+      } else {
+        downloadFallback(exportCanvas);
+      }
+    }, 'image/png');
+  });
+
+  function downloadFallback(c) {
     const link = document.createElement('a');
     link.download = 'quiltpad-' + Date.now() + '.png';
-    link.href = exportCanvas.toDataURL('image/png');
+    link.href = c.toDataURL('image/png');
     link.click();
     toast('Saved to downloads');
-  });
+  }
 
   // ── TOAST ──
   let toastTimeout;
@@ -818,8 +1008,8 @@
 
   // ── INITIAL STATE ──
   renderSwatches();
+  updateEditRibbon();
 
-  // Prevent bounce/scroll on iOS Safari
   document.addEventListener('touchmove', (e) => {
     if (e.target === canvas || e.target.closest('.canvas-wrap')) {
       e.preventDefault();
