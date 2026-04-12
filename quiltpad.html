@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QuiltPad">
+<title>QuiltPad</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --sidebar-w: 88px;
+    --toolbar-h: 52px;
+    --bg: #f5f0eb;
+    --sidebar-bg: #2c2825;
+    --sidebar-border: #3d3835;
+    --text: #2c2825;
+    --text-light: #c8bfb6;
+    --accent: #d4886a;
+    --accent-hover: #c07050;
+    --swatch-ring: #d4886a;
+    --btn-bg: rgba(255,255,255,0.08);
+    --btn-hover: rgba(255,255,255,0.15);
+    --canvas-bg: #ffffff;
+    --radius: 10px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    touch-action: none;
+    position: fixed;
+    top: 0; left: 0;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: flex;
+    width: 100%; height: 100%;
+    flex-direction: row;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100%;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0 12px;
+    gap: 4px;
+    z-index: 10;
+  }
+
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+
+  .swatches-scroll {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0 12px;
+    scrollbar-width: none;
+  }
+  .swatches-scroll::-webkit-scrollbar { display: none; }
+
+  /* ── SWATCH ITEM ── */
+  .swatch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  .swatch-btn {
+    width: 64px; height: 64px;
+    border-radius: var(--radius);
+    border: 3px solid transparent;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s, transform 0.15s;
+    background: #444;
+    flex-shrink: 0;
+  }
+  .swatch-btn:active { transform: scale(0.93); }
+  .swatch-btn.active { border-color: var(--swatch-ring); }
+  .swatch-btn img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+  .swatch-btn .delete-x {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 20px; height: 20px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #fff;
+    line-height: 1;
+  }
+  .swatch-btn.active .delete-x { display: flex; }
+
+  /* Scale slider — only visible for active swatch */
+  .swatch-scale {
+    width: 64px;
+    margin-top: 4px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .swatch-item.active .swatch-scale { display: flex; }
+
+  .swatch-scale input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--sidebar-border);
+    border-radius: 2px;
+    outline: none;
+  }
+  .swatch-scale input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--sidebar-bg);
+    cursor: pointer;
+  }
+  .swatch-scale label {
+    font-size: 9px;
+    color: var(--text-light);
+    opacity: 0.5;
+  }
+
+  /* ── ERASER SWATCH ── */
+  .swatch-btn.eraser-swatch {
+    background: var(--canvas-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .swatch-btn.eraser-swatch svg { width: 28px; height: 28px; }
+
+  /* ── ADD BUTTON ── */
+  .add-swatch-btn {
+    width: 64px; height: 64px;
+    border-radius: var(--radius);
+    border: 2px dashed var(--sidebar-border);
+    background: transparent;
+    color: var(--text-light);
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .add-swatch-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── MAIN AREA ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    height: var(--toolbar-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tool-btn {
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--btn-bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+    background: rgba(0,0,0,0.05);
+  }
+  .tool-btn:active { background: rgba(0,0,0,0.1); }
+  .tool-btn svg { width: 18px; height: 18px; }
+
+  /* Brush size buttons */
+  .brush-sizes {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .brush-size-btn {
+    border: none;
+    background: rgba(0,0,0,0.05);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    padding: 0;
+  }
+  .brush-size-btn.active { background: var(--accent); }
+  .brush-size-btn.active .dot { background: #fff; }
+  .brush-size-btn:active { transform: scale(0.9); }
+
+  .brush-size-btn.sz-s { width: 32px; height: 32px; }
+  .brush-size-btn.sz-m { width: 36px; height: 36px; }
+  .brush-size-btn.sz-l { width: 40px; height: 40px; }
+
+  .dot {
+    border-radius: 50%;
+    background: var(--text);
+    transition: background 0.15s;
+  }
+  .sz-s .dot { width: 8px; height: 8px; }
+  .sz-m .dot { width: 14px; height: 14px; }
+  .sz-l .dot { width: 20px; height: 20px; }
+
+  .app-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    opacity: 0.4;
+  }
+
+  /* ── CANVAS AREA ── */
+  .canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  canvas {
+    background: var(--canvas-bg);
+    border-radius: 6px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  /* ── CAMERA OVERLAY ── */
+  .camera-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .camera-overlay.open { display: flex; }
+
+  .camera-preview-wrap {
+    position: relative;
+    width: 300px; height: 300px;
+  }
+  .camera-preview-wrap video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .crop-guide {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 200px; height: 200px;
+    transform: translate(-50%,-50%);
+    border: 3px solid var(--accent);
+    border-radius: 8px;
+    pointer-events: none;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
+  }
+
+  .camera-actions {
+    display: flex;
+    gap: 16px;
+  }
+  .cam-btn {
+    height: 48px;
+    padding: 0 28px;
+    border: none;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .cam-btn:active { transform: scale(0.95); }
+  .cam-btn.primary { background: var(--accent); color: #fff; }
+  .cam-btn.secondary { background: rgba(255,255,255,0.15); color: #fff; }
+
+  /* Fallback file input approach for Safari */
+  .file-input-hidden { display: none; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--sidebar-bg);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── RESPONSIVE: portrait phone ── */
+  @media (max-width: 600px) and (orientation: portrait) {
+    .app { flex-direction: column-reverse; }
+    .sidebar {
+      width: 100%;
+      height: 80px;
+      min-width: unset;
+      flex-direction: row;
+      padding: 8px 12px;
+      overflow-x: auto;
+    }
+    .swatches-scroll {
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0;
+    }
+    .swatch-item { width: auto; padding: 0 4px; }
+    .swatch-scale { display: none !important; }
+    .sidebar-title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Fabrics</div>
+    <div class="swatches-scroll" id="swatchList">
+      <!-- Eraser swatch -->
+      <div class="swatch-item active" data-id="eraser">
+        <button class="swatch-btn eraser-swatch active" data-id="eraser" title="Eraser">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
+            <path d="M6.5 13.5 11 18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <button class="add-swatch-btn" id="addSwatchBtn" title="Add fabric">+</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <div class="brush-sizes">
+          <button class="brush-size-btn sz-s" data-size="12"><span class="dot"></span></button>
+          <button class="brush-size-btn sz-m active" data-size="28"><span class="dot"></span></button>
+          <button class="brush-size-btn sz-l" data-size="56"><span class="dot"></span></button>
+        </div>
+      </div>
+      <span class="app-title">QuiltPad</span>
+      <div class="toolbar-group">
+        <button class="tool-btn" id="undoBtn" title="Undo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"/><path d="M3 13C5.5 8.5 9.7 6 14.5 6c4.4 0 6.5 2.5 6.5 5.5S18.9 17 14.5 17H10"/>
+          </svg>
+          Undo
+        </button>
+        <button class="tool-btn" id="clearBtn" title="Clear canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/>
+          </svg>
+          Clear
+        </button>
+        <button class="tool-btn" id="saveBtn" title="Save to photos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Save
+        </button>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for camera/photo library -->
+<input type="file" accept="image/*" capture="environment" class="file-input-hidden" id="fileInput">
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── STATE ──
+  const state = {
+    swatches: [],        // { id, img, pattern, scale }
+    activeSwatchId: 'eraser',
+    brushSize: 28,
+    isDrawing: false,
+    history: [],         // canvas snapshots for undo
+    maxHistory: 25,
+  };
+
+  let swatchIdCounter = 0;
+
+  // ── ELEMENTS ──
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const swatchList = document.getElementById('swatchList');
+  const addSwatchBtn = document.getElementById('addSwatchBtn');
+  const fileInput = document.getElementById('fileInput');
+  const undoBtn = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const toastEl = document.getElementById('toast');
+
+  // ── CANVAS SIZING ──
+  function resizeCanvas() {
+    const wrap = canvasWrap;
+    const pad = 24;
+    const maxW = wrap.clientWidth - pad;
+    const maxH = wrap.clientHeight - pad;
+    // Maintain a nice ratio, fill available space
+    const ratio = 4 / 3;
+    let w, h;
+    if (maxW / maxH > ratio) {
+      h = maxH;
+      w = h * ratio;
+    } else {
+      w = maxW;
+      h = w / ratio;
+    }
+    // Use device pixel ratio for sharpness but cap it
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.width = Math.floor(w) + 'px';
+    canvas.style.height = Math.floor(h) + 'px';
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.scale(dpr, dpr);
+    // Redraw from last history state if exists
+    if (state.history.length > 0) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dpr2 = Math.min(window.devicePixelRatio || 1, 2);
+        ctx.setTransform(dpr2,0,0,dpr2,0,0);
+      };
+      img.src = state.history[state.history.length - 1];
+    }
+    // Rebuild patterns at new resolution
+    state.swatches.forEach(s => rebuildPattern(s));
+  }
+
+  window.addEventListener('resize', debounce(resizeCanvas, 200));
+  resizeCanvas();
+
+  // ── HISTORY ──
+  function pushHistory() {
+    state.history.push(canvas.toDataURL('image/png'));
+    if (state.history.length > state.maxHistory) state.history.shift();
+  }
+
+  function undo() {
+    if (state.history.length === 0) return;
+    state.history.pop(); // remove current
+    if (state.history.length === 0) {
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    };
+    img.src = state.history[state.history.length - 1];
+  }
+
+  // ── DRAWING ──
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    };
+  }
+
+  let lastPos = null;
+
+  function startDraw(e) {
+    e.preventDefault();
+    state.isDrawing = true;
+    lastPos = getPos(e);
+    pushHistory();
+    drawDot(lastPos);
+  }
+
+  function moveDraw(e) {
+    e.preventDefault();
+    if (!state.isDrawing) return;
+    const pos = getPos(e);
+    drawLine(lastPos, pos);
+    lastPos = pos;
+  }
+
+  function endDraw(e) {
+    e.preventDefault();
+    state.isDrawing = false;
+    lastPos = null;
+  }
+
+  function drawDot(pos) {
+    const swatch = getActiveSwatch();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, state.brushSize / 2, 0, Math.PI * 2);
+    if (swatch && swatch.pattern) {
+      ctx.fillStyle = swatch.pattern;
+    } else {
+      // Eraser
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLine(from, to) {
+    const swatch = getActiveSwatch();
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const steps = Math.max(1, Math.floor(dist / (state.brushSize * 0.25)));
+
+    ctx.save();
+    if (swatch && swatch.pattern) {
+      ctx.fillStyle = swatch.pattern;
+    } else {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+    }
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = from.x + (to.x - from.x) * t;
+      const y = from.y + (to.y - from.y) * t;
+      ctx.beginPath();
+      ctx.arc(x, y, state.brushSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function getActiveSwatch() {
+    return state.swatches.find(s => s.id === state.activeSwatchId) || null;
+  }
+
+  // Canvas events
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', moveDraw, { passive: false });
+  canvas.addEventListener('touchend', endDraw, { passive: false });
+  canvas.addEventListener('touchcancel', endDraw, { passive: false });
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', moveDraw);
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+
+  // ── SWATCHES ──
+  function addSwatch(imgSrc) {
+    const id = 'swatch_' + (++swatchIdCounter);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // Create a square crop from centre
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      const tileSize = 256;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = tileSize;
+      offscreen.height = tileSize;
+      const octx = offscreen.getContext('2d');
+      octx.drawImage(img, sx, sy, size, size, 0, 0, tileSize, tileSize);
+
+      const swatch = {
+        id,
+        img: offscreen,
+        thumbSrc: offscreen.toDataURL('image/jpeg', 0.8),
+        pattern: null,
+        scale: 1,
+      };
+      rebuildPattern(swatch);
+      state.swatches.push(swatch);
+      state.activeSwatchId = id;
+      renderSwatches();
+      toast('Fabric added');
+    };
+    img.src = imgSrc;
+  }
+
+  function rebuildPattern(swatch) {
+    const scale = swatch.scale;
+    const srcSize = swatch.img.width; // 256
+    const drawSize = Math.round(srcSize * scale);
+    if (drawSize < 4) return;
+    const pCanvas = document.createElement('canvas');
+    pCanvas.width = drawSize;
+    pCanvas.height = drawSize;
+    const pctx = pCanvas.getContext('2d');
+    pctx.drawImage(swatch.img, 0, 0, drawSize, drawSize);
+    swatch.pattern = ctx.createPattern(pCanvas, 'repeat');
+  }
+
+  function removeSwatch(id) {
+    state.swatches = state.swatches.filter(s => s.id !== id);
+    if (state.activeSwatchId === id) state.activeSwatchId = 'eraser';
+    renderSwatches();
+    toast('Fabric removed');
+  }
+
+  function selectSwatch(id) {
+    state.activeSwatchId = id;
+    renderSwatches();
+  }
+
+  function renderSwatches() {
+    // Keep eraser, rebuild rest
+    const eraserItem = swatchList.querySelector('[data-id="eraser"]');
+    // Clear all non-eraser items
+    Array.from(swatchList.children).forEach(child => {
+      if (child.dataset.id !== 'eraser') child.remove();
+    });
+
+    // Update eraser state
+    const eraserBtn = eraserItem.querySelector('.swatch-btn');
+    eraserItem.classList.toggle('active', state.activeSwatchId === 'eraser');
+    eraserBtn.classList.toggle('active', state.activeSwatchId === 'eraser');
+
+    // Add swatch items
+    state.swatches.forEach(swatch => {
+      const item = document.createElement('div');
+      item.className = 'swatch-item' + (state.activeSwatchId === swatch.id ? ' active' : '');
+      item.dataset.id = swatch.id;
+
+      const btn = document.createElement('button');
+      btn.className = 'swatch-btn' + (state.activeSwatchId === swatch.id ? ' active' : '');
+      btn.dataset.id = swatch.id;
+
+      const img = document.createElement('img');
+      img.src = swatch.thumbSrc;
+      img.alt = 'Fabric swatch';
+      btn.appendChild(img);
+
+      // Delete X
+      const del = document.createElement('span');
+      del.className = 'delete-x';
+      del.textContent = '×';
+      del.addEventListener('click', (e) => { e.stopPropagation(); removeSwatch(swatch.id); });
+      del.addEventListener('touchend', (e) => { e.stopPropagation(); e.preventDefault(); removeSwatch(swatch.id); });
+      btn.appendChild(del);
+
+      btn.addEventListener('click', () => selectSwatch(swatch.id));
+      item.appendChild(btn);
+
+      // Scale slider
+      const scaleWrap = document.createElement('div');
+      scaleWrap.className = 'swatch-scale';
+      const scaleLabel = document.createElement('label');
+      scaleLabel.textContent = 'scale';
+      const scaleInput = document.createElement('input');
+      scaleInput.type = 'range';
+      scaleInput.min = '0.15';
+      scaleInput.max = '3';
+      scaleInput.step = '0.05';
+      scaleInput.value = swatch.scale;
+      scaleInput.addEventListener('input', (e) => {
+        swatch.scale = parseFloat(e.target.value);
+        rebuildPattern(swatch);
+      });
+      scaleWrap.appendChild(scaleLabel);
+      scaleWrap.appendChild(scaleInput);
+      item.appendChild(scaleWrap);
+
+      swatchList.appendChild(item);
+    });
+  }
+
+  // ── ADD SWATCH VIA FILE INPUT ──
+  // Safari on iPad doesn't reliably support getUserMedia,
+  // but <input type="file" capture> works perfectly — opens camera or photo library
+  addSwatchBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      addSwatch(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = ''; // reset so same file can be re-selected
+  });
+
+  // ── BRUSH SIZES ──
+  document.querySelectorAll('.brush-size-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.brush-size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.brushSize = parseInt(btn.dataset.size);
+    });
+  });
+
+  // ── TOOLBAR ACTIONS ──
+  undoBtn.addEventListener('click', undo);
+
+  clearBtn.addEventListener('click', () => {
+    if (state.history.length === 0) return;
+    pushHistory();
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    toast('Canvas cleared');
+  });
+
+  saveBtn.addEventListener('click', () => {
+    // Flatten to white background
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = canvas.width;
+    exportCanvas.height = canvas.height;
+    const ectx = exportCanvas.getContext('2d');
+    ectx.fillStyle = '#ffffff';
+    ectx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    ectx.drawImage(canvas, 0, 0);
+
+    const link = document.createElement('a');
+    link.download = 'quiltpad-' + Date.now() + '.png';
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+    toast('Saved to downloads');
+  });
+
+  // ── TOAST ──
+  let toastTimeout;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  // ── UTILS ──
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+
+  // ── INITIAL STATE ──
+  pushHistory(); // blank canvas as first history state
+  renderSwatches();
+
+  // Prevent bounce/scroll on iOS Safari
+  document.addEventListener('touchmove', (e) => {
+    if (e.target === canvas || e.target.closest('.canvas-wrap')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+})();
+</script>
+
+</body>
+</html>
