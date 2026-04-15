@@ -541,6 +541,16 @@
                     <button class="btn btn-secondary btn-sm" onclick="clearGradientImage('lithium')">×</button>
                     <span id="lithiumGradientStatus" style="font-size: 9px; color: #555;"></span>
                 </div>
+                <div class="control-row">
+                    <label>Size Variance</label>
+                    <input type="range" id="lithiumSizeVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="lithiumSizeVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Brightness Var</label>
+                    <input type="range" id="lithiumBrightVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="lithiumBrightVarVal" value="0" step="0.05">
+                </div>
                 <button class="btn btn-secondary" onclick="regenerateLithium()">Regenerate</button>
             </div>
 
@@ -593,6 +603,26 @@
                     <label>Collision Ramp</label>
                     <input type="range" id="collisionRamp" min="0.5" max="5" step="0.1" value="2">
                     <input type="number" class="value-input" id="collisionRampVal" value="2" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Size Variance</label>
+                    <input type="range" id="neutronSizeVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="neutronSizeVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Speed Variance</label>
+                    <input type="range" id="neutronSpeedVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="neutronSpeedVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Brightness Var</label>
+                    <input type="range" id="neutronBrightVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="neutronBrightVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Trail Len Var</label>
+                    <input type="range" id="neutronTrailVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="neutronTrailVarVal" value="0" step="0.05">
                 </div>
             </div>
 
@@ -661,6 +691,26 @@
                     <label>Fade Distance</label>
                     <input type="range" id="fadeDistance" min="10" max="500" value="80">
                     <input type="number" class="value-input" id="fadeDistanceVal" value="80">
+                </div>
+                <div class="control-row">
+                    <label>Size Variance</label>
+                    <input type="range" id="productSizeVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="productSizeVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Speed Variance</label>
+                    <input type="range" id="productSpeedVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="productSpeedVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Brightness Var</label>
+                    <input type="range" id="productBrightVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="productBrightVarVal" value="0" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Trail Len Var</label>
+                    <input type="range" id="productTrailVar" min="0" max="1" step="0.05" value="0">
+                    <input type="number" class="value-input" id="productTrailVarVal" value="0" step="0.05">
                 </div>
             </div>
 
@@ -838,6 +888,12 @@
         function seededRandom() {
             return rng();
         }
+
+        // Apply variance: returns value * (1 ± variance), using seeded random
+        function applyVariance(value, variance) {
+            if (variance <= 0) return value;
+            return value * (1 + (seededRandom() * 2 - 1) * variance);
+        }
         
         function randomizeSeed() {
             document.getElementById('seedVal').value = Math.floor(Math.random() * 1000000);
@@ -967,9 +1023,11 @@
             const sliders = [
                 'focalLength', 'rotateX', 'rotateY', 'zoom', 'depthScale', 'depthDarken',
                 'boundaryWidth', 'boundaryHeight', 'boundaryDepth', 'chamferSize', 'boundaryStroke',
-                'lithiumCount', 'lithiumSize', 'densityFalloff',
+                'lithiumCount', 'lithiumSize', 'densityFalloff', 'lithiumSizeVar', 'lithiumBrightVar',
                 'emissionRate', 'maxNeutrons', 'neutronSpeed', 'neutronSize', 'neutronTrailLength', 'neutronTrailOpacity', 'collisionStart', 'collisionRamp',
+                'neutronSizeVar', 'neutronSpeedVar', 'neutronBrightVar', 'neutronTrailVar',
                 'productSpeed', 'fadeDistance', 'heliumSize', 'heliumTrailLength', 'heliumTrailOpacity', 'tritiumSize', 'tritiumTrailLength', 'tritiumTrailOpacity',
+                'productSizeVar', 'productSpeedVar', 'productBrightVar', 'productTrailVar',
                 'flashSize', 'flashFadeIn', 'flashFadeOut', 'flashRings',
                 'frameRate'
             ];
@@ -1404,7 +1462,13 @@
 
                 if (seededRandom() < probability) {
                     if (distFromCenter > 20) {
-                        lithiumParticles.push({ x, y, z });
+                        const sizeVar = parseFloat(document.getElementById('lithiumSizeVarVal').value);
+                        const brightVar = parseFloat(document.getElementById('lithiumBrightVarVal').value);
+                        lithiumParticles.push({
+                            x, y, z,
+                            sizeMul: applyVariance(1, sizeVar),
+                            brightMul: applyVariance(1, brightVar)
+                        });
                     }
                 }
             }
@@ -1416,7 +1480,13 @@
             if (neutrons.length >= maxNeutrons) return;
 
             const speed = parseFloat(document.getElementById('neutronSpeedVal').value);
-            
+            const speedVar = parseFloat(document.getElementById('neutronSpeedVarVal').value);
+            const sizeVar = parseFloat(document.getElementById('neutronSizeVarVal').value);
+            const brightVar = parseFloat(document.getElementById('neutronBrightVarVal').value);
+            const trailVar = parseFloat(document.getElementById('neutronTrailVarVal').value);
+
+            const particleSpeed = applyVariance(speed, speedVar);
+
             // Random direction on sphere
             const theta = seededRandom() * Math.PI * 2;
             const phi = Math.acos(2 * seededRandom() - 1);
@@ -1425,9 +1495,12 @@
                 x: 0,
                 y: 0,
                 z: 0,
-                vx: Math.sin(phi) * Math.cos(theta) * speed,
-                vy: Math.sin(phi) * Math.sin(theta) * speed,
-                vz: Math.cos(phi) * speed,
+                vx: Math.sin(phi) * Math.cos(theta) * particleSpeed,
+                vy: Math.sin(phi) * Math.sin(theta) * particleSpeed,
+                vz: Math.cos(phi) * particleSpeed,
+                sizeMul: applyVariance(1, sizeVar),
+                brightMul: applyVariance(1, brightVar),
+                trailMul: applyVariance(1, trailVar),
                 trail: [] // Store position history for trail
             });
         }
@@ -1498,6 +1571,13 @@
             const fadeDistance = parseFloat(document.getElementById('fadeDistanceVal').value);
             const flashFadeIn = parseInt(document.getElementById('flashFadeInVal').value);
             const flashFadeOut = parseInt(document.getElementById('flashFadeOutVal').value);
+            const speedVar = parseFloat(document.getElementById('productSpeedVarVal').value);
+            const sizeVar = parseFloat(document.getElementById('productSizeVarVal').value);
+            const brightVar = parseFloat(document.getElementById('productBrightVarVal').value);
+            const trailVar = parseFloat(document.getElementById('productTrailVarVal').value);
+
+            const speed1 = applyVariance(speed, speedVar);
+            const speed2 = applyVariance(speed, speedVar);
 
             // Random 3D directions
             const theta1 = seededRandom() * Math.PI * 2;
@@ -1508,22 +1588,28 @@
             heliumParticles.push({
                 x, y, z,
                 startX: x, startY: y, startZ: z,
-                vx: Math.sin(phi1) * Math.cos(theta1) * speed,
-                vy: Math.sin(phi1) * Math.sin(theta1) * speed,
-                vz: Math.cos(phi1) * speed,
+                vx: Math.sin(phi1) * Math.cos(theta1) * speed1,
+                vy: Math.sin(phi1) * Math.sin(theta1) * speed1,
+                vz: Math.cos(phi1) * speed1,
                 maxDist: fadeDistance,
                 alpha: 1,
+                sizeMul: applyVariance(1, sizeVar),
+                brightMul: applyVariance(1, brightVar),
+                trailMul: applyVariance(1, trailVar),
                 trail: [] // Store position history for trail
             });
 
             tritiumParticles.push({
                 x, y, z,
                 startX: x, startY: y, startZ: z,
-                vx: Math.sin(phi2) * Math.cos(theta2) * speed,
-                vy: Math.sin(phi2) * Math.sin(theta2) * speed,
-                vz: Math.cos(phi2) * speed,
+                vx: Math.sin(phi2) * Math.cos(theta2) * speed2,
+                vy: Math.sin(phi2) * Math.sin(theta2) * speed2,
+                vz: Math.cos(phi2) * speed2,
                 maxDist: fadeDistance,
                 alpha: 1,
+                sizeMul: applyVariance(1, sizeVar),
+                brightMul: applyVariance(1, brightVar),
+                trailMul: applyVariance(1, trailVar),
                 trail: [] // Store position history for trail
             });
 
@@ -1704,12 +1790,14 @@
                 lithiumParticles.forEach(p => {
                     const proj = project(p);
                     const color = getLayerColor('lithium', proj.x, proj.y, 'lithiumColor');
+                    const pSize = size * (p.sizeMul || 1);
+                    const pBright = proj.brightness * (p.brightMul || 1);
                     drawables.push({
                         type: 'circle',
                         x: proj.x,
                         y: proj.y,
-                        radius: size / 2 * proj.scale,
-                        color: applyBrightness(color, proj.brightness),
+                        radius: pSize / 2 * proj.scale,
+                        color: applyBrightness(color, pBright),
                         alpha: 1,
                         z: proj.z
                     });
@@ -1725,36 +1813,39 @@
                 neutrons.forEach(n => {
                     const proj = project(n);
                     const color = getLayerColor('neutron', proj.x, proj.y, 'neutronColor');
-                    
+                    const nSize = size * (n.sizeMul || 1);
+                    const nBright = proj.brightness * (n.brightMul || 1);
+                    const nTrailLen = Math.round(trailLength * (n.trailMul || 1));
+
                     // Add trail segments (now with interpolated points)
-                    if (trailLength > 0 && n.trail.length > 0) {
-                        const totalTrailPoints = n.trail.length;
+                    if (nTrailLen > 0 && n.trail.length > 0) {
+                        const totalTrailPoints = Math.min(n.trail.length, nTrailLen * 4);
                         for (let t = 0; t < totalTrailPoints; t++) {
                             const trailPoint = n.trail[t];
                             const trailProj = project(trailPoint);
                             const trailProgress = t / totalTrailPoints;
                             const trailAlpha = trailOpacity * (1 - trailProgress);
-                            const trailSize = size * (1 - trailProgress * 0.5); // Shrink trail
+                            const trailSize = nSize * (1 - trailProgress * 0.5); // Shrink trail
                             const trailColor = getLayerColor('neutron', trailProj.x, trailProj.y, 'neutronColor');
-                            
+
                             drawables.push({
                                 type: 'circle',
                                 x: trailProj.x,
                                 y: trailProj.y,
                                 radius: trailSize / 2 * trailProj.scale,
-                                color: applyBrightness(trailColor, trailProj.brightness),
+                                color: applyBrightness(trailColor, trailProj.brightness * (n.brightMul || 1)),
                                 alpha: trailAlpha,
                                 z: trailProj.z
                             });
                         }
                     }
-                    
+
                     drawables.push({
                         type: 'circle',
                         x: proj.x,
                         y: proj.y,
-                        radius: size / 2 * proj.scale,
-                        color: applyBrightness(color, proj.brightness),
+                        radius: nSize / 2 * proj.scale,
+                        color: applyBrightness(color, nBright),
                         alpha: 1,
                         z: proj.z
                     });
@@ -1770,36 +1861,39 @@
                 heliumParticles.forEach(p => {
                     const proj = project(p);
                     const color = getLayerColor('helium', proj.x, proj.y, 'heliumColor');
-                    
+                    const pSize = size * (p.sizeMul || 1);
+                    const pBright = proj.brightness * (p.brightMul || 1);
+                    const pTrailLen = Math.round(trailLength * (p.trailMul || 1));
+
                     // Add trail segments (now with interpolated points)
-                    if (trailLength > 0 && p.trail.length > 0) {
-                        const totalTrailPoints = p.trail.length;
+                    if (pTrailLen > 0 && p.trail.length > 0) {
+                        const totalTrailPoints = Math.min(p.trail.length, pTrailLen * 4);
                         for (let t = 0; t < totalTrailPoints; t++) {
                             const trailPoint = p.trail[t];
                             const trailProj = project(trailPoint);
                             const trailProgress = t / totalTrailPoints;
                             const trailAlpha = trailOpacity * p.alpha * (1 - trailProgress);
-                            const trailSize = size * (1 - trailProgress * 0.5);
+                            const trailSize = pSize * (1 - trailProgress * 0.5);
                             const trailColor = getLayerColor('helium', trailProj.x, trailProj.y, 'heliumColor');
-                            
+
                             drawables.push({
                                 type: 'circle',
                                 x: trailProj.x,
                                 y: trailProj.y,
                                 radius: trailSize / 2 * trailProj.scale,
-                                color: applyBrightness(trailColor, trailProj.brightness),
+                                color: applyBrightness(trailColor, trailProj.brightness * (p.brightMul || 1)),
                                 alpha: trailAlpha,
                                 z: trailProj.z
                             });
                         }
                     }
-                    
+
                     drawables.push({
                         type: 'circle',
                         x: proj.x,
                         y: proj.y,
-                        radius: size / 2 * proj.scale,
-                        color: applyBrightness(color, proj.brightness),
+                        radius: pSize / 2 * proj.scale,
+                        color: applyBrightness(color, pBright),
                         alpha: p.alpha,
                         z: proj.z
                     });
@@ -1815,36 +1909,39 @@
                 tritiumParticles.forEach(p => {
                     const proj = project(p);
                     const color = getLayerColor('tritium', proj.x, proj.y, 'tritiumColor');
-                    
+                    const pSize = size * (p.sizeMul || 1);
+                    const pBright = proj.brightness * (p.brightMul || 1);
+                    const pTrailLen = Math.round(trailLength * (p.trailMul || 1));
+
                     // Add trail segments (now with interpolated points)
-                    if (trailLength > 0 && p.trail.length > 0) {
-                        const totalTrailPoints = p.trail.length;
+                    if (pTrailLen > 0 && p.trail.length > 0) {
+                        const totalTrailPoints = Math.min(p.trail.length, pTrailLen * 4);
                         for (let t = 0; t < totalTrailPoints; t++) {
                             const trailPoint = p.trail[t];
                             const trailProj = project(trailPoint);
                             const trailProgress = t / totalTrailPoints;
                             const trailAlpha = trailOpacity * p.alpha * (1 - trailProgress);
-                            const trailSize = size * (1 - trailProgress * 0.5);
+                            const trailSize = pSize * (1 - trailProgress * 0.5);
                             const trailColor = getLayerColor('tritium', trailProj.x, trailProj.y, 'tritiumColor');
-                            
+
                             drawables.push({
                                 type: 'circle',
                                 x: trailProj.x,
                                 y: trailProj.y,
                                 radius: trailSize / 2 * trailProj.scale,
-                                color: applyBrightness(trailColor, trailProj.brightness),
+                                color: applyBrightness(trailColor, trailProj.brightness * (p.brightMul || 1)),
                                 alpha: trailAlpha,
                                 z: trailProj.z
                             });
                         }
                     }
-                    
+
                     drawables.push({
                         type: 'circle',
                         x: proj.x,
                         y: proj.y,
-                        radius: size / 2 * proj.scale,
-                        color: applyBrightness(color, proj.brightness),
+                        radius: pSize / 2 * proj.scale,
+                        color: applyBrightness(color, pBright),
                         alpha: p.alpha,
                         z: proj.z
                     });
@@ -2120,7 +2217,9 @@
                     count: document.getElementById('lithiumCountVal').value,
                     size: document.getElementById('lithiumSizeVal').value,
                     densityFalloff: document.getElementById('densityFalloffVal').value,
-                    color: document.getElementById('lithiumColor').value
+                    color: document.getElementById('lithiumColor').value,
+                    sizeVar: document.getElementById('lithiumSizeVarVal').value,
+                    brightVar: document.getElementById('lithiumBrightVarVal').value
                 },
                 neutron: {
                     emissionRate: document.getElementById('emissionRateVal').value,
@@ -2131,7 +2230,11 @@
                     trailLength: document.getElementById('neutronTrailLengthVal').value,
                     trailOpacity: document.getElementById('neutronTrailOpacityVal').value,
                     collisionStart: document.getElementById('collisionStartVal').value,
-                    collisionRamp: document.getElementById('collisionRampVal').value
+                    collisionRamp: document.getElementById('collisionRampVal').value,
+                    sizeVar: document.getElementById('neutronSizeVarVal').value,
+                    speedVar: document.getElementById('neutronSpeedVarVal').value,
+                    brightVar: document.getElementById('neutronBrightVarVal').value,
+                    trailVar: document.getElementById('neutronTrailVarVal').value
                 },
                 products: {
                     speed: document.getElementById('productSpeedVal').value,
@@ -2143,7 +2246,11 @@
                     tritiumSize: document.getElementById('tritiumSizeVal').value,
                     tritiumColor: document.getElementById('tritiumColor').value,
                     tritiumTrailLength: document.getElementById('tritiumTrailLengthVal').value,
-                    tritiumTrailOpacity: document.getElementById('tritiumTrailOpacityVal').value
+                    tritiumTrailOpacity: document.getElementById('tritiumTrailOpacityVal').value,
+                    sizeVar: document.getElementById('productSizeVarVal').value,
+                    speedVar: document.getElementById('productSpeedVarVal').value,
+                    brightVar: document.getElementById('productBrightVarVal').value,
+                    trailVar: document.getElementById('productTrailVarVal').value
                 },
                 flash: {
                     size: document.getElementById('flashSizeVal').value,
@@ -2227,6 +2334,8 @@
                 setSliderAndInput('lithiumSize', preset.lithium.size || 10);
                 setSliderAndInput('densityFalloff', preset.lithium.densityFalloff || 2);
                 document.getElementById('lithiumColor').value = preset.lithium.color || '#3366cc';
+                setSliderAndInput('lithiumSizeVar', preset.lithium.sizeVar || 0);
+                setSliderAndInput('lithiumBrightVar', preset.lithium.brightVar || 0);
             }
 
             // Neutron
@@ -2240,6 +2349,10 @@
                 setSliderAndInput('neutronTrailOpacity', preset.neutron.trailOpacity || 0.5);
                 setSliderAndInput('collisionStart', preset.neutron.collisionStart || 0.3);
                 setSliderAndInput('collisionRamp', preset.neutron.collisionRamp || 2);
+                setSliderAndInput('neutronSizeVar', preset.neutron.sizeVar || 0);
+                setSliderAndInput('neutronSpeedVar', preset.neutron.speedVar || 0);
+                setSliderAndInput('neutronBrightVar', preset.neutron.brightVar || 0);
+                setSliderAndInput('neutronTrailVar', preset.neutron.trailVar || 0);
             }
 
             // Products
@@ -2254,6 +2367,10 @@
                 document.getElementById('tritiumColor').value = preset.products.tritiumColor || '#cc0000';
                 setSliderAndInput('tritiumTrailLength', preset.products.tritiumTrailLength || 0);
                 setSliderAndInput('tritiumTrailOpacity', preset.products.tritiumTrailOpacity || 0.5);
+                setSliderAndInput('productSizeVar', preset.products.sizeVar || 0);
+                setSliderAndInput('productSpeedVar', preset.products.speedVar || 0);
+                setSliderAndInput('productBrightVar', preset.products.brightVar || 0);
+                setSliderAndInput('productTrailVar', preset.products.trailVar || 0);
             }
 
             // Flash
