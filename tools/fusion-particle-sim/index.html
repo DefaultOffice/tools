@@ -624,6 +624,11 @@
                     <input type="range" id="neutronTrailVar" min="0" max="1" step="0.05" value="0">
                     <input type="number" class="value-input" id="neutronTrailVarVal" value="0" step="0.05">
                 </div>
+                <div class="control-row">
+                    <label>Trail Fade Out</label>
+                    <input type="range" id="neutronTrailFadeOut" min="0" max="60" step="1" value="10">
+                    <input type="number" class="value-input" id="neutronTrailFadeOutVal" value="10">
+                </div>
             </div>
 
             <div class="control-section">
@@ -997,6 +1002,7 @@
         let heliumParticles = [];
         let tritiumParticles = [];
         let flashParticles = [];
+        let dyingTrails = []; // Trails from collided neutrons, fading out
 
         // Canvas center
         let canvasCenterX, canvasCenterY;
@@ -1025,7 +1031,7 @@
                 'boundaryWidth', 'boundaryHeight', 'boundaryDepth', 'chamferSize', 'boundaryStroke',
                 'lithiumCount', 'lithiumSize', 'densityFalloff', 'lithiumSizeVar', 'lithiumBrightVar',
                 'emissionRate', 'maxNeutrons', 'neutronSpeed', 'neutronSize', 'neutronTrailLength', 'neutronTrailOpacity', 'collisionStart', 'collisionRamp',
-                'neutronSizeVar', 'neutronSpeedVar', 'neutronBrightVar', 'neutronTrailVar',
+                'neutronSizeVar', 'neutronSpeedVar', 'neutronBrightVar', 'neutronTrailVar', 'neutronTrailFadeOut',
                 'productSpeed', 'fadeDistance', 'heliumSize', 'heliumTrailLength', 'heliumTrailOpacity', 'tritiumSize', 'tritiumTrailLength', 'tritiumTrailOpacity',
                 'productSizeVar', 'productSpeedVar', 'productBrightVar', 'productTrailVar',
                 'flashSize', 'flashFadeIn', 'flashFadeOut', 'flashRings',
@@ -1505,6 +1511,24 @@
             });
         }
 
+        // Save a neutron's trail as a dying trail that fades out
+        function saveNeutronTrail(n) {
+            const fadeFrames = parseInt(document.getElementById('neutronTrailFadeOutVal').value);
+            if (fadeFrames <= 0 || n.trail.length === 0) return;
+            dyingTrails.push({
+                trail: n.trail.slice(), // copy the trail points
+                frame: 0,
+                totalFrames: fadeFrames,
+                sizeMul: n.sizeMul || 1,
+                brightMul: n.brightMul || 1,
+                trailMul: n.trailMul || 1,
+                // Store the velocity direction so trail can continue moving towards collision point
+                vx: n.vx,
+                vy: n.vy,
+                vz: n.vz
+            });
+        }
+
         // Collision detection in 3D with probability gradient - 100% collision guaranteed
         function checkCollisions() {
             const lithiumSize = parseFloat(document.getElementById('lithiumSizeVal').value);
@@ -1512,7 +1536,7 @@
             const collisionDist = (lithiumSize + neutronSize) / 2;
             const collisionStart = parseFloat(document.getElementById('collisionStartVal').value);
             const collisionRamp = parseFloat(document.getElementById('collisionRampVal').value);
-            
+
             const w = parseFloat(document.getElementById('boundaryWidthVal').value) / 2;
             const h = parseFloat(document.getElementById('boundaryHeightVal').value) / 2;
             const d = parseFloat(document.getElementById('boundaryDepthVal').value) / 2;
@@ -1520,11 +1544,11 @@
 
             for (let i = neutrons.length - 1; i >= 0; i--) {
                 const n = neutrons[i];
-                
+
                 // Calculate normalized distance from center (0 at center, 1 at boundary)
                 const distFromCenter = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
                 const normalizedDist = distFromCenter / maxDist;
-                
+
                 // First check actual collisions
                 let actualCollision = false;
                 for (let j = 0; j < lithiumParticles.length; j++) {
@@ -1535,30 +1559,33 @@
                     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                     if (dist < collisionDist) {
+                        saveNeutronTrail(n);
                         neutrons.splice(i, 1);
                         spawnProducts(l.x, l.y, l.z);
                         actualCollision = true;
                         break;
                     }
                 }
-                
+
                 if (actualCollision) continue;
-                
+
                 // Force collision if very close to boundary (guarantee no escape)
                 if (normalizedDist >= 0.95) {
+                    saveNeutronTrail(n);
                     neutrons.splice(i, 1);
                     spawnProducts(n.x, n.y, n.z);
                     continue;
                 }
-                
+
                 // Probability-based collision (only after collisionStart threshold)
                 if (normalizedDist > collisionStart) {
                     // Calculate collision probability that ramps up towards the boundary
                     const progressPastStart = (normalizedDist - collisionStart) / (1 - collisionStart);
                     // Much higher base probability, exponentially increasing
                     const collisionProb = Math.pow(progressPastStart, collisionRamp) * 0.4 + progressPastStart * 0.1;
-                    
+
                     if (seededRandom() < collisionProb) {
+                        saveNeutronTrail(n);
                         neutrons.splice(i, 1);
                         spawnProducts(n.x, n.y, n.z);
                     }
@@ -1750,6 +1777,15 @@
                     flashParticles.splice(i, 1);
                 }
             }
+
+            // Update dying trails — fade out and remove when done
+            for (let i = dyingTrails.length - 1; i >= 0; i--) {
+                const dt = dyingTrails[i];
+                dt.frame++;
+                if (dt.frame >= dt.totalFrames) {
+                    dyingTrails.splice(i, 1);
+                }
+            }
         }
 
         // Render
@@ -1849,6 +1885,40 @@
                         alpha: 1,
                         z: proj.z
                     });
+                });
+            }
+
+            // Add dying trails (from collided neutrons)
+            if (document.getElementById('showNeutrons').checked) {
+                const size = parseFloat(document.getElementById('neutronSizeVal').value);
+                const trailOpacity = parseFloat(document.getElementById('neutronTrailOpacityVal').value);
+
+                dyingTrails.forEach(dt => {
+                    const fadeProgress = dt.frame / dt.totalFrames; // 0 -> 1
+                    const fadeMul = 1 - fadeProgress; // 1 -> 0
+                    const dtSize = size * (dt.sizeMul || 1);
+                    const totalTrailPoints = dt.trail.length;
+
+                    for (let t = 0; t < totalTrailPoints; t++) {
+                        const trailPoint = dt.trail[t];
+                        const trailProj = project(trailPoint);
+                        const trailProgress = t / totalTrailPoints;
+                        const trailAlpha = trailOpacity * (1 - trailProgress) * fadeMul;
+                        const trailSize = dtSize * (1 - trailProgress * 0.5);
+                        const trailColor = getLayerColor('neutron', trailProj.x, trailProj.y, 'neutronColor');
+
+                        if (trailAlpha > 0.005) {
+                            drawables.push({
+                                type: 'circle',
+                                x: trailProj.x,
+                                y: trailProj.y,
+                                radius: trailSize / 2 * trailProj.scale,
+                                color: applyBrightness(trailColor, trailProj.brightness * (dt.brightMul || 1)),
+                                alpha: trailAlpha,
+                                z: trailProj.z
+                            });
+                        }
+                    }
                 });
             }
 
@@ -2050,6 +2120,7 @@
             heliumParticles = [];
             tritiumParticles = [];
             flashParticles = [];
+            dyingTrails = [];
             initRng();
             regenerateLithium();
             render();
@@ -2234,7 +2305,8 @@
                     sizeVar: document.getElementById('neutronSizeVarVal').value,
                     speedVar: document.getElementById('neutronSpeedVarVal').value,
                     brightVar: document.getElementById('neutronBrightVarVal').value,
-                    trailVar: document.getElementById('neutronTrailVarVal').value
+                    trailVar: document.getElementById('neutronTrailVarVal').value,
+                    trailFadeOut: document.getElementById('neutronTrailFadeOutVal').value
                 },
                 products: {
                     speed: document.getElementById('productSpeedVal').value,
@@ -2353,6 +2425,7 @@
                 setSliderAndInput('neutronSpeedVar', preset.neutron.speedVar || 0);
                 setSliderAndInput('neutronBrightVar', preset.neutron.brightVar || 0);
                 setSliderAndInput('neutronTrailVar', preset.neutron.trailVar || 0);
+                setSliderAndInput('neutronTrailFadeOut', preset.neutron.trailFadeOut || 10);
             }
 
             // Products
