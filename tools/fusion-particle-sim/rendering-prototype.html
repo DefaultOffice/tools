@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fusion Sim – Rendering Prototype</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        background: #111;
+        color: #ccc;
+        font-family: 'SF Mono', 'Consolas', monospace;
+        font-size: 12px;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+    #sidebar {
+        width: 280px;
+        padding: 16px;
+        background: #1a1a1a;
+        border-right: 1px solid #333;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+    #sidebar h2 {
+        font-size: 13px;
+        color: #fff;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .control-group {
+        margin-bottom: 14px;
+    }
+    .control-group label {
+        display: block;
+        margin-bottom: 4px;
+        color: #999;
+    }
+    .control-group input[type="range"] {
+        width: 100%;
+        accent-color: #666;
+    }
+    .control-group .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .control-group .row input[type="range"] {
+        flex: 1;
+    }
+    .control-group .val {
+        width: 36px;
+        text-align: right;
+        color: #aaa;
+        font-size: 11px;
+    }
+    .section-title {
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin: 16px 0 8px;
+        border-top: 1px solid #333;
+        padding-top: 12px;
+    }
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    .toggle-row input[type="checkbox"] {
+        accent-color: #666;
+    }
+    canvas {
+        flex: 1;
+        display: block;
+    }
+</style>
+</head>
+<body>
+<div id="sidebar">
+    <h2>Rendering Prototype</h2>
+
+    <div class="section-title">Shading</div>
+
+    <div class="control-group">
+        <label>Gradient Intensity</label>
+        <div class="row">
+            <input type="range" id="gradientIntensity" min="0" max="1" step="0.01" value="0.65">
+            <span class="val" id="gradientIntensityVal">0.65</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Light Angle (°)</label>
+        <div class="row">
+            <input type="range" id="lightAngle" min="0" max="360" step="1" value="315">
+            <span class="val" id="lightAngleVal">315</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Light Elevation (°)</label>
+        <div class="row">
+            <input type="range" id="lightElevation" min="0" max="90" step="1" value="45">
+            <span class="val" id="lightElevationVal">45</span>
+        </div>
+    </div>
+
+    <div class="section-title">Specular</div>
+
+    <div class="toggle-row">
+        <input type="checkbox" id="specularEnabled" checked>
+        <label for="specularEnabled">Enable Specular</label>
+    </div>
+
+    <div class="control-group">
+        <label>Specular Intensity</label>
+        <div class="row">
+            <input type="range" id="specularIntensity" min="0" max="1" step="0.01" value="0.45">
+            <span class="val" id="specularIntensityVal">0.45</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Specular Size</label>
+        <div class="row">
+            <input type="range" id="specularSize" min="0.05" max="0.8" step="0.01" value="0.25">
+            <span class="val" id="specularSizeVal">0.25</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Specular Offset</label>
+        <div class="row">
+            <input type="range" id="specularOffset" min="0" max="0.6" step="0.01" value="0.3">
+            <span class="val" id="specularOffsetVal">0.30</span>
+        </div>
+    </div>
+
+    <div class="section-title">Glow</div>
+
+    <div class="toggle-row">
+        <input type="checkbox" id="glowEnabled" checked>
+        <label for="glowEnabled">Enable Glow</label>
+    </div>
+
+    <div class="control-group">
+        <label>Glow Size (multiplier)</label>
+        <div class="row">
+            <input type="range" id="glowSize" min="1" max="4" step="0.05" value="1.8">
+            <span class="val" id="glowSizeVal">1.80</span>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label>Glow Opacity</label>
+        <div class="row">
+            <input type="range" id="glowOpacity" min="0" max="0.5" step="0.01" value="0.15">
+            <span class="val" id="glowOpacityVal">0.15</span>
+        </div>
+    </div>
+
+    <div class="section-title">Edge Darkening</div>
+
+    <div class="control-group">
+        <label>Edge Darken</label>
+        <div class="row">
+            <input type="range" id="edgeDarken" min="0" max="1" step="0.01" value="0.4">
+            <span class="val" id="edgeDarkenVal">0.40</span>
+        </div>
+    </div>
+
+    <div class="section-title">Display</div>
+
+    <div class="toggle-row">
+        <input type="checkbox" id="showFlat">
+        <label for="showFlat">Show Flat (before) for comparison</label>
+    </div>
+
+    <div class="control-group">
+        <label>Particle Scale</label>
+        <div class="row">
+            <input type="range" id="particleScale" min="0.5" max="3" step="0.05" value="1">
+            <span class="val" id="particleScaleVal">1.00</span>
+        </div>
+    </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Match sim defaults
+const PARTICLES = [
+    { label: 'Lithium',  color: '#3366cc', baseSize: 10 },
+    { label: 'Neutron',  color: '#ffff00', baseSize: 8  },
+    { label: 'Helium',   color: '#ff00ff', baseSize: 8  },
+    { label: 'Tritium',  color: '#cc0000', baseSize: 8  },
+    { label: 'Flash',    color: '#ffffff', baseSize: 30 },
+];
+
+// Generate a set of sample particles for each type
+const sampleParticles = [];
+
+function generateSamples() {
+    sampleParticles.length = 0;
+    const cols = 5;
+    const rowGap = 100;
+    const colGap = 90;
+    const startY = 80;
+
+    PARTICLES.forEach((type, row) => {
+        // Row of particles at varying sizes (0.6x to 1.4x) to show range
+        const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
+        for (let col = 0; col < cols; col++) {
+            sampleParticles.push({
+                type: row,
+                label: type.label,
+                color: type.color,
+                baseSize: type.baseSize,
+                scale: scales[col],
+                gridRow: row,
+                gridCol: col,
+            });
+        }
+    });
+}
+generateSamples();
+
+function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    return {
+        r: parseInt(h.substring(0, 2), 16),
+        g: parseInt(h.substring(2, 4), 16),
+        b: parseInt(h.substring(4, 6), 16),
+    };
+}
+
+function resize() {
+    canvas.width = canvas.clientWidth * devicePixelRatio;
+    canvas.height = canvas.clientHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Wire up sliders
+document.querySelectorAll('#sidebar input[type="range"]').forEach(input => {
+    const valSpan = document.getElementById(input.id + 'Val');
+    if (valSpan) {
+        input.addEventListener('input', () => {
+            valSpan.textContent = parseFloat(input.value).toFixed(input.step.includes('.') ? 2 : 0);
+            draw();
+        });
+    }
+});
+document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', draw);
+});
+
+function getVal(id) {
+    return parseFloat(document.getElementById(id).value);
+}
+function getBool(id) {
+    return document.getElementById(id).checked;
+}
+
+function drawParticle(x, y, radius, colorHex, alpha, isFlat) {
+    const rgb = hexToRgb(colorHex);
+    const gradientIntensity = getVal('gradientIntensity');
+    const lightAngleDeg = getVal('lightAngle');
+    const lightElevation = getVal('lightElevation');
+    const specEnabled = getBool('specularEnabled');
+    const specIntensity = getVal('specularIntensity');
+    const specSize = getVal('specularSize');
+    const specOffset = getVal('specularOffset');
+    const glowEnabled = getBool('glowEnabled');
+    const glowSize = getVal('glowSize');
+    const glowOpacity = getVal('glowOpacity');
+    const edgeDarken = getVal('edgeDarken');
+
+    const lightAngle = lightAngleDeg * Math.PI / 180;
+    const elevFactor = Math.cos(lightElevation * Math.PI / 180);
+
+    // Light direction offset (where the bright side is)
+    const lx = Math.cos(lightAngle) * 0.35 * elevFactor;
+    const ly = Math.sin(lightAngle) * 0.35 * elevFactor;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (isFlat) {
+        // Flat rendering (current sim style)
+        ctx.fillStyle = colorHex;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
+
+    // --- Glow layer ---
+    if (glowEnabled) {
+        const glowR = radius * glowSize;
+        const glowGrad = ctx.createRadialGradient(x, y, radius * 0.5, x, y, glowR);
+        glowGrad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${glowOpacity})`);
+        glowGrad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.arc(x, y, glowR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // --- Main sphere with radial gradient ---
+    const highlightX = x + lx * radius;
+    const highlightY = y + ly * radius;
+
+    // Darken color for edges
+    const darkR = Math.round(rgb.r * (1 - edgeDarken));
+    const darkG = Math.round(rgb.g * (1 - edgeDarken));
+    const darkB = Math.round(rgb.b * (1 - edgeDarken));
+
+    // Lighten color for highlight
+    const lightR = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * gradientIntensity));
+    const lightG = Math.min(255, Math.round(rgb.g + (255 - rgb.g) * gradientIntensity));
+    const lightB = Math.min(255, Math.round(rgb.b + (255 - rgb.b) * gradientIntensity));
+
+    const mainGrad = ctx.createRadialGradient(
+        highlightX, highlightY, radius * 0.05,
+        x, y, radius
+    );
+    mainGrad.addColorStop(0, `rgb(${lightR}, ${lightG}, ${lightB})`);
+    mainGrad.addColorStop(0.6, `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
+    mainGrad.addColorStop(1, `rgb(${darkR}, ${darkG}, ${darkB})`);
+
+    ctx.fillStyle = mainGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Specular highlight ---
+    if (specEnabled) {
+        const specX = x + lx * radius * (specOffset / 0.3);
+        const specY = y + ly * radius * (specOffset / 0.3);
+        const specR = radius * specSize;
+
+        const specGrad = ctx.createRadialGradient(
+            specX, specY, 0,
+            specX, specY, specR
+        );
+        specGrad.addColorStop(0, `rgba(255, 255, 255, ${specIntensity})`);
+        specGrad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+
+        ctx.fillStyle = specGrad;
+        ctx.beginPath();
+        ctx.arc(specX, specY, specR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function draw() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const showFlat = getBool('showFlat');
+    const pScale = getVal('particleScale');
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, w, h);
+
+    const cols = 5;
+    const colGap = 90;
+    const rowGap = 100;
+    const totalColWidth = (cols - 1) * colGap;
+
+    // Center the grid
+    const offsetX = showFlat ? w / 4 : w / 2;
+    const startX = offsetX - totalColWidth / 2;
+    const startY = 80;
+
+    // Labels
+    ctx.font = '11px SF Mono, Consolas, monospace';
+    ctx.fillStyle = '#666';
+    const sizeLabels = ['0.6x', '0.8x', '1.0x', '1.2x', '1.4x'];
+    for (let c = 0; c < cols; c++) {
+        ctx.textAlign = 'center';
+        ctx.fillText(sizeLabels[c], startX + c * colGap, startY - 30);
+    }
+
+    // Draw enhanced particles
+    PARTICLES.forEach((type, row) => {
+        const y = startY + row * rowGap;
+        ctx.fillStyle = '#555';
+        ctx.textAlign = 'right';
+        ctx.fillText(type.label, startX - 30, y + 4);
+
+        const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
+        for (let col = 0; col < cols; col++) {
+            const x = startX + col * colGap;
+            const radius = (type.baseSize / 2) * scales[col] * pScale;
+            drawParticle(x, y, radius, type.color, 1, false);
+        }
+    });
+
+    // Draw flat comparison
+    if (showFlat) {
+        const flatOffsetX = w * 3 / 4;
+        const flatStartX = flatOffsetX - totalColWidth / 2;
+
+        ctx.fillStyle = '#444';
+        ctx.textAlign = 'center';
+        ctx.font = '12px SF Mono, Consolas, monospace';
+        ctx.fillText('— FLAT (current) —', flatOffsetX, startY - 50);
+
+        ctx.font = '11px SF Mono, Consolas, monospace';
+        for (let c = 0; c < cols; c++) {
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            ctx.fillText(sizeLabels[c], flatStartX + c * colGap, startY - 30);
+        }
+
+        PARTICLES.forEach((type, row) => {
+            const y = startY + row * rowGap;
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'right';
+            ctx.fillText(type.label, flatStartX - 30, y + 4);
+
+            const scales = [0.6, 0.8, 1.0, 1.2, 1.4];
+            for (let col = 0; col < cols; col++) {
+                const x = flatStartX + col * colGap;
+                const radius = (type.baseSize / 2) * scales[col] * pScale;
+                drawParticle(x, y, radius, type.color, 1, true);
+            }
+        });
+
+        // Divider
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w / 2, 20);
+        ctx.lineTo(w / 2, h - 20);
+        ctx.stroke();
+
+        ctx.fillStyle = '#444';
+        ctx.textAlign = 'center';
+        ctx.font = '12px SF Mono, Consolas, monospace';
+        ctx.fillText('— ENHANCED (new) —', offsetX, startY - 50);
+    }
+}
+
+draw();
+</script>
+</body>
+</html>

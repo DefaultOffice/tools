@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "Static Site (Python)",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8000"],
-      "port": 8000
+      "name": "Static Site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "8080", "--no-clipboard"],
+      "port": 8080
     }
   ]
 }
