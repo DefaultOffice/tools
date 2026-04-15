@@ -4,1020 +4,526 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="QuiltPad">
 <title>QuiltPad</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --sw:148px;
+  --sw2:60px;
+  --r:10px;
+  --bg:#f4f3f1;
+  --bg2:#eae8e5;
+  --bg3:#dfddd9;
+  --border:#d0cec9;
+  --text:#2a2a2c;
+  --text2:#8a888c;
+  --accent:#7c5cbf;
+  --accent2:#6a4baa;
+  --canvas-bg:#ffffff;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);touch-action:none;position:fixed;top:0;left:0;color:var(--text)}
 
-  :root {
-    --sidebar-w: 88px;
-    --toolbar-h: 52px;
-    --ribbon-h: 72px;
-    --bg: #faf3ed;
-    --sidebar-bg: #131414;
-    --sidebar-border: #2a2d2e;
-    --text: #131414;
-    --text-light: #9ba8b0;
-    --accent: #d4886a;
-    --accent-hover: #c07050;
-    --swatch-ring: #d4886a;
-    --canvas-bg: #ffffff;
-    --radius: 10px;
-  }
+.app{display:flex;width:100%;height:100%}
 
-  html, body {
-    width: 100%; height: 100%;
-    overflow: hidden;
-    background: var(--bg);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    touch-action: none;
-    position: fixed;
-    top: 0; left: 0;
-  }
+/* ── PRIMARY SIDEBAR ── */
+.sidebar{
+  width:var(--sw);min-width:var(--sw);height:100%;
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px;gap:8px;z-index:10;
+}
+.sb-btn{
+  width:128px;height:54px;border-radius:var(--r);border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--font);font-size:13px;font-weight:600;flex-shrink:0;
+}
+.sb-btn:active{transform:scale(0.96)}
+.sb-btn svg{width:18px;height:18px;flex-shrink:0}
+.sb-btn.add{background:var(--accent);color:#fff}
+.sb-btn.add:active{background:var(--accent2)}
+.sb-btn.util{background:var(--bg3);color:var(--text2)}
+.sb-btn.util.on{outline:2px solid var(--accent);outline-offset:-2px;color:var(--accent)}
 
-  /* ── LAYOUT ── */
-  .app {
-    display: flex;
-    width: 100%; height: 100%;
-    flex-direction: row;
-  }
+.swatches{
+  flex:1;width:100%;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:4px 0;scrollbar-width:none;
+}
+.swatches::-webkit-scrollbar{display:none}
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: var(--sidebar-w);
-    min-width: var(--sidebar-w);
-    height: 100%;
-    background: var(--sidebar-bg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 12px 0 12px;
-    gap: 4px;
-    z-index: 10;
-  }
+.sw{
+  width:128px;height:128px;border-radius:var(--r);
+  border:3px solid transparent;overflow:hidden;cursor:pointer;
+  position:relative;background:var(--bg3);flex-shrink:0;
+}
+.sw.active{border-color:var(--accent)}
+.sw:active{transform:scale(0.97)}
+.sw img{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.sw .del{
+  position:absolute;top:5px;right:5px;width:24px;height:24px;
+  background:rgba(0,0,0,0.5);border-radius:var(--r);
+  display:none;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;backdrop-filter:blur(4px);
+}
+.sw.active .del{display:flex}
 
-  .sidebar-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-light);
-    margin-bottom: 4px;
-    opacity: 0.6;
-  }
+/* ── TRACE LAYER TOGGLE ── */
+.trace-toggle{
+  width:128px;height:40px;border-radius:var(--r);
+  display:none;flex-shrink:0;overflow:hidden;
+  border:1px solid var(--border);
+}
+.trace-toggle.show{display:flex}
+.trace-half{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font);font-size:11px;font-weight:600;
+  cursor:pointer;border:none;color:var(--text2);background:var(--bg3);
+  transition:background 0.1s,color 0.1s;
+}
+.trace-half:first-child{border-right:1px solid var(--border)}
+.trace-half.on{background:var(--accent);color:#fff}
+.trace-half:active{opacity:0.8}
 
-  /* ── ADD BUTTON (top of sidebar) ── */
-  .add-swatch-btn {
-    width: 64px; height: 64px;
-    border-radius: var(--radius);
-    border: 2.5px solid var(--accent);
-    background: rgba(212,136,106,0.12);
-    color: var(--accent);
-    font-size: 32px;
-    font-weight: 300;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, transform 0.15s;
-    flex-shrink: 0;
-    margin-bottom: 4px;
-  }
-  .add-swatch-btn:active {
-    background: rgba(212,136,106,0.25);
-    transform: scale(0.93);
-  }
+/* ── TOGGLE BUTTONS (reused for Move, Blend) ── */
+.toggle-btn{
+  width:40px;border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--border);flex-shrink:0;
+  display:flex;flex-direction:column;
+}
+.toggle-opt{
+  flex:none;height:28px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font);font-size:10px;font-weight:600;
+  cursor:pointer;border:none;color:var(--text2);background:var(--bg3);
+}
+.toggle-opt:first-child{border-bottom:1px solid var(--border)}
+.toggle-opt.on{background:var(--accent);color:#fff}
+.toggle-opt:active{opacity:0.8}
 
-  .swatches-scroll {
-    flex: 1;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 0 8px;
-    scrollbar-width: none;
-  }
-  .swatches-scroll::-webkit-scrollbar { display: none; }
+/* ── SECONDARY SIDEBAR ── */
+.sidebar2{
+  width:var(--sw2);min-width:var(--sw2);height:100%;
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 0;gap:0;z-index:9;
+}
 
-  /* ── SWATCH ITEM ── */
-  .swatch-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    padding: 0 8px;
-    flex-shrink: 0;
-  }
+/* Section title */
+.sb2-title{
+  font-family:var(--font);font-size:9px;font-weight:600;
+  letter-spacing:0.5px;color:var(--text2);text-align:center;
+  flex-shrink:0;
+}
 
-  .swatch-btn {
-    width: 64px; height: 64px;
-    border-radius: var(--radius);
-    border: 3px solid transparent;
-    overflow: hidden;
-    cursor: pointer;
-    position: relative;
-    transition: border-color 0.2s, transform 0.15s;
-    background: #444;
-    flex-shrink: 0;
-  }
-  .swatch-btn:active { transform: scale(0.93); }
-  .swatch-btn.active { border-color: var(--swatch-ring); }
-  .swatch-btn img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-  }
-  .swatch-btn .delete-x {
-    position: absolute;
-    top: 2px; right: 2px;
-    width: 20px; height: 20px;
-    background: rgba(0,0,0,0.6);
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    color: #fff;
-    line-height: 1;
-  }
-  .swatch-btn.active .delete-x { display: flex; }
+/* Brush section — always visible */
+.brush-section{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding-bottom:20px;padding-top:0;
+}
+.brush-section .sb2-title{margin-bottom:2px}
 
-  /* ── SIDEBAR BOTTOM BUTTONS ── */
-  .sidebar-bottom {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-  }
+/* Move toggle button */
+.move-btn{
+  width:40px;height:40px;border-radius:var(--r);border:2px solid var(--border);
+  background:var(--bg3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);
+}
+.move-btn svg{width:20px;height:20px}
+.move-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.move-btn:active{transform:scale(0.93)}
+.bz{
+  border:none;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);padding:0;
+}
+.bz.on{background:var(--accent)}
+.bz.on .dt{background:#fff}
+.bz:active{transform:scale(0.9)}
+.bz.s{width:30px;height:30px}
+.bz.m{width:36px;height:36px}
+.bz.l{width:42px;height:42px}
+.dt{border-radius:50%;background:var(--text2)}
+.bz.s .dt{width:8px;height:8px}
+.bz.m .dt{width:14px;height:14px}
+.bz.l .dt{width:20px;height:20px}
 
-  .template-btn {
-    width: 64px; height: 44px;
-    border-radius: 8px;
-    border: 2px dashed var(--sidebar-border);
-    background: transparent;
-    color: var(--text-light);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    transition: border-color 0.2s, color 0.2s;
-    position: relative;
-  }
-  .template-btn:active {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .template-btn.has-template {
-    border-style: solid;
-    border-color: var(--text-light);
-    opacity: 0.8;
-  }
-  .template-btn svg { width: 18px; height: 18px; }
-  .template-btn .template-remove {
-    position: absolute;
-    top: -6px; right: -6px;
-    width: 18px; height: 18px;
-    background: rgba(0,0,0,0.7);
-    border-radius: 50%;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: #fff;
-    line-height: 1;
-    cursor: pointer;
-    border: none;
-    padding: 0;
-  }
-  .template-btn.has-template .template-remove { display: flex; }
+.sb2-divider{width:100%;height:1px;background:var(--border);flex-shrink:0}
 
-  .eraser-wrap {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .swatch-btn.eraser-swatch {
-    background: var(--canvas-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .swatch-btn.eraser-swatch svg { width: 28px; height: 28px; }
-  .eraser-label {
-    font-size: 9px;
-    color: var(--text-light);
-    opacity: 0.5;
-    margin-top: 3px;
-  }
+/* Swatch-specific section — shows/hides, top-aligned */
+.swatch-section{
+  display:flex;flex-direction:column;align-items:center;
+  gap:20px;padding-top:20px;
+  visibility:hidden;opacity:0;
+}
+.swatch-section.show{visibility:visible;opacity:1}
 
-  /* ── MAIN AREA ── */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-  }
+/* Function group: title + control */
+.fn{display:flex;flex-direction:column;align-items:center;gap:6px}
+.fn label,.sg label{font-family:var(--font);font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--text2)}
+.sg{display:flex;flex-direction:column;align-items:center;gap:6px}
+.vs{
+  -webkit-appearance:none;appearance:none;
+  width:4px;height:100px;background:var(--border);border-radius:2px;outline:none;
+  writing-mode:bt-lr;-webkit-writing-mode:vertical-lr;direction:rtl;
+}
+.vs::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:var(--r);
+  background:var(--accent);border:2px solid var(--bg2);cursor:pointer;
+}
 
-  /* ── TOOLBAR ── */
-  .toolbar {
-    height: var(--toolbar-h);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    background: var(--bg);
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    flex-shrink: 0;
-  }
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{
+  height:46px;display:flex;align-items:center;justify-content:flex-end;
+  padding:0 12px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tg{display:flex;align-items:center;gap:6px}
+.tb{
+  height:34px;padding:0 12px;border:none;border-radius:var(--r);
+  background:var(--bg3);color:var(--text2);
+  font-family:var(--font);font-size:12px;font-weight:500;
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+}
+.tb:active{background:var(--border)}
+.tb svg{width:16px;height:16px}
 
-  .toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.cw{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden;background:var(--bg)}
+canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16px rgba(0,0,0,0.06);touch-action:none;cursor:crosshair}
 
-  .tool-btn {
-    height: 36px;
-    padding: 0 14px;
-    border: none;
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background 0.15s;
-    background: rgba(0,0,0,0.05);
-  }
-  .tool-btn:active { background: rgba(0,0,0,0.1); }
-  .tool-btn svg { width: 18px; height: 18px; }
-
-  /* Brush size buttons */
-  .brush-sizes {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .brush-size-btn {
-    border: none;
-    background: rgba(0,0,0,0.05);
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s;
-    padding: 0;
-  }
-  .brush-size-btn.active { background: var(--accent); }
-  .brush-size-btn.active .dot { background: #fff; }
-  .brush-size-btn:active { transform: scale(0.9); }
-
-  .brush-size-btn.sz-s { width: 32px; height: 32px; }
-  .brush-size-btn.sz-m { width: 36px; height: 36px; }
-  .brush-size-btn.sz-l { width: 40px; height: 40px; }
-
-  .dot {
-    border-radius: 50%;
-    background: var(--text);
-    transition: background 0.15s;
-  }
-  .sz-s .dot { width: 8px; height: 8px; }
-  .sz-m .dot { width: 14px; height: 14px; }
-  .sz-l .dot { width: 20px; height: 20px; }
-
-  .app-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: 0.5px;
-    opacity: 0.4;
-  }
-
-  /* ── CANVAS AREA ── */
-  .canvas-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px;
-    overflow: hidden;
-    background: var(--bg);
-  }
-
-  canvas {
-    background: var(--canvas-bg);
-    border-radius: 6px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-    touch-action: none;
-    cursor: crosshair;
-  }
-
-  /* ── EDIT RIBBON ── */
-  .edit-ribbon {
-    height: 0;
-    overflow: hidden;
-    background: var(--bg);
-    border-top: 1px solid rgba(0,0,0,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 32px;
-    padding: 0 24px;
-    transition: height 0.25s ease;
-    flex-shrink: 0;
-  }
-  .edit-ribbon.visible {
-    height: var(--ribbon-h);
-  }
-
-  .edit-slider-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    max-width: 280px;
-  }
-  .edit-slider-group label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text);
-    opacity: 0.5;
-    min-width: 56px;
-    text-align: right;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .edit-slider-group input[type=range] {
-    -webkit-appearance: none;
-    appearance: none;
-    flex: 1;
-    height: 6px;
-    background: rgba(0,0,0,0.08);
-    border-radius: 3px;
-    outline: none;
-  }
-  .edit-slider-group input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 3px solid var(--bg);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    cursor: pointer;
-  }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--sidebar-bg);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    z-index: 200;
-    pointer-events: none;
-  }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* ── RESPONSIVE: portrait phone ── */
-  @media (max-width: 600px) and (orientation: portrait) {
-    .app { flex-direction: column-reverse; }
-    .sidebar {
-      width: 100%;
-      height: 80px;
-      min-width: unset;
-      flex-direction: row;
-      padding: 8px 12px;
-      overflow-x: auto;
-    }
-    .swatches-scroll {
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 0;
-    }
-    .swatch-item { width: auto; padding: 0 4px; }
-    .sidebar-title { display: none; }
-    .sidebar-bottom { flex-direction: row; margin-top: 0; margin-left: 4px; }
-    .eraser-wrap { margin-top: 0; }
-    .eraser-label { display: none; }
-    .template-btn { width: 44px; height: 44px; font-size: 9px; }
-    .edit-ribbon { gap: 16px; padding: 0 12px; }
-    .edit-slider-group { max-width: 200px; }
-    .edit-slider-group label { min-width: 40px; font-size: 10px; }
-  }
+.toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--text);color:var(--bg);
+  padding:8px 18px;border-radius:var(--r);
+  font-family:var(--font);font-size:12px;font-weight:500;
+  opacity:0;transition:transform 0.25s,opacity 0.25s;z-index:200;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.fh{display:none}
 </style>
 </head>
 <body>
-
 <div class="app">
-  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-title">Fabrics</div>
-    <button class="add-swatch-btn" id="addSwatchBtn" title="Add fabric">+</button>
-    <div class="swatches-scroll" id="swatchList"></div>
-    <div class="sidebar-bottom">
-      <button class="template-btn" id="templateBtn" title="Add template">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <line x1="3" y1="9" x2="21" y2="9"/>
-          <line x1="9" y1="3" x2="9" y2="21"/>
-        </svg>
-        <span>Template</span>
-        <button class="template-remove" id="templateRemoveBtn">×</button>
-      </button>
-      <div class="eraser-wrap">
-        <button class="swatch-btn eraser-swatch active" id="eraserBtn" data-id="eraser" title="Eraser">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/>
-            <path d="M6.5 13.5 11 18"/>
-          </svg>
+    <button class="sb-btn add" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add</button>
+    <div class="swatches" id="swatches"></div>
+    <div class="trace-toggle" id="traceToggle">
+      <button class="trace-half on" id="traceAbove" title="Template above painting">Above</button>
+      <button class="trace-half" id="traceBelow" title="Template below painting">Below</button>
+    </div>
+    <button class="sb-btn util" id="tplBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Trace</button>
+    <button class="sb-btn util" id="eraserBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/><path d="M6.5 13.5 11 18"/></svg>Eraser</button>
+  </div>
+
+  <div class="sidebar2">
+    <div class="brush-section">
+      <div class="sb2-title">Brush</div>
+      <button class="bz s" data-s="10"><span class="dt"></span></button>
+      <button class="bz m on" data-s="26"><span class="dt"></span></button>
+      <button class="bz l" data-s="52"><span class="dt"></span></button>
+    </div>
+    <div class="sb2-divider"></div>
+    <div class="swatch-section" id="sliders">
+      <div class="fn">
+        <div class="sb2-title">Move</div>
+        <button class="move-btn" id="moveBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 3-3 3"/><path d="M12 2l-3 3 3 3"/><path d="M2 12l3-3 3 3"/><path d="M2 12l3 3-3 3"/><path d="M22 12l-3-3-3 3"/><path d="M22 12l-3 3 3 3"/><path d="M12 22l3-3-3-3"/><path d="M12 22l-3-3 3-3"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
         </button>
-        <span class="eraser-label">Eraser</span>
       </div>
+      <div class="fn">
+        <div class="sb2-title">Blend</div>
+        <div class="toggle-btn">
+          <button class="toggle-opt on" id="blendOn">On</button>
+          <button class="toggle-opt" id="blendOff">Off</button>
+        </div>
+      </div>
+      <div class="sg"><label>Scale</label><input type="range" class="vs" id="sS" min="0.15" max="3" step="0.05" value="1" orient="vertical"></div>
+      <div class="sg"><label>Light</label><input type="range" class="vs" id="sB" min="-80" max="80" step="1" value="0" orient="vertical"></div>
     </div>
   </div>
 
-  <!-- MAIN -->
   <div class="main">
     <div class="toolbar">
-      <div class="toolbar-group">
-        <div class="brush-sizes">
-          <button class="brush-size-btn sz-s" data-size="12"><span class="dot"></span></button>
-          <button class="brush-size-btn sz-m active" data-size="28"><span class="dot"></span></button>
-          <button class="brush-size-btn sz-l" data-size="56"><span class="dot"></span></button>
-        </div>
-      </div>
-      <span class="app-title">QuiltPad</span>
-      <div class="toolbar-group">
-        <button class="tool-btn" id="undoBtn" title="Undo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7v6h6"/><path d="M3 13C5.5 8.5 9.7 6 14.5 6c4.4 0 6.5 2.5 6.5 5.5S18.9 17 14.5 17H10"/>
-          </svg>
-          Undo
-        </button>
-        <button class="tool-btn" id="clearBtn" title="Clear canvas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/>
-          </svg>
-          Clear
-        </button>
-        <button class="tool-btn" id="saveBtn" title="Save to photos">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Save
-        </button>
+      <div class="tg">
+        <button class="tb" id="ubtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 8.5 9.7 6 14.5 6c4.4 0 6.5 2.5 6.5 5.5S18.9 17 14.5 17H10"/></svg>Undo</button>
+        <button class="tb" id="cbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/></svg>Clear</button>
+        <button class="tb" id="sbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Save</button>
       </div>
     </div>
-
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="canvas"></canvas>
-    </div>
-
-    <!-- EDIT RIBBON -->
-    <div class="edit-ribbon" id="editRibbon">
-      <div class="edit-slider-group">
-        <label>Scale</label>
-        <input type="range" id="editScale" min="0.15" max="3" step="0.05" value="1">
-      </div>
-      <div class="edit-slider-group">
-        <label>Bright</label>
-        <input type="range" id="editBrightness" min="0.3" max="2" step="0.05" value="1">
-      </div>
-      <div class="edit-slider-group">
-        <label>Sat</label>
-        <input type="range" id="editSaturation" min="0" max="2.5" step="0.05" value="1">
-      </div>
-    </div>
+    <div class="cw" id="cw"><canvas id="c"></canvas></div>
   </div>
 </div>
 
-<!-- Hidden file inputs -->
-<input type="file" accept="image/*" id="fileInput" style="display:none">
-<input type="file" accept="image/*" id="templateInput" style="display:none">
-
-<!-- Toast -->
+<input type="file" accept="image/*" class="fh" id="fi">
+<input type="file" accept="image/*" class="fh" id="ti">
 <div class="toast" id="toast"></div>
 
 <script>
-(function() {
-  'use strict';
+(function(){
+'use strict';
+const S={sw:[],act:null,er:false,mv:false,br:26,st:[],tpl:null,tplAbove:false,blend:true,mx:60};
+let sid=0;
+const cv=document.getElementById('c'),x=cv.getContext('2d'),
+  cw=document.getElementById('cw'),swEl=document.getElementById('swatches'),
+  sliders=document.getElementById('sliders'),
+  sS=document.getElementById('sS'),sB=document.getElementById('sB'),
+  fi=document.getElementById('fi'),ti=document.getElementById('ti'),
+  te=document.getElementById('toast'),
+  traceToggle=document.getElementById('traceToggle'),
+  traceAbove=document.getElementById('traceAbove'),
+  traceBelow=document.getElementById('traceBelow'),
+  blendOn=document.getElementById('blendOn'),
+  blendOff=document.getElementById('blendOff'),
+  moveBtn=document.getElementById('moveBtn');
+let W=0,H=0,D=1;
 
-  // ── STATE ──
-  const state = {
-    swatches: [],          // { id, img, pattern, scale, brightness, saturation, thumbSrc }
-    activeSwatchId: 'eraser',
-    brushSize: 28,
-    isDrawing: false,
-    strokes: [],           // { swatchId, brushSize, points: [{x,y}] }
-    currentStroke: null,
-    templateImg: null,     // HTMLImageElement for background template
-  };
+// Resize
+function resize(){
+  const p=20,mw=cw.clientWidth-p,mh=cw.clientHeight-p,r=4/3;
+  let w,h;if(mw/mh>r){h=mh;w=h*r}else{w=mw;h=w/r}
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=Math.floor(w);H=Math.floor(h);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=Math.floor(w*D);cv.height=Math.floor(h*D);
+  x.setTransform(D,0,0,D,0,0);
+  S.sw.forEach(s=>mkPat(s));replay();
+}
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(resize,200)});
 
-  let swatchIdCounter = 0;
+// Template drawing
+function drawTpl(){
+  if(!S.tpl)return;
+  const i=S.tpl.img,ar=i.width/i.height;
+  let dw,dh;if(ar>W/H){dw=W;dh=W/ar}else{dh=H;dw=H*ar}
+  x.save();x.globalAlpha=0.18;
+  x.drawImage(i,(W-dw)/2,(H-dh)/2,dw,dh);x.restore();
+}
 
-  // ── ELEMENTS ──
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const canvasWrap = document.getElementById('canvasWrap');
-  const swatchList = document.getElementById('swatchList');
-  const addSwatchBtn = document.getElementById('addSwatchBtn');
-  const eraserBtn = document.getElementById('eraserBtn');
-  const templateBtn = document.getElementById('templateBtn');
-  const templateRemoveBtn = document.getElementById('templateRemoveBtn');
-  const fileInput = document.getElementById('fileInput');
-  const templateInput = document.getElementById('templateInput');
-  const undoBtn = document.getElementById('undoBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const saveBtn = document.getElementById('saveBtn');
-  const toastEl = document.getElementById('toast');
-  const editRibbon = document.getElementById('editRibbon');
-  const editScale = document.getElementById('editScale');
-  const editBrightness = document.getElementById('editBrightness');
-  const editSaturation = document.getElementById('editSaturation');
+// Replay
+function replay(){
+  x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cv.width,cv.height);x.restore();
+  x.setTransform(D,0,0,D,0,0);
+  if(!S.tplAbove) drawTpl();
+  for(let i=0;i<S.st.length;i++) rStroke(S.st[i]);
+  if(S.tplAbove) drawTpl();
+}
+function rStroke(st){
+  const sw=S.sw.find(s=>s.id===st.sid);
+  x.save();
+  if(st.sid==='e'){x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,1)'}
+  else if(sw&&sw.pat){x.fillStyle=sw.pat}else{x.restore();return}
+  const b=st.b,p=st.p;if(!p.length){x.restore();return}
+  x.beginPath();x.arc(p[0].x,p[0].y,b/2,0,Math.PI*2);x.fill();
+  for(let i=1;i<p.length;i++){
+    const a=p[i-1],c=p[i],d=Math.hypot(c.x-a.x,c.y-a.y),n=Math.max(1,(d/(b*.3))|0);
+    for(let j=1;j<=n;j++){const t=j/n;x.beginPath();x.arc(a.x+(c.x-a.x)*t,a.y+(c.y-a.y)*t,b/2,0,Math.PI*2);x.fill()}
+  }
+  x.restore();
+}
 
-  // ── CANVAS SIZING ──
-  function resizeCanvas() {
-    const wrap = canvasWrap;
-    const pad = 24;
-    const maxW = wrap.clientWidth - pad;
-    const maxH = wrap.clientHeight - pad;
-    const ratio = 4 / 3;
-    let w, h;
-    if (maxW / maxH > ratio) {
-      h = maxH;
-      w = h * ratio;
-    } else {
-      w = maxW;
-      h = w / ratio;
+// Drawing
+let dr=false,cs=null,mvStart=null;
+function gp(e){const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}}
+function dn(e){
+  e.preventDefault();
+  const p=gp(e);
+  // Move mode
+  if(S.mv&&S.act){
+    dr=true;mvStart=p;return;
+  }
+  dr=true;
+  const id=S.er?'e':S.act;if(!id)return;
+  cs={sid:id,b:S.br,p:[p]};
+  const sw=S.sw.find(s=>s.id===id);
+  x.save();
+  if(id==='e'){x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,1)'}
+  else if(sw&&sw.pat){x.fillStyle=sw.pat}else{x.restore();return}
+  x.beginPath();x.arc(p.x,p.y,S.br/2,0,Math.PI*2);x.fill();x.restore();
+}
+function mmv(e){
+  e.preventDefault();if(!dr)return;
+  const p=gp(e);
+  // Move mode
+  if(S.mv&&S.act&&mvStart){
+    const sw=S.sw.find(s=>s.id===S.act);
+    if(!sw)return;
+    sw.ox+=(p.x-mvStart.x);
+    sw.oy+=(p.y-mvStart.y);
+    mvStart=p;
+    mkPat(sw);replay();
+    return;
+  }
+  if(!cs)return;
+  const l=cs.p[cs.p.length-1];cs.p.push(p);
+  const sw=S.sw.find(s=>s.id===cs.sid),b=S.br;
+  x.save();
+  if(cs.sid==='e'){x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,1)'}
+  else if(sw&&sw.pat){x.fillStyle=sw.pat}else{x.restore();return}
+  const d=Math.hypot(p.x-l.x,p.y-l.y),n=Math.max(1,(d/(b*.3))|0);
+  for(let j=1;j<=n;j++){const t=j/n;x.beginPath();x.arc(l.x+(p.x-l.x)*t,l.y+(p.y-l.y)*t,b/2,0,Math.PI*2);x.fill()}
+  x.restore();
+}
+function up(e){e.preventDefault();if(cs&&cs.p.length){S.st.push(cs);if(S.st.length>S.mx)S.st.shift()}dr=false;cs=null;mvStart=null}
+cv.addEventListener('touchstart',dn,{passive:false});
+cv.addEventListener('touchmove',mmv,{passive:false});
+cv.addEventListener('touchend',up,{passive:false});
+cv.addEventListener('touchcancel',up,{passive:false});
+cv.addEventListener('mousedown',dn);cv.addEventListener('mousemove',mmv);
+cv.addEventListener('mouseup',up);cv.addEventListener('mouseleave',up);
+
+// Patterns
+function mkPat(sw){
+  const sz=Math.round(256*sw.sc);if(sz<4)return;
+  const pc=document.createElement('canvas');pc.width=sz;pc.height=sz;
+  const px=pc.getContext('2d');
+  // Draw base tile
+  px.drawImage(sw.img,0,0,sz,sz);
+  // Tile edge blend — crossfade ~8% of edges with opposite side
+  if(S.blend){
+    const band=Math.max(2,Math.round(sz*0.08));
+    px.save();
+    // Right edge: blend in left side
+    for(let i=0;i<band;i++){
+      const a=i/band;
+      px.globalAlpha=a;
+      px.drawImage(sw.img, 0,0, (1/sz)*sw.img.width,sw.img.height, sz-band+i,0, 1,sz);
     }
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.style.width = Math.floor(w) + 'px';
-    canvas.style.height = Math.floor(h) + 'px';
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    ctx.scale(dpr, dpr);
-    state.swatches.forEach(s => rebuildPattern(s));
-    replayAll();
-  }
-
-  window.addEventListener('resize', debounce(resizeCanvas, 200));
-  resizeCanvas();
-
-  // ── REPLAY (stroke-based rendering) ──
-  function replayAll() {
-    const cssW = parseFloat(canvas.style.width);
-    const cssH = parseFloat(canvas.style.height);
-
-    ctx.save();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    // Draw template background if present
-    if (state.templateImg) {
-      ctx.save();
-      ctx.globalAlpha = 0.2;
-      const iw = state.templateImg.naturalWidth || state.templateImg.width;
-      const ih = state.templateImg.naturalHeight || state.templateImg.height;
-      const scale = Math.max(cssW / iw, cssH / ih);
-      const sw = iw * scale;
-      const sh = ih * scale;
-      const sx = (cssW - sw) / 2;
-      const sy = (cssH - sh) / 2;
-      ctx.drawImage(state.templateImg, sx, sy, sw, sh);
-      ctx.globalAlpha = 1;
-      ctx.restore();
+    // Bottom edge: blend in top side
+    for(let i=0;i<band;i++){
+      const a=i/band;
+      px.globalAlpha=a;
+      px.drawImage(sw.img, 0,0, sw.img.width,(1/sz)*sw.img.height, 0,sz-band+i, sz,1);
     }
-
-    for (const stroke of state.strokes) {
-      replayStroke(stroke);
-    }
+    px.restore();
   }
-
-  function replayStroke(stroke) {
-    const swatch = state.swatches.find(s => s.id === stroke.swatchId);
-    const points = stroke.points;
-    if (points.length === 0) return;
-
-    ctx.save();
-    if (stroke.swatchId === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = 'rgba(0,0,0,1)';
-    } else if (swatch && swatch.pattern) {
-      ctx.fillStyle = swatch.pattern;
-    } else {
-      ctx.restore();
-      return;
-    }
-
-    const r = stroke.brushSize / 2;
-
-    ctx.beginPath();
-    ctx.arc(points[0].x, points[0].y, r, 0, Math.PI * 2);
-    ctx.fill();
-
-    for (let i = 1; i < points.length; i++) {
-      const from = points[i - 1];
-      const to = points[i];
-      const dist = Math.hypot(to.x - from.x, to.y - from.y);
-      const steps = Math.max(1, Math.floor(dist / (stroke.brushSize * 0.25)));
-      for (let j = 0; j <= steps; j++) {
-        const t = j / steps;
-        const x = from.x + (to.x - from.x) * t;
-        const y = from.y + (to.y - from.y) * t;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    ctx.restore();
+  // Brightness
+  if(sw.br!==0){
+    px.globalCompositeOperation=sw.br>0?'lighter':'multiply';
+    const v=Math.abs(sw.br)/100;
+    if(sw.br>0)px.fillStyle=`rgba(255,255,255,${v})`;
+    else{const c=Math.round(255*(1-v));px.fillStyle=`rgb(${c},${c},${c})`}
+    px.fillRect(0,0,sz,sz);
   }
-
-  // ── DRAWING ──
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches ? e.touches[0] : e;
-    return {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top
-    };
+  sw.pat=x.createPattern(pc,'repeat');
+  if(sw.ox||sw.oy){
+    sw.pat.setTransform(new DOMMatrix().translateSelf(sw.ox,sw.oy));
   }
+}
 
-  function startDraw(e) {
-    e.preventDefault();
-    state.isDrawing = true;
-    const pos = getPos(e);
+// Swatch management
+function addSw(src){
+  const id='s'+(++sid),im=new Image();im.crossOrigin='anonymous';
+  im.onload=()=>{
+    const s=Math.min(im.width,im.height),ox=(im.width-s)/2,oy=(im.height-s)/2;
+    const oc=document.createElement('canvas');oc.width=256;oc.height=256;
+    oc.getContext('2d').drawImage(im,ox,oy,s,s,0,0,256,256);
+    const sw={id,img:oc,th:oc.toDataURL('image/jpeg',0.75),pat:null,sc:1,br:0,ox:0,oy:0};
+    mkPat(sw);S.sw.push(sw);sel(id);toast('Fabric added');
+  };im.src=src;
+}
+function rmSw(id){
+  S.sw=S.sw.filter(s=>s.id!==id);S.st=S.st.filter(s=>s.sid!==id);
+  if(S.act===id)S.act=null;
+  render();replay();toast('Removed');
+}
+function sel(id){S.act=id;S.er=false;const sw=S.sw.find(s=>s.id===id);if(sw){sS.value=sw.sc;sB.value=sw.br}render()}
+function desel(){S.act=null;render()}
 
-    state.currentStroke = {
-      swatchId: state.activeSwatchId,
-      brushSize: state.brushSize,
-      points: [pos],
-    };
-
-    const swatch = getActiveSwatch();
-    ctx.save();
-    if (state.activeSwatchId === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = 'rgba(0,0,0,1)';
-    } else if (swatch && swatch.pattern) {
-      ctx.fillStyle = swatch.pattern;
-    }
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, state.brushSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function moveDraw(e) {
-    e.preventDefault();
-    if (!state.isDrawing || !state.currentStroke) return;
-    const pos = getPos(e);
-    const points = state.currentStroke.points;
-    const from = points[points.length - 1];
-    points.push(pos);
-
-    const swatch = getActiveSwatch();
-    ctx.save();
-    if (state.activeSwatchId === 'eraser') {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = 'rgba(0,0,0,1)';
-    } else if (swatch && swatch.pattern) {
-      ctx.fillStyle = swatch.pattern;
-    }
-
-    const dist = Math.hypot(pos.x - from.x, pos.y - from.y);
-    const steps = Math.max(1, Math.floor(dist / (state.brushSize * 0.25)));
-    const r = state.brushSize / 2;
-    for (let j = 0; j <= steps; j++) {
-      const t = j / steps;
-      const x = from.x + (pos.x - from.x) * t;
-      const y = from.y + (pos.y - from.y) * t;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function endDraw(e) {
-    e.preventDefault();
-    if (state.currentStroke && state.currentStroke.points.length > 0) {
-      state.strokes.push(state.currentStroke);
-    }
-    state.currentStroke = null;
-    state.isDrawing = false;
-  }
-
-  function getActiveSwatch() {
-    return state.swatches.find(s => s.id === state.activeSwatchId) || null;
-  }
-
-  canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove', moveDraw, { passive: false });
-  canvas.addEventListener('touchend', endDraw, { passive: false });
-  canvas.addEventListener('touchcancel', endDraw, { passive: false });
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', moveDraw);
-  canvas.addEventListener('mouseup', endDraw);
-  canvas.addEventListener('mouseleave', endDraw);
-
-  // ── SWATCHES ──
-  function addSwatch(imgSrc) {
-    const id = 'swatch_' + (++swatchIdCounter);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const size = Math.min(img.width, img.height);
-      const sx = (img.width - size) / 2;
-      const sy = (img.height - size) / 2;
-      const tileSize = 256;
-      const offscreen = document.createElement('canvas');
-      offscreen.width = tileSize;
-      offscreen.height = tileSize;
-      const octx = offscreen.getContext('2d');
-      octx.drawImage(img, sx, sy, size, size, 0, 0, tileSize, tileSize);
-
-      const swatch = {
-        id,
-        img: offscreen,
-        thumbSrc: offscreen.toDataURL('image/jpeg', 0.8),
-        pattern: null,
-        scale: 1,
-        brightness: 1,
-        saturation: 1,
-      };
-      rebuildPattern(swatch);
-      state.swatches.push(swatch);
-      state.activeSwatchId = id;
-      renderSwatches();
-      updateEditRibbon();
-      toast('Fabric added');
-    };
-    img.src = imgSrc;
-  }
-
-  function rebuildPattern(swatch) {
-    const scale = swatch.scale;
-    const srcSize = swatch.img.width;
-    const drawSize = Math.round(srcSize * scale);
-    if (drawSize < 4) return;
-    const pCanvas = document.createElement('canvas');
-    pCanvas.width = drawSize;
-    pCanvas.height = drawSize;
-    const pctx = pCanvas.getContext('2d');
-    pctx.filter = 'brightness(' + swatch.brightness + ') saturate(' + swatch.saturation + ')';
-    pctx.drawImage(swatch.img, 0, 0, drawSize, drawSize);
-    pctx.filter = 'none';
-    swatch.pattern = ctx.createPattern(pCanvas, 'repeat');
-
-    // Update thumbnail to reflect adjustments
-    const thumbCanvas = document.createElement('canvas');
-    thumbCanvas.width = 128;
-    thumbCanvas.height = 128;
-    const tctx = thumbCanvas.getContext('2d');
-    tctx.filter = 'brightness(' + swatch.brightness + ') saturate(' + swatch.saturation + ')';
-    tctx.drawImage(swatch.img, 0, 0, 128, 128);
-    swatch.thumbSrc = thumbCanvas.toDataURL('image/jpeg', 0.8);
-  }
-
-  function removeSwatch(id) {
-    state.swatches = state.swatches.filter(s => s.id !== id);
-    if (state.activeSwatchId === id) state.activeSwatchId = 'eraser';
-    renderSwatches();
-    updateEditRibbon();
-    toast('Fabric removed');
-  }
-
-  function selectSwatch(id) {
-    state.activeSwatchId = id;
-    renderSwatches();
-    updateEditRibbon();
-  }
-
-  function renderSwatches() {
-    swatchList.innerHTML = '';
-    eraserBtn.classList.toggle('active', state.activeSwatchId === 'eraser');
-
-    state.swatches.forEach(swatch => {
-      const item = document.createElement('div');
-      item.className = 'swatch-item' + (state.activeSwatchId === swatch.id ? ' active' : '');
-      item.dataset.id = swatch.id;
-
-      const btn = document.createElement('button');
-      btn.className = 'swatch-btn' + (state.activeSwatchId === swatch.id ? ' active' : '');
-      btn.dataset.id = swatch.id;
-
-      const img = document.createElement('img');
-      img.src = swatch.thumbSrc;
-      img.alt = 'Fabric swatch';
-      btn.appendChild(img);
-
-      const del = document.createElement('span');
-      del.className = 'delete-x';
-      del.textContent = '\u00d7';
-      del.addEventListener('click', (e) => { e.stopPropagation(); removeSwatch(swatch.id); });
-      del.addEventListener('touchend', (e) => { e.stopPropagation(); e.preventDefault(); removeSwatch(swatch.id); });
-      btn.appendChild(del);
-
-      btn.addEventListener('click', () => selectSwatch(swatch.id));
-      item.appendChild(btn);
-
-      swatchList.appendChild(item);
-    });
-  }
-
-  // ── EDIT RIBBON ──
-  function updateEditRibbon() {
-    const swatch = getActiveSwatch();
-    if (swatch) {
-      editRibbon.classList.add('visible');
-      editScale.value = swatch.scale;
-      editBrightness.value = swatch.brightness;
-      editSaturation.value = swatch.saturation;
-    } else {
-      editRibbon.classList.remove('visible');
-    }
-  }
-
-  function onEditSlider() {
-    const swatch = getActiveSwatch();
-    if (!swatch) return;
-    swatch.scale = parseFloat(editScale.value);
-    swatch.brightness = parseFloat(editBrightness.value);
-    swatch.saturation = parseFloat(editSaturation.value);
-    rebuildPattern(swatch);
-    replayAll();
-    // Update thumbnail in sidebar
-    const thumbEl = swatchList.querySelector('[data-id="' + swatch.id + '"] img');
-    if (thumbEl) thumbEl.src = swatch.thumbSrc;
-  }
-
-  editScale.addEventListener('input', onEditSlider);
-  editBrightness.addEventListener('input', onEditSlider);
-  editSaturation.addEventListener('input', onEditSlider);
-
-  // ── ERASER ──
-  eraserBtn.addEventListener('click', () => selectSwatch('eraser'));
-
-  // ── TEMPLATE ──
-  templateBtn.addEventListener('click', (e) => {
-    if (e.target === templateRemoveBtn || e.target.closest('.template-remove')) return;
-    templateInput.click();
+function render(){
+  swEl.innerHTML='';
+  S.sw.forEach(sw=>{
+    const d=document.createElement('div');d.className='sw'+(S.act===sw.id?' active':'');
+    const im=document.createElement('img');im.src=sw.th;d.appendChild(im);
+    const dl=document.createElement('span');dl.className='del';dl.textContent='×';
+    dl.addEventListener('click',e=>{e.stopPropagation();rmSw(sw.id)});
+    dl.addEventListener('touchend',e=>{e.stopPropagation();e.preventDefault();rmSw(sw.id)});
+    d.appendChild(dl);
+    d.addEventListener('click',()=>{S.act===sw.id?desel():sel(sw.id)});
+    swEl.appendChild(d);
   });
+  document.getElementById('eraserBtn').classList.toggle('on',S.er);
+  document.getElementById('tplBtn').classList.toggle('on',S.tpl!==null);
+  sliders.classList.toggle('show',S.act!==null&&!S.er);
+  // Trace toggle visibility
+  traceToggle.classList.toggle('show',S.tpl!==null);
+  traceAbove.classList.toggle('on',S.tplAbove);
+  traceBelow.classList.toggle('on',!S.tplAbove);
+  blendOn.classList.toggle('on',S.blend);
+  blendOff.classList.toggle('on',!S.blend);
+  moveBtn.classList.toggle('on',S.mv);
+  cv.style.cursor=S.mv?'grab':'crosshair';
+}
 
-  templateRemoveBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    state.templateImg = null;
-    templateBtn.classList.remove('has-template');
-    replayAll();
-    toast('Template removed');
-  });
+// Eraser
+document.getElementById('eraserBtn').addEventListener('click',()=>{S.er=!S.er;if(S.er)S.act=null;render()});
 
-  templateInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = () => {
-        state.templateImg = img;
-        templateBtn.classList.add('has-template');
-        replayAll();
-        toast('Template added');
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-    templateInput.value = '';
-  });
+// Trace layer toggle
+traceAbove.addEventListener('click',()=>{if(!S.tplAbove){S.tplAbove=true;render();replay()}});
+traceBelow.addEventListener('click',()=>{if(S.tplAbove){S.tplAbove=false;render();replay()}});
 
-  // ── ADD SWATCH VIA FILE INPUT ──
-  addSwatchBtn.addEventListener('click', () => {
-    fileInput.click();
-  });
+// Blend toggle
+blendOn.addEventListener('click',()=>{if(!S.blend){S.blend=true;render();S.sw.forEach(s=>mkPat(s));replay()}});
+blendOff.addEventListener('click',()=>{if(S.blend){S.blend=false;render();S.sw.forEach(s=>mkPat(s));replay()}});
 
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      addSwatch(ev.target.result);
-    };
-    reader.readAsDataURL(file);
-    fileInput.value = '';
-  });
+// Move toggle
+moveBtn.addEventListener('click',e=>{e.stopPropagation();S.mv=!S.mv;render()});
 
-  // ── BRUSH SIZES ──
-  document.querySelectorAll('.brush-size-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.brush-size-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.brushSize = parseInt(btn.dataset.size);
-    });
-  });
+// Auto-deselect move when anything else is tapped
+document.addEventListener('click',e=>{
+  if(!S.mv)return;
+  if(e.target===cv||e.target===moveBtn||moveBtn.contains(e.target))return;
+  S.mv=false;render();
+},true);
 
-  // ── TOOLBAR ACTIONS ──
-  undoBtn.addEventListener('click', () => {
-    if (state.strokes.length === 0) return;
-    state.strokes.pop();
-    replayAll();
-  });
+// Sliders
+function onSc(e){e.stopPropagation();const sw=S.sw.find(s=>s.id===S.act);if(!sw)return;sw.sc=parseFloat(sS.value);mkPat(sw);replay()}
+function onBr(e){e.stopPropagation();const sw=S.sw.find(s=>s.id===S.act);if(!sw)return;sw.br=parseInt(sB.value);mkPat(sw);replay()}
+sS.addEventListener('input',onSc);sB.addEventListener('input',onBr);
+[sS,sB].forEach(s=>{s.addEventListener('touchstart',e=>e.stopPropagation());s.addEventListener('touchmove',e=>e.stopPropagation())});
 
-  clearBtn.addEventListener('click', () => {
-    if (state.strokes.length === 0) return;
-    state.strokes = [];
-    replayAll();
-    toast('Canvas cleared');
-  });
+// Add fabric
+document.getElementById('addBtn').addEventListener('click',()=>fi.click());
+fi.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=v=>addSw(v.target.result);r.readAsDataURL(f);fi.value=''});
 
-  saveBtn.addEventListener('click', () => {
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = canvas.width;
-    exportCanvas.height = canvas.height;
-    const ectx = exportCanvas.getContext('2d');
-    ectx.fillStyle = '#ffffff';
-    ectx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-    ectx.drawImage(canvas, 0, 0);
+// Template
+document.getElementById('tplBtn').addEventListener('click',()=>{
+  if(S.tpl){S.tpl=null;replay();render();toast('Template removed')}else ti.click();
+});
+ti.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=v=>{const i=new Image();i.onload=()=>{S.tpl={img:i};S.tplAbove=false;replay();render();toast('Template added')};i.src=v.target.result};r.readAsDataURL(f);ti.value=''});
 
-    exportCanvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], 'QuiltPad.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          toast('Saved');
-        } catch (err) {
-          if (err.name !== 'AbortError') downloadFallback(exportCanvas);
-        }
-      } else {
-        downloadFallback(exportCanvas);
-      }
-    }, 'image/png');
-  });
+// Brush sizes
+document.querySelectorAll('.bz').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.bz').forEach(z=>z.classList.remove('on'));b.classList.add('on');S.br=parseInt(b.dataset.s);
+}));
 
-  function downloadFallback(c) {
-    const link = document.createElement('a');
-    link.download = 'quiltpad-' + Date.now() + '.png';
-    link.href = c.toDataURL('image/png');
-    link.click();
-    toast('Saved to downloads');
-  }
+// Undo / Clear
+document.getElementById('ubtn').addEventListener('click',()=>{if(!S.st.length)return;S.st.pop();replay()});
+document.getElementById('cbtn').addEventListener('click',()=>{if(!S.st.length)return;S.st=[];replay();toast('Cleared')});
 
-  // ── TOAST ──
-  let toastTimeout;
-  function toast(msg) {
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2000);
-  }
+// Save
+document.getElementById('sbtn').addEventListener('click',()=>{
+  const ec=document.createElement('canvas');ec.width=cv.width;ec.height=cv.height;
+  const ex=ec.getContext('2d');ex.fillStyle='#fff';ex.fillRect(0,0,ec.width,ec.height);ex.drawImage(cv,0,0);
+  ec.toBlob(async bl=>{
+    if(!bl)return;
+    const f=new File([bl],'quiltpad.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],title:'QuiltPad'});toast('Shared')}
+      catch(e){if(e.name!=='AbortError')dlBlob(bl)}
+    }else dlBlob(bl);
+  },'image/png');
+});
+function dlBlob(bl){const a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download='quiltpad-'+Date.now()+'.png';a.click();URL.revokeObjectURL(a.href);toast('Saved')}
 
-  // ── UTILS ──
-  function debounce(fn, ms) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-  }
+let tt;function toast(m){te.textContent=m;te.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>te.classList.remove('show'),1800)}
 
-  // ── INITIAL STATE ──
-  renderSwatches();
-  updateEditRibbon();
-
-  document.addEventListener('touchmove', (e) => {
-    if (e.target === canvas || e.target.closest('.canvas-wrap')) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-
+resize();render();
+document.addEventListener('touchmove',e=>{if(e.target===cv||e.target.closest('.cw'))e.preventDefault()},{passive:false});
 })();
 </script>
-
 </body>
 </html>
