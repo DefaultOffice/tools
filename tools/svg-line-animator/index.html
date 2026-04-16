@@ -484,14 +484,6 @@
         </select>
       </div>
       <div class="control-row">
-        <span class="control-label">Scale</span>
-        <select id="ctrl-scale">
-          <option value="1">1x</option>
-          <option value="2" selected>2x</option>
-          <option value="3">3x</option>
-        </select>
-      </div>
-      <div class="control-row">
         <span class="control-label">Background</span>
         <select id="ctrl-bg-mode">
           <option value="white">White</option>
@@ -503,7 +495,6 @@
       <div class="btn-row">
         <button id="btn-export" class="primary" disabled>Export frames</button>
       </div>
-      <div class="export-progress" id="export-progress"></div>
     </div>
   </div>
 
@@ -531,6 +522,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="../../shared/export-dialog.js"></script>
 <script>
 (function() {
   // State
@@ -571,7 +563,6 @@
   const ctrlStrokeWidth = $('ctrl-stroke-width');
   const ctrlStrokeColor = $('ctrl-stroke-color');
   const ctrlFps = $('ctrl-fps');
-  const ctrlScale = $('ctrl-scale');
   const ctrlBgMode = $('ctrl-bg-mode');
   const ctrlBgColor = $('ctrl-bg-color');
   const staggerVal = $('stagger-val');
@@ -1097,13 +1088,37 @@
   // --- Export ---
   async function exportFrames() {
     if (state.exporting || !state.paths.length) return;
+
+    const fps = parseInt(ctrlFps.value);
+    const totalDur = getTotalDuration();
+    const totalFrames = Math.ceil(totalDur * fps);
+
+    const result = await ExportDialog.show({
+      toolName: 'path-animation',
+      info: [
+        { label: 'Canvas', value: state.canvasW + '×' + state.canvasH },
+        { label: 'Frames', value: String(totalFrames + 1) },
+        { label: 'FPS', value: String(fps) }
+      ],
+      fields: [
+        {
+          id: 'scale', type: 'select', label: 'Scale',
+          options: [
+            { value: '1', label: '1x' },
+            { value: '2', label: '2x' },
+            { value: '3', label: '3x' }
+          ],
+          default: '2'
+        }
+      ],
+      zipMeta: fps + 'fps-' + state.canvasW + 'x' + state.canvasH
+    });
+    if (result.cancelled) return;
+
     state.exporting = true;
     stop();
 
-    const fps = parseInt(ctrlFps.value);
-    const scale = parseInt(ctrlScale.value);
-    const totalDur = getTotalDuration();
-    const totalFrames = Math.ceil(totalDur * fps);
+    const scale = parseInt(result.customValues.scale);
     const w = state.canvasW * scale;
     const h = state.canvasH * scale;
 
@@ -1113,10 +1128,10 @@
     const offCtx = offCanvas.getContext('2d');
 
     const zip = new JSZip();
-    const folder = zip.folder('frames');
-    const progressEl = $('export-progress');
+    const folder = zip.folder(result.name);
 
     for (let i = 0; i <= totalFrames; i++) {
+      if (ExportDialog.isCancelled()) { ExportDialog.complete(); state.exporting = false; return; }
       const t = (i / fps);
       const resolved = resolveAnimTime(t);
       offCtx.clearRect(0, 0, w, h);
@@ -1124,25 +1139,25 @@
 
       const blob = await new Promise(r => offCanvas.toBlob(r, 'image/png'));
       const buf = await blob.arrayBuffer();
-      const pad = String(i).padStart(5, '0');
-      folder.file(`frame_${pad}.png`, buf);
+      const fname = ExportDialog.frameName({ name: result.name, timestamp: result.timestamp, extension: 'png' }, i);
+      folder.file(fname, buf);
 
-      progressEl.textContent = `Exporting ${i + 1} / ${totalFrames + 1}`;
+      ExportDialog.progress(i + 1, totalFrames + 1);
 
       // yield to browser
       await new Promise(r => setTimeout(r, 0));
     }
 
-    progressEl.textContent = 'Zipping...';
+    ExportDialog.progress(totalFrames + 1, totalFrames + 1, 'Creating ZIP\u2026');
     const content = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(content);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `path-animation-${fps}fps-${scale}x.zip`;
+    a.download = ExportDialog.zipName({ name: result.name, timestamp: result.timestamp, metadata: fps + 'fps-' + (state.canvasW * scale) + 'x' + (state.canvasH * scale) });
     a.click();
     URL.revokeObjectURL(url);
 
-    progressEl.textContent = `Done — ${totalFrames + 1} frames exported`;
+    ExportDialog.complete();
     state.exporting = false;
   }
 

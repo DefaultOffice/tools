@@ -548,6 +548,7 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="../../shared/export-dialog.js"></script>
   <script>
     // State
     let stops = [
@@ -999,34 +1000,44 @@
       const frameCount = parseInt(frameCountInput.value) || 60;
       const shiftDistance = parseFloat(shiftDistanceInput.value) || 100;
       const direction = getDirection();
-      
+
+      const result = await ExportDialog.show({
+        toolName: 'gradient',
+        info: [
+          { label: 'Canvas', value: canvasWidth + '×' + canvasHeight },
+          { label: 'Frames', value: String(frameCount) }
+        ],
+        fields: [],
+        zipMeta: canvasWidth + 'x' + canvasHeight + '-' + frameCount + 'f'
+      });
+      if (result.cancelled) return;
+
       // Pause animation during export
       const wasPlaying = isPlaying && !isPaused;
       if (wasPlaying) {
         isPaused = true;
         if (animationId) cancelAnimationFrame(animationId);
       }
-      
-      exportBtn.disabled = true;
-      exportBtn.textContent = 'Exporting...';
-      
+
       const zip = new JSZip();
+      const folder = zip.folder(result.name);
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvasWidth;
       tempCanvas.height = canvasHeight;
       const tempCtx = tempCanvas.getContext('2d');
-      
+
       for (let frame = 0; frame < frameCount; frame++) {
+        if (ExportDialog.isCancelled()) { ExportDialog.complete(); break; }
         const progress = frame / frameCount;
         const offset = direction === 'left' ? progress * shiftDistance : -progress * shiftDistance;
-        
+
         const imageData = tempCtx.createImageData(canvasWidth, canvasHeight);
         const data = imageData.data;
-        
+
         for (let x = 0; x < canvasWidth; x++) {
           const position = (x / canvasWidth) * 100;
           const value = getValueAtPosition(position, offset);
-          
+
           for (let y = 0; y < canvasHeight; y++) {
             const idx = (y * canvasWidth + x) * 4;
             data[idx] = value;
@@ -1035,38 +1046,37 @@
             data[idx + 3] = 255;
           }
         }
-        
+
         tempCtx.putImageData(imageData, 0, 0);
-        
+
         const dataUrl = tempCanvas.toDataURL('image/png');
         const base64 = dataUrl.split(',')[1];
-        const frameNum = String(frame).padStart(4, '0');
-        zip.file(`frame_${frameNum}.png`, base64, { base64: true });
-        
-        progressFill.style.width = `${((frame + 1) / frameCount) * 100}%`;
-        
+        const fname = ExportDialog.frameName({ name: result.name, timestamp: result.timestamp, extension: 'png' }, frame);
+        folder.file(fname, base64, { base64: true });
+
+        ExportDialog.progress(frame + 1, frameCount);
+
         if (frame % 10 === 0) {
           await new Promise(r => setTimeout(r, 0));
         }
       }
-      
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `gradient_frames_${canvasWidth}x${canvasHeight}_${frameCount}f.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      exportBtn.disabled = false;
-      exportBtn.textContent = 'Export PNG Sequence';
-      
+
+      if (!ExportDialog.isCancelled()) {
+        ExportDialog.progress(frameCount, frameCount, 'Creating ZIP\u2026');
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = ExportDialog.zipName({ name: result.name, timestamp: result.timestamp, metadata: canvasWidth + 'x' + canvasHeight + '-' + frameCount + 'f' });
+        a.click();
+        URL.revokeObjectURL(url);
+        ExportDialog.complete();
+      }
+
       // Resume animation if it was playing
       if (wasPlaying) {
         isPaused = false;
         animationId = requestAnimationFrame(animate);
-      } else {
-        progressFill.style.width = '0%';
       }
     });
 

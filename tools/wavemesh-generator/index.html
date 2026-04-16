@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WaveMesh Generator — Default Office</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="../../shared/export-dialog.js"></script>
 <style>
 :root {
   --black:#000;--white:#fff;--g60:#999;--g40:#666;--g20:#333;--g08:#141414;--g05:#0d0d0d;
@@ -96,21 +97,7 @@ select:focus{border-color:var(--g40)}
 .canvas-wrap.checker{background-image:linear-gradient(45deg,#111 25%,transparent 25%),linear-gradient(-45deg,#111 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#111 75%),linear-gradient(-45deg,transparent 75%,#111 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;background-color:#0a0a0a}
 canvas{display:block;position:relative;z-index:1}
 
-/* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000}
-.overlay.show{display:flex}
-.modal{background:var(--black);border:1px solid var(--g20);padding:24px;width:340px;max-width:90vw}
-.modal-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--white);margin-bottom:16px}
-.modal .row{height:30px}
-.modal .lbl{width:80px}
-.modal-foot{display:flex;gap:6px;justify-content:flex-end;margin-top:20px}
-.modal-btn{font-family:var(--font);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:8px 16px;border:1px solid var(--g20);background:none;color:var(--g60);cursor:pointer;transition:all .1s;border-radius:0}
-.modal-btn:hover{border-color:var(--g40);color:var(--white)}
-.modal-btn.go{background:var(--orange);border-color:var(--orange);color:var(--white)}
-.modal-btn.go:hover{opacity:.85}
-.prog-bar{width:100%;height:2px;background:var(--g20);margin-top:12px;overflow:hidden;display:none}
-.prog-bar.show{display:block}
-.prog-fill{height:100%;background:var(--orange);width:0%;transition:width .1s}
+/* MODAL — now handled by shared/export-dialog.js */
 </style>
 </head>
 <body>
@@ -231,20 +218,7 @@ canvas{display:block;position:relative;z-index:1}
   </div>
 </div>
 
-<div class="overlay" id="exportModal">
-  <div class="modal">
-    <div class="modal-title">Export PNG Sequence</div>
-    <div class="row"><span class="lbl" style="width:80px">Canvas</span><div class="inp"><span class="rv" id="exSize" style="min-width:auto">1920×1080</span></div></div>
-    <div class="row"><span class="lbl" style="width:80px">Frames</span><div class="inp"><span class="rv" id="exFrames" style="min-width:auto">90</span></div></div>
-    <div class="row"><span class="lbl" style="width:80px">FPS</span><div class="inp"><span class="rv" id="exFps" style="min-width:auto">30</span></div></div>
-    <div class="row"><span class="lbl" style="width:80px">Format</span><div class="inp"><select id="exFormat"><option value="png">PNG (Alpha)</option><option value="jpg">JPEG</option></select></div></div>
-    <div class="prog-bar" id="exProg"><div class="prog-fill" id="exProgFill"></div></div>
-    <div class="modal-foot">
-      <button class="modal-btn" onclick="closeExportModal()">Cancel</button>
-      <button class="modal-btn go" id="exBtn" onclick="startExport()">Export</button>
-    </div>
-  </div>
-</div>
+<!-- Export dialog now handled by shared/export-dialog.js -->
 
 <input type="file" id="presetFileInput" accept=".json" style="display:none" onchange="handlePresetLoad(event)">
 
@@ -265,7 +239,7 @@ function fitCanvas(){
 function updateFrameInfo(){
   const w=G('canvasW'),h=G('canvasH'),fps=G('fps'),dur=G('duration'),tf=Math.round(fps*dur);
   document.getElementById('frameInfo').textContent=w+'×'+h+' · '+fps+'fps · '+tf+'f';
-  document.getElementById('exSize').textContent=w+'×'+h;document.getElementById('exFrames').textContent=tf;document.getElementById('exFps').textContent=fps;updateTTime();
+  updateTTime();
 }
 
 // WAVES
@@ -576,17 +550,44 @@ function loadPresetFile(){document.getElementById('presetFileInput').click()}
 function handlePresetLoad(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{loadState(JSON.parse(ev.target.result))}catch(e){alert('Invalid preset')}};r.readAsText(f);e.target.value=''}
 
 // EXPORT
-function openExportModal(){updateFrameInfo();document.getElementById('exportModal').classList.add('show')}
-function closeExportModal(){document.getElementById('exportModal').classList.remove('show')}
-async function startExport(){
-  const fps=G('fps'),dur=G('duration'),tf=Math.round(fps*dur),format=document.getElementById('exFormat').value,ext=format==='jpg'?'jpg':'png',mime=format==='jpg'?'image/jpeg':'image/png';
-  const prog=document.getElementById('exProg'),fill=document.getElementById('exProgFill'),btn=document.getElementById('exBtn');
-  prog.classList.add('show');btn.disabled=true;btn.textContent='Exporting...';
+async function openExportModal(){
+  updateFrameInfo();
+  const fps=G('fps'),dur=G('duration'),tf=Math.round(fps*dur);
+  const result=await ExportDialog.show({
+    toolName:'wavemesh',
+    info:[
+      {label:'Canvas',value:G('canvasW')+'×'+G('canvasH')},
+      {label:'Frames',value:String(tf)},
+      {label:'FPS',value:String(fps)}
+    ],
+    fields:[
+      {id:'format',type:'select',label:'Format',options:[{value:'png',label:'PNG (Alpha)'},{value:'jpg',label:'JPEG'}],default:'png'}
+    ],
+    zipMeta:G('canvasW')+'x'+G('canvasH')+'-'+fps+'fps-'+tf+'f'
+  });
+  if(result.cancelled)return;
+  await runExport(result,fps,dur,tf);
+}
+async function runExport(result,fps,dur,tf){
+  const format=result.customValues.format,ext=format==='jpg'?'jpg':'png',mime=format==='jpg'?'image/jpeg':'image/png';
   if(isPlaying)togglePlay();
-  const zip=new JSZip(),folder=zip.folder('wavemesh-sequence');
-  for(let i=0;i<tf;i++){render((i/tf)*dur);const d=canvas.toDataURL(mime,format==='jpg'?.95:undefined);folder.file('frame_'+String(i).padStart(5,'0')+'.'+ext,d.split(',')[1],{base64:true});fill.style.width=((i+1)/tf*100)+'%';if(i%5===0)await new Promise(r=>setTimeout(r,0))}
-  const blob=await zip.generateAsync({type:'blob'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='wavemesh-'+G('canvasW')+'x'+G('canvasH')+'-'+fps+'fps-'+tf+'f.zip';a.click();
-  prog.classList.remove('show');fill.style.width='0%';btn.disabled=false;btn.textContent='Export';render(currentTime);closeExportModal();
+  const zip=new JSZip(),folder=zip.folder(result.name);
+  for(let i=0;i<tf;i++){
+    if(ExportDialog.isCancelled()){ExportDialog.complete();render(currentTime);return}
+    render((i/tf)*dur);
+    const d=canvas.toDataURL(mime,format==='jpg'?.95:undefined);
+    const fname=ExportDialog.frameName({name:result.name,timestamp:result.timestamp,extension:ext},i);
+    folder.file(fname,d.split(',')[1],{base64:true});
+    ExportDialog.progress(i+1,tf);
+    if(i%5===0)await new Promise(r=>setTimeout(r,0));
+  }
+  ExportDialog.progress(tf,tf,'Creating ZIP\u2026');
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=ExportDialog.zipName({name:result.name,timestamp:result.timestamp,metadata:G('canvasW')+'x'+G('canvasH')+'-'+fps+'fps-'+tf+'f'});
+  a.click();
+  render(currentTime);
+  ExportDialog.complete();
 }
 
 // INIT

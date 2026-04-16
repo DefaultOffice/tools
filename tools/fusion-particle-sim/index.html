@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuclear Fusion Particle Sim | Default Office Tools</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../../shared/export-dialog.js"></script>
     <style>
         * {
             margin: 0;
@@ -866,7 +867,7 @@
         
         <div class="canvas-container">
             <canvas id="simCanvas" width="1920" height="1080"></canvas>
-            <div class="export-status" id="exportStatus">Exporting...</div>
+            <!-- Export status now handled by shared/export-dialog.js -->
             <div class="credit-text">developed by Default Office</div>
         </div>
     </div>
@@ -2246,44 +2247,51 @@
             const totalFrames = Math.ceil(duration * frameRate);
             const seed = document.getElementById('seedVal').value;
 
-            const statusEl = document.getElementById('exportStatus');
-            statusEl.classList.add('active');
+            const result = await ExportDialog.show({
+                toolName: 'particle-sim',
+                info: [
+                    { label: 'Frames', value: String(totalFrames) },
+                    { label: 'FPS', value: String(frameRate) },
+                    { label: 'Seed', value: seed }
+                ],
+                fields: [],
+                zipMeta: 'seed' + seed
+            });
+            if (result.cancelled) return;
 
             resetSim();
-
             const zip = new JSZip();
+            const folder = zip.folder(result.name);
 
             for (let i = 0; i < totalFrames; i++) {
-                statusEl.textContent = `Rendering frame ${i + 1} / ${totalFrames}`;
-                
+                if (ExportDialog.isCancelled()) { ExportDialog.complete(); resetSim(); return; }
+
                 update(1 / frameRate);
                 render();
 
                 const dataUrl = canvas.toDataURL('image/png');
                 const base64Data = dataUrl.split(',')[1];
-                zip.file(`frame_${String(i).padStart(5, '0')}.png`, base64Data, {base64: true});
-                
-                currentFrame++;
+                const fname = ExportDialog.frameName({ name: result.name, timestamp: result.timestamp, extension: 'png' }, i);
+                folder.file(fname, base64Data, {base64: true});
 
-                // Yield to prevent browser freeze
+                currentFrame++;
+                ExportDialog.progress(i + 1, totalFrames);
+
                 if (i % 10 === 0) {
                     await new Promise(r => setTimeout(r, 1));
                 }
             }
 
-            statusEl.textContent = 'Creating ZIP file...';
-            
-            const blob = await zip.generateAsync({type: 'blob'}, (metadata) => {
-                statusEl.textContent = `Compressing... ${Math.round(metadata.percent)}%`;
-            });
-            
+            ExportDialog.progress(totalFrames, totalFrames, 'Creating ZIP\u2026');
+            const blob = await zip.generateAsync({type: 'blob'});
+
             const link = document.createElement('a');
-            link.download = `particle-sim-seed${seed}-${Date.now()}.zip`;
+            link.download = ExportDialog.zipName({ name: result.name, timestamp: result.timestamp, metadata: 'seed' + seed });
             link.href = URL.createObjectURL(blob);
             link.click();
             URL.revokeObjectURL(link.href);
 
-            statusEl.classList.remove('active');
+            ExportDialog.complete();
             resetSim();
         }
 
@@ -2293,12 +2301,21 @@
             const totalFrames = Math.ceil(duration * frameRate);
             const seed = document.getElementById('seedVal').value;
 
-            const statusEl = document.getElementById('exportStatus');
-            statusEl.classList.add('active');
+            const result = await ExportDialog.show({
+                toolName: 'particle-layers',
+                info: [
+                    { label: 'Frames', value: String(totalFrames) },
+                    { label: 'FPS', value: String(frameRate) },
+                    { label: 'Seed', value: seed },
+                    { label: 'Layers', value: '6' }
+                ],
+                fields: [],
+                zipMeta: 'seed' + seed
+            });
+            if (result.cancelled) return;
 
             const zip = new JSZip();
-            
-            // Layer configurations
+
             const layers = [
                 { name: 'boundary', checkbox: 'showBoundary' },
                 { name: 'lithium', checkbox: 'showLithium' },
@@ -2308,18 +2325,18 @@
                 { name: 'flash', checkbox: 'showFlash' }
             ];
 
-            // Store original checkbox states
             const originalStates = {};
             layers.forEach(layer => {
                 originalStates[layer.checkbox] = document.getElementById(layer.checkbox).checked;
             });
 
-            // Export each layer
+            const totalWork = layers.length * totalFrames;
+            let done = 0;
+
             for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
                 const layer = layers[layerIdx];
                 const folder = zip.folder(layer.name);
 
-                // Set only this layer visible
                 layers.forEach(l => {
                     document.getElementById(l.checkbox).checked = (l.name === layer.name);
                 });
@@ -2327,16 +2344,22 @@
                 resetSim();
 
                 for (let i = 0; i < totalFrames; i++) {
-                    statusEl.textContent = `Exporting ${layer.name}: frame ${i + 1} / ${totalFrames}`;
-                    
+                    if (ExportDialog.isCancelled()) {
+                        layers.forEach(l => { document.getElementById(l.checkbox).checked = originalStates[l.checkbox]; });
+                        ExportDialog.complete(); resetSim(); return;
+                    }
+
                     update(1 / frameRate);
                     render();
 
                     const dataUrl = canvas.toDataURL('image/png');
                     const base64Data = dataUrl.split(',')[1];
-                    folder.file(`${layer.name}_${String(i).padStart(5, '0')}.png`, base64Data, {base64: true});
-                    
+                    const fname = ExportDialog.frameName({ name: result.name, suffix: layer.name, timestamp: result.timestamp, extension: 'png' }, i);
+                    folder.file(fname, base64Data, {base64: true});
+
                     currentFrame++;
+                    done++;
+                    ExportDialog.progress(done, totalWork, `Exporting ${layer.name}: ${i + 1} / ${totalFrames}`);
 
                     if (i % 10 === 0) {
                         await new Promise(r => setTimeout(r, 1));
@@ -2344,24 +2367,20 @@
                 }
             }
 
-            // Restore original checkbox states
             layers.forEach(layer => {
                 document.getElementById(layer.checkbox).checked = originalStates[layer.checkbox];
             });
 
-            statusEl.textContent = 'Creating ZIP file...';
-            
-            const blob = await zip.generateAsync({type: 'blob'}, (metadata) => {
-                statusEl.textContent = `Compressing... ${Math.round(metadata.percent)}%`;
-            });
-            
+            ExportDialog.progress(totalWork, totalWork, 'Creating ZIP\u2026');
+            const blob = await zip.generateAsync({type: 'blob'});
+
             const link = document.createElement('a');
-            link.download = `particle-sim-layers-seed${seed}-${Date.now()}.zip`;
+            link.download = ExportDialog.zipName({ name: result.name, timestamp: result.timestamp, metadata: 'seed' + seed });
             link.href = URL.createObjectURL(blob);
             link.click();
             URL.revokeObjectURL(link.href);
 
-            statusEl.classList.remove('active');
+            ExportDialog.complete();
             resetSim();
         }
 
