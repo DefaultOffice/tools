@@ -749,6 +749,31 @@
                     <input type="range" id="flashRings" min="1" max="5" value="3">
                     <input type="number" class="value-input" id="flashRingsVal" value="3">
                 </div>
+                <div class="control-row">
+                    <label>Spark Spikes</label>
+                    <input type="range" id="flashSpikes" min="0" max="12" value="0">
+                    <input type="number" class="value-input" id="flashSpikesVal" value="0">
+                </div>
+                <div class="control-row">
+                    <label>Spike Length</label>
+                    <input type="range" id="flashSpikeLength" min="0.5" max="5" step="0.1" value="2">
+                    <input type="number" class="value-input" id="flashSpikeLengthVal" value="2" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Spike Width</label>
+                    <input type="range" id="flashSpikeWidth" min="0.5" max="8" step="0.1" value="1.5">
+                    <input type="number" class="value-input" id="flashSpikeWidthVal" value="1.5" step="0.1">
+                </div>
+                <div class="control-row">
+                    <label>Core Size</label>
+                    <input type="range" id="flashCoreSize" min="0" max="1" step="0.05" value="0.3">
+                    <input type="number" class="value-input" id="flashCoreSizeVal" value="0.3" step="0.05">
+                </div>
+                <div class="control-row">
+                    <label>Spike Variance</label>
+                    <input type="range" id="flashSpikeVar" min="0" max="1" step="0.05" value="0.3">
+                    <input type="number" class="value-input" id="flashSpikeVarVal" value="0.3" step="0.05">
+                </div>
             </div>
 
             <div class="control-section">
@@ -1035,6 +1060,7 @@
                 'productSpeed', 'fadeDistance', 'heliumSize', 'heliumTrailLength', 'heliumTrailOpacity', 'tritiumSize', 'tritiumTrailLength', 'tritiumTrailOpacity',
                 'productSizeVar', 'productSpeedVar', 'productBrightVar', 'productTrailVar',
                 'flashSize', 'flashFadeIn', 'flashFadeOut', 'flashRings',
+                'flashSpikes', 'flashSpikeLength', 'flashSpikeWidth', 'flashCoreSize', 'flashSpikeVar',
                 'frameRate'
             ];
 
@@ -1641,13 +1667,29 @@
             });
 
             // Spawn collision flash
+            // Generate random spike angles and length multipliers for this flash
+            const spikeCount = parseInt(document.getElementById('flashSpikesVal').value);
+            const spikeVar = parseFloat(document.getElementById('flashSpikeVarVal').value);
+            const spikeAngles = [];
+            const spikeLengths = [];
+            const baseRotation = seededRandom() * Math.PI * 2; // random rotation per flash
+            for (let s = 0; s < spikeCount; s++) {
+                const evenAngle = baseRotation + (s / spikeCount) * Math.PI * 2;
+                // Add angle jitter
+                spikeAngles.push(evenAngle + (seededRandom() - 0.5) * spikeVar * (Math.PI / spikeCount));
+                // Per-spike length variance
+                spikeLengths.push(applyVariance(1, spikeVar));
+            }
+
             flashParticles.push({
                 x, y, z,
                 frame: 0,
                 fadeInFrames: flashFadeIn,
                 fadeOutFrames: flashFadeOut,
                 totalFrames: flashFadeIn + flashFadeOut,
-                alpha: 0
+                alpha: 0,
+                spikeAngles,
+                spikeLengths
             });
         }
 
@@ -2022,17 +2064,21 @@
             if (document.getElementById('showFlash').checked) {
                 const flashSize = parseFloat(document.getElementById('flashSizeVal').value);
                 const flashRings = parseInt(document.getElementById('flashRingsVal').value);
+                const flashSpikes = parseInt(document.getElementById('flashSpikesVal').value);
+                const flashSpikeLength = parseFloat(document.getElementById('flashSpikeLengthVal').value);
+                const flashSpikeWidth = parseFloat(document.getElementById('flashSpikeWidthVal').value);
+                const flashCoreSize = parseFloat(document.getElementById('flashCoreSizeVal').value);
 
                 flashParticles.forEach(f => {
                     const proj = project(f);
                     const color = getLayerColor('flash', proj.x, proj.y, 'flashColor');
-                    
-                    // Draw multiple concentric rings for glow effect
+
+                    // Glow rings (always drawn as soft background)
                     for (let ring = 0; ring < flashRings; ring++) {
                         const ringProgress = ring / flashRings;
                         const ringSize = flashSize * (1 - ringProgress * 0.6) * proj.scale;
                         const ringAlpha = f.alpha * (1 - ringProgress * 0.7);
-                        
+
                         drawables.push({
                             type: 'circle',
                             x: proj.x,
@@ -2040,7 +2086,25 @@
                             radius: ringSize,
                             color: applyBrightness(color, proj.brightness),
                             alpha: ringAlpha,
-                            z: proj.z + 0.01 * ring // Slight z offset so rings layer properly
+                            z: proj.z + 0.01 * ring
+                        });
+                    }
+
+                    // Spark spikes
+                    if (flashSpikes > 0 && f.spikeAngles && f.spikeAngles.length > 0) {
+                        drawables.push({
+                            type: 'spark',
+                            x: proj.x,
+                            y: proj.y,
+                            color: applyBrightness(color, proj.brightness),
+                            alpha: f.alpha,
+                            z: proj.z + 0.02,
+                            size: flashSize * proj.scale,
+                            spikeLength: flashSpikeLength,
+                            spikeWidth: flashSpikeWidth,
+                            coreSize: flashCoreSize,
+                            spikeAngles: f.spikeAngles,
+                            spikeLengths: f.spikeLengths
                         });
                     }
                 });
@@ -2065,6 +2129,55 @@
                     ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.globalAlpha = 1;
+                } else if (item.type === 'spark') {
+                    ctx.save();
+                    ctx.globalAlpha = item.alpha;
+
+                    // Core glow
+                    if (item.coreSize > 0) {
+                        const coreR = item.size * item.coreSize;
+                        const coreGrad = ctx.createRadialGradient(item.x, item.y, 0, item.x, item.y, coreR);
+                        coreGrad.addColorStop(0, item.color);
+                        coreGrad.addColorStop(0.4, item.color);
+                        coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = coreGrad;
+                        ctx.beginPath();
+                        ctx.arc(item.x, item.y, coreR, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Draw each spike as a tapered line with gradient
+                    for (let s = 0; s < item.spikeAngles.length; s++) {
+                        const angle = item.spikeAngles[s];
+                        const lenMul = item.spikeLengths[s];
+                        const spikeLen = item.size * item.spikeLength * lenMul;
+                        const halfWidth = item.spikeWidth * 0.5;
+
+                        // Spike tip
+                        const tipX = item.x + Math.cos(angle) * spikeLen;
+                        const tipY = item.y + Math.sin(angle) * spikeLen;
+
+                        // Perpendicular for base width
+                        const perpX = Math.cos(angle + Math.PI / 2) * halfWidth;
+                        const perpY = Math.sin(angle + Math.PI / 2) * halfWidth;
+
+                        // Draw tapered spike shape
+                        ctx.beginPath();
+                        ctx.moveTo(item.x + perpX, item.y + perpY);
+                        ctx.lineTo(tipX, tipY);
+                        ctx.lineTo(item.x - perpX, item.y - perpY);
+                        ctx.closePath();
+
+                        // Gradient along the spike
+                        const grad = ctx.createLinearGradient(item.x, item.y, tipX, tipY);
+                        grad.addColorStop(0, item.color);
+                        grad.addColorStop(0.6, item.color);
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = grad;
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
                 }
             });
 
@@ -2329,7 +2442,12 @@
                     color: document.getElementById('flashColor').value,
                     fadeIn: document.getElementById('flashFadeInVal').value,
                     fadeOut: document.getElementById('flashFadeOutVal').value,
-                    rings: document.getElementById('flashRingsVal').value
+                    rings: document.getElementById('flashRingsVal').value,
+                    spikes: document.getElementById('flashSpikesVal').value,
+                    spikeLength: document.getElementById('flashSpikeLengthVal').value,
+                    spikeWidth: document.getElementById('flashSpikeWidthVal').value,
+                    coreSize: document.getElementById('flashCoreSizeVal').value,
+                    spikeVar: document.getElementById('flashSpikeVarVal').value
                 },
                 layers: {
                     showBoundary: document.getElementById('showBoundary').checked,
@@ -2453,6 +2571,11 @@
                 setSliderAndInput('flashFadeIn', preset.flash.fadeIn || 1);
                 setSliderAndInput('flashFadeOut', preset.flash.fadeOut || 8);
                 setSliderAndInput('flashRings', preset.flash.rings || 3);
+                setSliderAndInput('flashSpikes', preset.flash.spikes || 0);
+                setSliderAndInput('flashSpikeLength', preset.flash.spikeLength || 2);
+                setSliderAndInput('flashSpikeWidth', preset.flash.spikeWidth || 1.5);
+                setSliderAndInput('flashCoreSize', preset.flash.coreSize || 0.3);
+                setSliderAndInput('flashSpikeVar', preset.flash.spikeVar || 0.3);
             }
 
             // Layers
