@@ -114,6 +114,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .ruler-bar:active{cursor:grabbing}
 .ruler-marks{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
 .ruler-readout{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-family:var(--font);font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;pointer-events:none;background:rgba(255,255,255,0.8);padding:2px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.ruler-hint{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);font-family:var(--font);font-size:13px;font-weight:400;color:var(--text2);white-space:nowrap;pointer-events:none;background:rgba(255,255,255,0.8);padding:3px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);opacity:0;transition:opacity 0.6s ease}
 .cw{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden;background:var(--bg);position:relative}
 canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16px rgba(0,0,0,0.06);touch-action:none;cursor:crosshair}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:var(--bg);padding:8px 18px;border-radius:var(--r);font-family:var(--font);font-size:12px;font-weight:400;opacity:0;transition:transform 0.25s,opacity 0.25s;z-index:200;pointer-events:none}
@@ -198,6 +199,7 @@ canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16p
         <div class="ruler-bar" id="rulerBar">
           <canvas class="ruler-marks" id="rulerMarks"></canvas>
           <div class="ruler-readout" id="rulerReadout">0"</div>
+          <div class="ruler-hint" id="rulerHint">Drag each end to reposition</div>
         </div>
         <div class="ruler-handle ruler-h-b" id="rulerHB"></div>
       </div>
@@ -585,14 +587,25 @@ const rulerHA=document.getElementById('rulerHA');
 const rulerHB=document.getElementById('rulerHB');
 const rulerMarks=document.getElementById('rulerMarks');
 const rulerReadout=document.getElementById('rulerReadout');
+const rulerHint=document.getElementById('rulerHint');
 let rulerAx=100,rulerAy=200,rulerBx=400,rulerBy=200;
 let rulerDrag=null,rulerDragOff={x:0,y:0};
+let rulerHintShown=false,rulerHintTimer=null;
 
 document.getElementById('rulerBtn').addEventListener('click',()=>{
   S.ruler=!S.ruler;
   rulerEl.classList.toggle('show',S.ruler);
   render();
-  if(S.ruler) updateRuler();
+  if(S.ruler){
+    updateRuler();
+    if(!rulerHintShown){
+      rulerHintShown=true;
+      rulerHint.style.opacity='1';
+      rulerHintTimer=setTimeout(()=>{rulerHint.style.opacity='0'},5000);
+    }
+  } else {
+    clearTimeout(rulerHintTimer);
+  }
 });
 
 function updateRuler(){
