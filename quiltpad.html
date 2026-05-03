@@ -105,7 +105,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .tb{height:34px;padding:0 12px;border:none;border-radius:var(--r);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:400;cursor:pointer;display:flex;align-items:center;gap:5px}
 .tb:active{background:var(--border)}
 .tb svg{width:16px;height:16px}
-.cw{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden;background:var(--bg)}
+/* ── RULER OVERLAY ── */
+.ruler{position:absolute;display:none;z-index:20;pointer-events:none}
+.ruler.show{display:block}
+.ruler-handle{width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.15);border:2px solid rgba(255,255,255,0.9);position:absolute;cursor:grab;pointer-events:auto;z-index:2}
+.ruler-handle:active{cursor:grabbing;background:rgba(0,0,0,0.3)}
+.ruler-bar{position:absolute;height:36px;background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.12);border-radius:18px;pointer-events:auto;cursor:grab;transform-origin:0 50%;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 1px 6px rgba(0,0,0,0.08)}
+.ruler-bar:active{cursor:grabbing}
+.ruler-marks{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.ruler-readout{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-family:var(--font);font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;pointer-events:none;background:rgba(255,255,255,0.8);padding:2px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.cw{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;overflow:hidden;background:var(--bg);position:relative}
 canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16px rgba(0,0,0,0.06);touch-action:none;cursor:crosshair}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:var(--bg);padding:8px 18px;border-radius:var(--r);font-family:var(--font);font-size:12px;font-weight:400;opacity:0;transition:transform 0.25s,opacity 0.25s;z-index:200;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -123,6 +132,7 @@ canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16p
       <button class="trace-half" id="traceBelow">Below</button>
     </div>
     <button class="sb-btn util" id="gridBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="21" y2="21"/><line x1="21" y1="3" x2="3" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="12" x2="21" y2="12"/></svg>Grid</button>
+    <button class="sb-btn util" id="rulerBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="6" x2="6" y2="11"/><line x1="10" y1="6" x2="10" y2="14"/><line x1="14" y1="6" x2="14" y2="11"/><line x1="18" y1="6" x2="18" y2="14"/></svg>Ruler</button>
     <button class="sb-btn util" id="tplBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Trace</button>
     <button class="sb-btn util" id="eraserBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.2 2a2 2 0 0 1 2.8 0L21.8 6.8a2 2 0 0 1 0 2.8L11 20"/><path d="M6.5 13.5 11 18"/></svg>Eraser</button>
     <button class="sb-btn util" id="markerBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>Marker</button>
@@ -181,7 +191,17 @@ canvas#c{background:var(--canvas-bg);border-radius:var(--r);box-shadow:0 2px 16p
         <button class="tb" id="sbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Save</button>
       </div>
     </div>
-    <div class="cw" id="cw"><canvas id="c"></canvas></div>
+    <div class="cw" id="cw">
+      <canvas id="c"></canvas>
+      <div class="ruler" id="ruler">
+        <div class="ruler-handle ruler-h-a" id="rulerHA"></div>
+        <div class="ruler-bar" id="rulerBar">
+          <canvas class="ruler-marks" id="rulerMarks"></canvas>
+          <div class="ruler-readout" id="rulerReadout">0"</div>
+        </div>
+        <div class="ruler-handle ruler-h-b" id="rulerHB"></div>
+      </div>
+    </div>
   </div>
 </div>
 <input type="file" accept="image/*" class="fh" id="fi">
@@ -203,7 +223,7 @@ const S={
   er:false,mk:false,mkCol:'#2a2a2c',
   mv:false,br:26,st:[],
   tpl:null,tplAbove:false,
-  blend:true,grid:false,
+  blend:true,grid:false,ruler:false,
   mx:60
 };
 let sid=0;
@@ -528,6 +548,7 @@ function render(){
   document.getElementById('eraserBtn').classList.toggle('on',S.er);
   document.getElementById('markerBtn').classList.toggle('on',S.mk);
   document.getElementById('gridBtn').classList.toggle('on',S.grid);
+  document.getElementById('rulerBtn').classList.toggle('on',S.ruler);
   document.getElementById('tplBtn').classList.toggle('on',S.tpl!==null);
   traceToggle.classList.toggle('show',S.tpl!==null);
   traceAbove.classList.toggle('on',S.tplAbove);
@@ -555,6 +576,133 @@ document.getElementById('markerBtn').addEventListener('click',()=>{
 document.getElementById('gridBtn').addEventListener('click',()=>{
   S.grid=!S.grid;render();replay();
 });
+
+// ── RULER ──
+const RULER_PX_PER_INCH=80; // 2x grid squares (40px * 2) = 1 inch (adjustable later)
+const rulerEl=document.getElementById('ruler');
+const rulerBar=document.getElementById('rulerBar');
+const rulerHA=document.getElementById('rulerHA');
+const rulerHB=document.getElementById('rulerHB');
+const rulerMarks=document.getElementById('rulerMarks');
+const rulerReadout=document.getElementById('rulerReadout');
+let rulerAx=100,rulerAy=200,rulerBx=400,rulerBy=200;
+let rulerDrag=null,rulerDragOff={x:0,y:0};
+
+document.getElementById('rulerBtn').addEventListener('click',()=>{
+  S.ruler=!S.ruler;
+  rulerEl.classList.toggle('show',S.ruler);
+  render();
+  if(S.ruler) updateRuler();
+});
+
+function updateRuler(){
+  const dx=rulerBx-rulerAx, dy=rulerBy-rulerAy;
+  const len=Math.hypot(dx,dy);
+  const ang=Math.atan2(dy,dx);
+  const cap=18; // radius of rounded end caps
+  
+  // Position handles at endpoints (concentric inside caps)
+  rulerHA.style.left=(rulerAx-9)+'px';
+  rulerHA.style.top=(rulerAy-9)+'px';
+  rulerHB.style.left=(rulerBx-9)+'px';
+  rulerHB.style.top=(rulerBy-9)+'px';
+  
+  // Bar extends cap distance beyond each endpoint
+  const barLen=len+cap*2;
+  const cosA=Math.cos(ang), sinA=Math.sin(ang);
+  const barX=rulerAx-cosA*cap;
+  const barY=rulerAy-sinA*cap;
+  rulerBar.style.left=barX+'px';
+  rulerBar.style.top=(barY-18)+'px';
+  rulerBar.style.width=barLen+'px';
+  rulerBar.style.transform='rotate('+ang+'rad)';
+  
+  // Tick marks — drawn with cap offset so 0" aligns with handle A
+  const dpr=window.devicePixelRatio||1;
+  rulerMarks.width=Math.max(1,Math.round(barLen*dpr));
+  rulerMarks.height=Math.round(36*dpr);
+  rulerMarks.style.width=Math.max(1,Math.round(barLen))+'px';
+  rulerMarks.style.height='36px';
+  const mx=rulerMarks.getContext('2d');
+  mx.scale(dpr,dpr);
+  const ppi=RULER_PX_PER_INCH;
+  
+  // Ticks start at cap offset (where straight section begins)
+  for(let i=0;i<=len;i+=ppi/8){
+    const xPos=i+cap;
+    const isInch=Math.abs(i%ppi)<1;
+    const isHalf=Math.abs(i%(ppi/2))<1;
+    const isQuarter=Math.abs(i%(ppi/4))<1;
+    let h;
+    if(isInch){h=22;mx.lineWidth=1.5;mx.strokeStyle='rgba(0,0,0,0.55)'}
+    else if(isHalf){h=15;mx.lineWidth=1;mx.strokeStyle='rgba(0,0,0,0.4)'}
+    else if(isQuarter){h=10;mx.lineWidth=0.75;mx.strokeStyle='rgba(0,0,0,0.3)'}
+    else{h=6;mx.lineWidth=0.5;mx.strokeStyle='rgba(0,0,0,0.2)'}
+    mx.beginPath();mx.moveTo(Math.round(xPos)+0.5,0);mx.lineTo(Math.round(xPos)+0.5,h);mx.stroke();
+    if(isInch){
+      mx.font='500 11px "DM Sans",sans-serif';
+      mx.fillStyle='rgba(0,0,0,0.5)';
+      mx.textAlign='center';
+      mx.fillText(Math.round(i/ppi),Math.round(xPos),33);
+    }
+  }
+  
+  // Readout
+  const inches=len/ppi;
+  rulerReadout.textContent=inches<1?(inches*8).toFixed(0)+'/8″':inches.toFixed(1)+'″';
+}
+
+// Ruler drag handling
+let rulerOffA={x:0,y:0}, rulerOffB={x:0,y:0};
+
+function rulerPos(e){
+  const r=cw.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return{x:t.clientX-r.left, y:t.clientY-r.top};
+}
+
+function rulerPointerDown(e,mode){
+  e.preventDefault();e.stopPropagation();
+  const p=rulerPos(e);
+  if(mode==='a'){
+    rulerDrag='a';
+    rulerOffA={x:p.x-rulerAx, y:p.y-rulerAy};
+  } else if(mode==='b'){
+    rulerDrag='b';
+    rulerOffB={x:p.x-rulerBx, y:p.y-rulerBy};
+  } else {
+    rulerDrag='bar';
+    rulerDragOff={x:p.x-rulerAx, y:p.y-rulerAy};
+  }
+}
+function rulerPointerMove(e){
+  if(!rulerDrag)return;
+  e.preventDefault();e.stopPropagation();
+  const p=rulerPos(e);
+  if(rulerDrag==='a'){
+    rulerAx=p.x-rulerOffA.x;rulerAy=p.y-rulerOffA.y;
+  } else if(rulerDrag==='b'){
+    rulerBx=p.x-rulerOffB.x;rulerBy=p.y-rulerOffB.y;
+  } else {
+    const dx=rulerBx-rulerAx, dy=rulerBy-rulerAy;
+    rulerAx=p.x-rulerDragOff.x;rulerAy=p.y-rulerDragOff.y;
+    rulerBx=rulerAx+dx;rulerBy=rulerAy+dy;
+  }
+  updateRuler();
+}
+function rulerPointerUp(){rulerDrag=null}
+
+rulerHA.addEventListener('mousedown',e=>rulerPointerDown(e,'a'));
+rulerHB.addEventListener('mousedown',e=>rulerPointerDown(e,'b'));
+rulerBar.addEventListener('mousedown',e=>rulerPointerDown(e,'bar'));
+rulerHA.addEventListener('touchstart',e=>rulerPointerDown(e,'a'),{passive:false});
+rulerHB.addEventListener('touchstart',e=>rulerPointerDown(e,'b'),{passive:false});
+rulerBar.addEventListener('touchstart',e=>rulerPointerDown(e,'bar'),{passive:false});
+document.addEventListener('mousemove',rulerPointerMove);
+document.addEventListener('mouseup',rulerPointerUp);
+document.addEventListener('touchmove',e=>{if(rulerDrag)rulerPointerMove(e)},{passive:false});
+document.addEventListener('touchend',rulerPointerUp);
+document.addEventListener('touchcancel',rulerPointerUp);
 
 // ── TRACE ──
 traceAbove.addEventListener('click',()=>{if(!S.tplAbove){S.tplAbove=true;render();replay()}});
