@@ -375,20 +375,37 @@ function drawTpl(){drawTplOn(x)}
 function drawGrid(c){
   if(!S.grid)return;
   const step=40;
+  const step2=step*2;
   c.save();
-  c.lineWidth=0.5;
-  // Fine grid (1x)
+  
+  // Fine grid (1x) — horizontals and verticals
   c.strokeStyle='rgba(0,0,0,0.07)';
+  c.lineWidth=0.5;
   for(let i=step;i<W;i+=step){c.beginPath();c.moveTo(i,0);c.lineTo(i,H);c.stroke()}
   for(let i=step;i<H;i+=step){c.beginPath();c.moveTo(0,i);c.lineTo(W,i);c.stroke()}
-  for(let i=-H;i<W+H;i+=step){c.beginPath();c.moveTo(i,0);c.lineTo(i+H,H);c.stroke();c.beginPath();c.moveTo(i,0);c.lineTo(i-H,H);c.stroke()}
-  // Coarse grid (2x) — darker
+  
+  // Fine diagonals — must pass through grid intersections
+  // Lines going top-left to bottom-right (slope +1)
+  for(let k=-(Math.ceil(H/step))*step; k<W+H; k+=step){
+    c.beginPath();c.moveTo(k,0);c.lineTo(k+H,H);c.stroke();
+  }
+  // Lines going top-right to bottom-left (slope -1)
+  for(let k=-Math.ceil(H/step)*step; k<W+H; k+=step){
+    c.beginPath();c.moveTo(k,0);c.lineTo(k-H,H);c.stroke();
+  }
+  
+  // Coarse grid (2x) — darker, same pattern
   c.strokeStyle='rgba(0,0,0,0.18)';
   c.lineWidth=0.75;
-  const step2=step*2;
   for(let i=step2;i<W;i+=step2){c.beginPath();c.moveTo(i,0);c.lineTo(i,H);c.stroke()}
   for(let i=step2;i<H;i+=step2){c.beginPath();c.moveTo(0,i);c.lineTo(W,i);c.stroke()}
-  for(let i=-H;i<W+H;i+=step2){c.beginPath();c.moveTo(i,0);c.lineTo(i+H,H);c.stroke();c.beginPath();c.moveTo(i,0);c.lineTo(i-H,H);c.stroke()}
+  for(let k=-(Math.ceil(H/step2))*step2; k<W+H; k+=step2){
+    c.beginPath();c.moveTo(k,0);c.lineTo(k+H,H);c.stroke();
+  }
+  for(let k=-Math.ceil(H/step2)*step2; k<W+H; k+=step2){
+    c.beginPath();c.moveTo(k,0);c.lineTo(k-H,H);c.stroke();
+  }
+  
   c.restore();
 }
 
