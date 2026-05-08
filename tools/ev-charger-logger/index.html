@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>EV Charger Logger · Default Office</title>
+</head>
+<body>
+<div id="app"></div>
+
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #ffffff;
+    --panel-2: #ebebeb;
+    --border: #ffffff;
+    --border-dim: #2a2a2a;
+    --border-on-panel: #d9d9d9;
+    --text: #0a0a0a;
+    --text-dim: #6b6b6b;
+    --text-on-bg: #ffffff;
+    --text-dim-on-bg: #8a8a8a;
+    --accent: #ffffff;
+    --accent-text: #000000;
+    --selected-bg: #ffffff;
+    --selected-border: #000000;
+    --danger: #ff4d4d;
+    --radius: 14px;
+    --radius-lg: 20px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text-on-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    padding-top: env(safe-area-inset-top, 16px);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    min-height: 32px;
+  }
+
+  .brand {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim-on-bg);
+  }
+
+  .back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim-on-bg);
+    text-decoration: none;
+    padding: 4px 0;
+  }
+  .back-home svg {
+    width: 12px; height: 12px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .back-home:hover { color: var(--text-on-bg); }
+
+  .progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .progress-dot {
+    flex: 1;
+    height: 3px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
+
+  .progress-dot.done { background: var(--text-dim-on-bg); }
+  .progress-dot.current { background: var(--text-on-bg); }
+
+  .step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .step-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim-on-bg);
+    margin-bottom: 8px;
+  }
+
+  .step-title {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .grid-1 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+  .big-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 22px 16px;
+    font-size: 17px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 110px;
+    transition: transform 0.05s, background 0.15s, border-color 0.15s;
+  }
+
+  .big-btn:active { transform: scale(0.97); background: var(--panel-2); }
+  .big-btn.selected { border-color: var(--selected-border); background: var(--selected-bg); border-width: 2px; }
+  .big-btn svg { width: 44px; height: 44px; stroke: var(--text); fill: none; stroke-width: 1.6; }
+
+  .nav-row {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 20px;
+  }
+
+  .nav-btn {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .nav-btn:active { background: var(--panel-2); }
+  .nav-btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.4; }
+  .nav-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .notes-input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border-on-panel);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 16px;
+    font-family: inherit;
+    min-height: 120px;
+    resize: none;
+  }
+  .notes-input:focus { outline: none; border-color: var(--text); }
+  .notes-input::placeholder { color: var(--text-dim); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 100;
+    animation: toast-in 0.3s;
+  }
+  .toast.error { background: var(--danger); color: white; }
+
+  @keyframes toast-in {
+    from { transform: translate(-50%, 20px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+
+  .small-link {
+    background: none; border: none;
+    color: var(--text-dim-on-bg);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px;
+    font-family: inherit;
+  }
+
+  .footer-bar {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-bar .meta {
+    font-size: 12px;
+    color: var(--text-dim-on-bg);
+  }
+</style>
+
+<script>
+  const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycby3GwQNOOw3ANY9f8vo8LUACZ6cMyhvH_JnoSlzKs2e4LzfgC9yoLLyw-3vvminN4or/exec';
+
+  const STEPS = ['side', 'orientation', 'height', 'tether', 'notes'];
+  let state = {
+    stepIdx: 0,
+    side: null,
+    orientation: null,
+    height: null,
+    tether: null,
+    notes: '',
+  };
+  let toast = null;
+  let recordCount = 0;
+  let lastSync = null;
+
+  // Inline SVG chevrons
+  const CHEVRON_LEFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>';
+  const CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>';
+
+  async function loadConfig() {
+    try {
+      const v = localStorage.getItem('ev_logger_record_count');
+      if (v) recordCount = parseInt(v, 10) || 0;
+    } catch {}
+  }
+
+  async function bumpCount() {
+    recordCount += 1;
+    try { localStorage.setItem('ev_logger_record_count', String(recordCount)); } catch {}
+  }
+
+  function houseIcon(side) {
+    const isSelected = (s) => state.side === s;
+    const widths = {
+      front: side === 'front' ? 4 : 1.6,
+      back:  side === 'back'  ? 4 : 1.6,
+      left:  side === 'left'  ? 4 : 1.6,
+      right: side === 'right' ? 4 : 1.6,
+    };
+    // Edge color is always dark (visible on white button); selection is shown via stroke width
+    const edge = 'var(--text)';
+    return `<svg viewBox="0 0 60 60">
+      <rect x="14" y="14" width="32" height="32" fill="none" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="2 2"/>
+      <line x1="14" y1="46" x2="46" y2="46" stroke="${edge}" stroke-width="${widths.front}" stroke-linecap="square"/>
+      <line x1="14" y1="14" x2="46" y2="14" stroke="${edge}"  stroke-width="${widths.back}"  stroke-linecap="square"/>
+      <line x1="14" y1="14" x2="14" y2="46" stroke="${edge}"  stroke-width="${widths.left}"  stroke-linecap="square"/>
+      <line x1="46" y1="14" x2="46" y2="46" stroke="${edge}" stroke-width="${widths.right}" stroke-linecap="square"/>
+      <text x="30" y="54" text-anchor="middle" font-size="6" fill="var(--text-dim)" stroke="none" font-family="system-ui">street</text>
+    </svg>`;
+  }
+
+  function orientationIcon(kind) {
+    if (kind === 'front') {
+      return `<svg viewBox="0 0 60 60">
+        <rect x="20" y="18" width="20" height="24" rx="2"/>
+        <circle cx="30" cy="30" r="3"/>
+      </svg>`;
+    }
+    return `<svg viewBox="0 0 60 60">
+      <rect x="26" y="18" width="8" height="24" rx="1"/>
+    </svg>`;
+  }
+
+  function heightIcon(level) {
+    const y = level === 'low' ? 42 : level === 'mid' ? 30 : 18;
+    return `<svg viewBox="0 0 60 60">
+      <line x1="15" y1="50" x2="45" y2="50" />
+      <line x1="20" y1="50" x2="20" y2="10" />
+      <rect x="14" y="${y}" width="12" height="8" />
+    </svg>`;
+  }
+
+  function tetherIcon(t) {
+    if (t === 'tethered') {
+      return `<svg viewBox="0 0 60 60">
+        <rect x="22" y="14" width="16" height="22" rx="2"/>
+        <path d="M30 36 Q30 48 38 48 Q46 48 46 40" />
+      </svg>`;
+    }
+    return `<svg viewBox="0 0 60 60">
+      <rect x="22" y="14" width="16" height="22" rx="2"/>
+      <circle cx="30" cy="25" r="3"/>
+    </svg>`;
+  }
+
+  function render() {
+    const root = document.getElementById('app');
+    const step = STEPS[state.stepIdx];
+
+    let html = `
+      <div class="header">
+        <a class="back-home" href="/" aria-label="Back to tools index">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>
+          <span>Back</span>
+        </a>
+        <div class="brand">Default Office · EV Logger</div>
+      </div>
+    `;
+
+    // Progress dots: indices < current are 'done', exactly == current is 'current'
+    html += '<div class="progress">';
+    for (let i = 0; i < STEPS.length; i++) {
+      let cls = '';
+      if (i < state.stepIdx) cls = 'done';
+      else if (i === state.stepIdx) cls = 'current';
+      html += `<div class="progress-dot ${cls}"></div>`;
+    }
+    html += '</div>';
+
+    html += '<div class="step">';
+
+    if (step === 'side') {
+      html += `
+        <div class="step-label">Step 1 of 5</div>
+        <div class="step-title">Which side of the house?</div>
+        <div class="grid-2">
+          ${[['front','Front'],['back','Back'],['left','Left'],['right','Right']].map(([k,v]) => `
+            <button class="big-btn ${state.side === k ? 'selected' : ''}" onclick="pickSide('${k}')">
+              ${houseIcon(k)}<span>${v}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    } else if (step === 'orientation') {
+      html += `
+        <div class="step-label">Step 2 of 5</div>
+        <div class="step-title">What's the main visible face of the charger?</div>
+        <div class="grid-2">
+          <button class="big-btn ${state.orientation === 'front' ? 'selected' : ''}" onclick="pickOrient('front')">
+            ${orientationIcon('front')}<span>Front</span>
+          </button>
+          <button class="big-btn ${state.orientation === 'side' ? 'selected' : ''}" onclick="pickOrient('side')">
+            ${orientationIcon('side')}<span>Side</span>
+          </button>
+        </div>
+      `;
+    } else if (step === 'height') {
+      html += `
+        <div class="step-label">Step 3 of 5</div>
+        <div class="step-title">Mounting height?</div>
+        <div class="grid-1">
+          ${[['low','Low (knee/below)'],['mid','Mid (waist)'],['high','High (shoulder+)']].map(([k,v]) => `
+            <button class="big-btn ${state.height === k ? 'selected' : ''}" style="flex-direction:row;justify-content:flex-start;gap:20px;padding-left:24px"
+              onclick="pickHeight('${k}')">
+              ${heightIcon(k)}<span>${v}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    } else if (step === 'tether') {
+      html += `
+        <div class="step-label">Step 4 of 5</div>
+        <div class="step-title">Cable type?</div>
+        <div class="grid-2">
+          <button class="big-btn ${state.tether === 'tethered' ? 'selected' : ''}" onclick="pickTether('tethered')">
+            ${tetherIcon('tethered')}<span>Tethered</span>
+          </button>
+          <button class="big-btn ${state.tether === 'untethered' ? 'selected' : ''}" onclick="pickTether('untethered')">
+            ${tetherIcon('untethered')}<span>Untethered</span>
+          </button>
+        </div>
+      `;
+    } else if (step === 'notes') {
+      html += `
+        <div class="step-label">Step 5 of 5 — optional</div>
+        <div class="step-title">Notes</div>
+        <textarea class="notes-input" placeholder="Anything else worth noting (street, brand guess, weirdness)…"
+          oninput="state.notes = this.value">${state.notes}</textarea>
+      `;
+    }
+
+    // Nav row
+    html += '<div class="nav-row">';
+    if (state.stepIdx > 0) {
+      html += `<button class="nav-btn" onclick="goBack()">${CHEVRON_LEFT}<span>Back</span></button>`;
+    }
+    if (step === 'tether' && state.tether) {
+      // Tether is the auto-submit step. Once selected, we offer:
+      //  - "Add notes" (continue to optional notes step)
+      //  - "Save" primary action (submit immediately)
+      html += `<button class="nav-btn" onclick="goNext()"><span>Add notes</span>${CHEVRON_RIGHT}</button>`;
+      html += `<button class="nav-btn primary" onclick="submitRecord()">Save</button>`;
+    } else if (step === 'notes') {
+      html += `<button class="nav-btn primary" onclick="submitRecord()">Save</button>`;
+    }
+    html += '</div>';
+
+    html += '</div>';
+
+    html += `
+      <div class="footer-bar">
+        <div class="meta">
+          ${recordCount} records logged${lastSync ? ' · last: ' + lastSync : ''}
+        </div>
+        <button class="small-link" onclick="resetFlow()">Start over</button>
+      </div>
+    `;
+
+    if (toast) {
+      html += `<div class="toast ${toast.type === 'error' ? 'error' : ''}">${toast.msg}</div>`;
+    }
+
+    root.innerHTML = html;
+  }
+
+  // Auto-advance pickers for steps 1–3
+  window.pickSide = (s) => { state.side = s; goNext(); };
+  window.pickOrient = (o) => { state.orientation = o; goNext(); };
+  window.pickHeight = (h) => { state.height = h; goNext(); };
+
+  // Tether: per spec, auto-submit on selection (with optional notes route via "Add notes" button after selecting)
+  // We render the buttons first; tapping a tether option triggers immediate submit.
+  // The "Add notes" affordance is available between the click of tether and the submit happening only
+  // if the user has not yet tapped — but since the spec asks for auto-submit, we run submit right away.
+  // To still provide the optional notes route the spec mentions, we instead set tether and re-render so
+  // both buttons (Add notes / Save) appear briefly, then auto-submit after a short window.
+  window.pickTether = (t) => {
+    state.tether = t;
+    render();
+    // Auto-submit after a brief grace period unless the user taps "Add notes"
+    if (window._tetherAutoSubmit) clearTimeout(window._tetherAutoSubmit);
+    window._tetherAutoSubmit = setTimeout(() => {
+      // Only auto-submit if we're still on the tether step (user didn't navigate to notes)
+      if (STEPS[state.stepIdx] === 'tether' && state.tether === t) {
+        submitRecord();
+      }
+    }, 1200);
+  };
+
+  window.goNext = () => {
+    if (window._tetherAutoSubmit) { clearTimeout(window._tetherAutoSubmit); window._tetherAutoSubmit = null; }
+    if (state.stepIdx < STEPS.length - 1) {
+      state.stepIdx += 1;
+      render();
+    }
+  };
+  window.goBack = () => {
+    if (window._tetherAutoSubmit) { clearTimeout(window._tetherAutoSubmit); window._tetherAutoSubmit = null; }
+    if (state.stepIdx > 0) {
+      state.stepIdx -= 1;
+      render();
+    }
+  };
+
+  window.resetFlow = () => {
+    if (window._tetherAutoSubmit) { clearTimeout(window._tetherAutoSubmit); window._tetherAutoSubmit = null; }
+    state = { stepIdx: 0, side: null, orientation: null, height: null, tether: null, notes: '' };
+    render();
+  };
+
+  window.submitRecord = async () => {
+    if (window._tetherAutoSubmit) { clearTimeout(window._tetherAutoSubmit); window._tetherAutoSubmit = null; }
+    const payload = {
+      side: state.side,
+      orientation: state.orientation,
+      height: state.height,
+      tether: state.tether,
+      notes: state.notes,
+    };
+    const btn = document.querySelector('.nav-btn.primary');
+    if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+      await bumpCount();
+      lastSync = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      showToast('Saved ✓');
+      resetFlow();
+    } catch (err) {
+      showToast('Failed — check connection', 'error');
+      render();
+    }
+  };
+
+  function showToast(msg, type) {
+    toast = { msg, type };
+    render();
+    setTimeout(() => { toast = null; render(); }, 1800);
+  }
+
+  (async () => {
+    await loadConfig();
+    render();
+  })();
+</script>
+
+</body>
+</html>

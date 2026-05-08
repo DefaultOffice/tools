@@ -1,0 +1,8 @@
+{
+    "name": "EV Charger Logger",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 05 08",
+    "description": "A mobile logger for recording data on installed EV Chargers"
+}
