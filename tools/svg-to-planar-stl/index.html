@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG to Planar STL — Default Office</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --bg:#1a1a1a; --raised:#2a2a2a; --input:#3a3a3a; --line:#444;
+    --fg:#fff; --dim:#aaa; --dim2:#888; --blue:#0066cc; --canvas:#f0f0f0;
+  }
+
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;
+    font-size:13px;background:var(--bg);color:var(--fg);
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+
+  .app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:44px 1fr 44px;height:100vh}
+
+  .header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;border-bottom:1px solid var(--line)}
+  .back{color:var(--dim2);text-decoration:none;font-size:12px}
+  .back:hover{color:var(--fg)}
+  .title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px}
+  .ver{color:var(--dim2);font-size:11px;letter-spacing:1px}
+
+  .side{border-right:1px solid var(--line);overflow-y:auto;padding:20px}
+  .side::-webkit-scrollbar{width:8px}
+  .side::-webkit-scrollbar-track{background:#2a2a2a}
+  .side::-webkit-scrollbar-thumb{background:#555}
+
+  .grp{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  .grp:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .grp h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;
+    opacity:.8;margin-bottom:14px}
+
+  .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;gap:10px}
+  .row:last-child{margin-bottom:0}
+  .lab{font-size:12px;color:var(--dim);white-space:nowrap}
+  .val{font-family:'Monaco','Courier New',monospace;font-size:11px;background:#555;color:#fff;
+    padding:3px 8px;border-radius:4px;min-width:60px;text-align:right}
+
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--line);
+    border-radius:2px;outline:none;margin:8px 0 4px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+    border-radius:50%;background:#fff;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;
+    border:none;cursor:pointer}
+
+  select,input[type=number]{background:var(--input);border:1px solid var(--line);color:var(--fg);
+    padding:5px 7px;border-radius:4px;font:inherit;font-size:12px;width:112px}
+  select{width:134px}
+
+  .chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);
+    margin-bottom:9px;cursor:pointer}
+  .chk input{accent-color:#fff}
+
+  .drop{border:1px dashed var(--line);border-radius:6px;padding:22px 10px;text-align:center;
+    color:var(--dim2);font-size:12px;cursor:pointer;line-height:1.7;
+    overflow:hidden;text-overflow:ellipsis}
+  .drop:hover,.drop.over{border-color:#fff;color:#fff}
+  .drop b{color:var(--fg);font-weight:400;display:block}
+
+  .note{font-size:11px;color:var(--dim2);line-height:1.5;margin-top:8px}
+
+  button{width:100%;background:#333;border:none;color:#e0e0e0;padding:10px;border-radius:4px;
+    font:inherit;font-size:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
+  button:hover{background:#444}
+  button.pri{background:var(--blue);color:#fff;font-weight:600}
+  button.pri:hover{background:#0052a3}
+  button:disabled{opacity:.35;cursor:default;background:#333}
+
+  .stage{display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden}
+  canvas{background:var(--canvas);border:1px solid #ddd;border-radius:8px}
+
+  .foot{grid-column:1/-1;border-top:1px solid var(--line);display:flex;align-items:center;
+    gap:20px;padding:0 16px;font-size:11px;color:var(--dim2)}
+  .foot .v{font-family:'Monaco','Courier New',monospace;color:#fff;margin-left:7px}
+  .foot .warn{color:#cc3333}
+  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .seg button{width:auto;border-radius:0;padding:5px 11px;letter-spacing:1px;font-size:11px;
+    background:#2a2a2a;color:var(--dim)}
+  .seg button.on{background:#555;color:#fff}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <a href="/" class="back">← Back</a>
+    <div class="title">SVG → STL</div>
+    <div class="ver">PLANAR TRIM</div>
+  </div>
+
+  <div class="side">
+
+    <div class="grp">
+      <h2>Source</h2>
+      <div class="drop" id="drop"><b id="dropName">Drop SVG</b>or click to choose
+        <input type="file" id="file" accept=".svg,image/svg+xml" hidden></div>
+      <div style="height:14px"></div>
+      <label class="chk"><input type="checkbox" id="skipNone" checked> Ignore fill:none shapes</label>
+      <div class="row">
+        <div class="lab">Inner loops</div>
+        <select id="holes">
+          <option value="auto">Cut as holes</option>
+          <option value="ignore">Fill over</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h2>Size</h2>
+      <div class="row">
+        <div class="lab">Fit to</div>
+        <select id="mode">
+          <option value="width">Width (mm)</option>
+          <option value="height">Height (mm)</option>
+          <option value="scale">Scale ×</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="lab" id="valLab">Width</div>
+        <input type="number" id="val" value="100" step="any" min="0.01">
+      </div>
+      <div class="row">
+        <div class="lab">Origin</div>
+        <select id="origin">
+          <option value="centre">Centred</option>
+          <option value="corner">Min corner</option>
+        </select>
+      </div>
+      <label class="chk"><input type="checkbox" id="mirror"> Mirror in X</label>
+    </div>
+
+    <div class="grp">
+      <h2>Mesh</h2>
+      <div class="row">
+        <div class="lab">Driver</div>
+        <select id="driver">
+          <option value="tol">Chord tolerance</option>
+          <option value="budget">Triangle budget</option>
+        </select>
+      </div>
+
+      <div id="tolBox">
+        <div class="row"><div class="lab">Tolerance</div><div class="val" id="tolVal">0.100 mm</div></div>
+        <input type="range" id="tol" min="0" max="100" value="45">
+        <div class="note">Max deviation of the mesh edge from the true curve. Coarser = fewer triangles.</div>
+      </div>
+
+      <div id="budBox" class="hide">
+        <div class="row"><div class="lab">Budget</div><div class="val" id="budVal">4,000</div></div>
+        <input type="range" id="bud" min="0" max="100" value="45">
+        <div class="note">Solves for the finest tolerance that stays under the budget. Resolved value shown below.</div>
+        <div class="row" style="margin-top:10px">
+          <div class="lab">Resolved</div><div class="val" id="tolOut">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h2>Body</h2>
+      <div class="row"><div class="lab">Thickness</div><div class="val" id="thVal">0.0 mm</div></div>
+      <input type="range" id="th" min="0" max="200" value="0">
+      <div class="note" id="thNote">Zero = single planar surface (open shell). Above zero = closed solid.</div>
+      <div class="row" style="margin-top:12px">
+        <div class="lab">Z datum</div>
+        <select id="zdat">
+          <option value="base">Base at 0</option>
+          <option value="mid">Centred</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grp">
+      <h2>Export</h2>
+      <div class="row">
+        <div class="lab">Format</div>
+        <select id="fmt">
+          <option value="bin">Binary STL</option>
+          <option value="ascii">ASCII STL</option>
+        </select>
+      </div>
+      <div style="height:14px"></div>
+      <button class="pri" id="dl" disabled>Export STL</button>
+    </div>
+
+  </div>
+
+  <div class="stage"><canvas id="cv"></canvas></div>
+
+  <div class="foot">
+    <div class="seg" id="view">
+      <button data-v="plan" class="on">Plan</button>
+      <button data-v="iso">Iso</button>
+    </div>
+    <label class="chk" style="margin:0"><input type="checkbox" id="wire" checked> Wireframe</label>
+    <div>Loops<span class="v" id="sLoops">—</span></div>
+    <div>Points<span class="v" id="sPts">—</span></div>
+    <div>Triangles<span class="v" id="sTri">—</span></div>
+    <div>Bounds<span class="v" id="sBox">—</span></div>
+    <div>File<span class="v" id="sFile">—</span></div>
+    <div id="sMsg" style="margin-left:auto"></div>
+  </div>
+
+</div>
+
+<div id="hidden" style="position:absolute;left:-99999px;top:0;width:2000px;height:2000px;overflow:hidden"></div>
+
+<script>
+const NS='http://www.w3.org/2000/svg', $=id=>document.getElementById(id);
+let raw=null, mesh=null, srcText=null, fileName='shape', viewMode='plan';
+
+const TOL_MIN=0.005, TOL_MAX=2, BUD_MIN=200, BUD_MAX=100000, TH_MAX=25;
+const logMap=(t,a,b)=>a*Math.pow(b/a,t/100);
+const tolOf=()=>logMap(+$('tol').value,TOL_MIN,TOL_MAX);
+const budOf=()=>Math.round(logMap(+$('bud').value,BUD_MIN,BUD_MAX)/50)*50;
+const thOf =()=>+((+$('th').value/200*TH_MAX).toFixed(2));
+const fmtN =n=>n.toLocaleString('en-GB');
+
+/* ---------- path data ---------- */
+const ARGS={M:2,L:2,H:1,V:1,C:6,S:4,Q:4,T:2,A:7,Z:0};
+function tokenize(d){
+  const re=/([MmLlHhVvCcSsQqTtAaZz])|(-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/g;
+  const out=[];let m,cmd=null,buf=[];
+  const flush=()=>{
+    if(!cmd)return;const n=ARGS[cmd.toUpperCase()];
+    if(n===0){out.push([cmd]);buf=[];return;}
+    while(buf.length>=n){out.push([cmd,...buf.splice(0,n)]);
+      if(cmd==='M')cmd='L';else if(cmd==='m')cmd='l';}
+    buf=[];
+  };
+  while((m=re.exec(d))){
+    if(m[1]){flush();cmd=m[1];if(ARGS[cmd.toUpperCase()]===0)flush();}
+    else buf.push(parseFloat(m[2]));
+  }
+  flush();return out;
+}
+function subpaths(d){
+  const t=tokenize(d),out=[];let cx=0,cy=0,sx=0,sy=0,cur=null;
+  const F=n=>+n.toFixed(6);
+  for(const c of t){
+    const k=c[0],K=k.toUpperCase(),rel=k!==K,a=c.slice(1);
+    if(K==='M'){const x=rel?cx+a[0]:a[0],y=rel?cy+a[1]:a[1];
+      cur=['M '+F(x)+' '+F(y)];out.push(cur);cx=sx=x;cy=sy=y;continue;}
+    if(!cur){cur=['M 0 0'];out.push(cur);}
+    if(K==='Z'){cur.push('Z');cx=sx;cy=sy;continue;}
+    if(K==='L'){const x=rel?cx+a[0]:a[0],y=rel?cy+a[1]:a[1];cur.push('L '+F(x)+' '+F(y));cx=x;cy=y;continue;}
+    if(K==='H'){const x=rel?cx+a[0]:a[0];cur.push('L '+F(x)+' '+F(cy));cx=x;continue;}
+    if(K==='V'){const y=rel?cy+a[0]:a[0];cur.push('L '+F(cx)+' '+F(y));cy=y;continue;}
+    if('CSQT'.includes(K)){const p=[];
+      for(let i=0;i<a.length;i+=2)p.push(F(rel?cx+a[i]:a[i]),F(rel?cy+a[i+1]:a[i+1]));
+      cur.push(K+' '+p.join(' '));cx=p[p.length-2];cy=p[p.length-1];continue;}
+    if(K==='A'){const x=rel?cx+a[5]:a[5],y=rel?cy+a[6]:a[6];
+      cur.push('A '+a[0]+' '+a[1]+' '+a[2]+' '+a[3]+' '+a[4]+' '+F(x)+' '+F(y));cx=x;cy=y;}
+  }
+  return out.map(s=>s.join(' ')).filter(s=>s.length>8);
+}
+function elToD(el){
+  const t=el.tagName.toLowerCase(),g=a=>parseFloat(el.getAttribute(a)||0);
+  if(t==='path')return el.getAttribute('d')||'';
+  if(t==='rect'){
+    const x=g('x'),y=g('y'),w=g('width'),h=g('height');if(!w||!h)return'';
+    let rx=el.hasAttribute('rx')?g('rx'):(el.hasAttribute('ry')?g('ry'):0);
+    let ry=el.hasAttribute('ry')?g('ry'):rx;
+    rx=Math.min(rx,w/2);ry=Math.min(ry,h/2);
+    if(!rx&&!ry)return `M ${x} ${y} L ${x+w} ${y} L ${x+w} ${y+h} L ${x} ${y+h} Z`;
+    return `M ${x+rx} ${y} L ${x+w-rx} ${y} A ${rx} ${ry} 0 0 1 ${x+w} ${y+ry} L ${x+w} ${y+h-ry} A ${rx} ${ry} 0 0 1 ${x+w-rx} ${y+h} L ${x+rx} ${y+h} A ${rx} ${ry} 0 0 1 ${x} ${y+h-ry} L ${x} ${y+ry} A ${rx} ${ry} 0 0 1 ${x+rx} ${y} Z`;
+  }
+  if(t==='circle'){const r=g('r');if(!r)return'';const cx=g('cx'),cy=g('cy');
+    return `M ${cx-r} ${cy} a ${r} ${r} 0 1 0 ${2*r} 0 a ${r} ${r} 0 1 0 ${-2*r} 0 Z`;}
+  if(t==='ellipse'){const rx=g('rx'),ry=g('ry');if(!rx||!ry)return'';const cx=g('cx'),cy=g('cy');
+    return `M ${cx-rx} ${cy} a ${rx} ${ry} 0 1 0 ${2*rx} 0 a ${rx} ${ry} 0 1 0 ${-2*rx} 0 Z`;}
+  if(t==='polygon'||t==='polyline'){
+    const p=(el.getAttribute('points')||'').trim().split(/[\s,]+/).map(Number);
+    if(p.length<6)return'';
+    let d='M '+p[0]+' '+p[1];
+    for(let i=2;i<p.length-1;i+=2)d+=' L '+p[i]+' '+p[i+1];
+    return d+' Z';
+  }
+  return '';
+}
+
+/* ---------- geometry ---------- */
+const area=P=>{let a=0;for(let i=0,j=P.length-1;i<P.length;j=i++)a+=P[j][0]*P[i][1]-P[i][0]*P[j][1];return a/2;};
+const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+function inPoly(p,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];
+  if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
+function inTri(p,a,b,c){const e=1e-9;
+  if((Math.abs(p[0]-a[0])<e&&Math.abs(p[1]-a[1])<e)||(Math.abs(p[0]-b[0])<e&&Math.abs(p[1]-b[1])<e)||
+     (Math.abs(p[0]-c[0])<e&&Math.abs(p[1]-c[1])<e))return false;
+  return cr(a,b,p)>=0&&cr(b,c,p)>=0&&cr(c,a,p)>=0;}
+
+function rdpOpen(pts,eps){
+  if(pts.length<3)return pts.slice();
+  const keep=new Array(pts.length).fill(false);
+  keep[0]=keep[pts.length-1]=true;
+  const st=[[0,pts.length-1]];
+  while(st.length){
+    const seg=st.pop(),a=seg[0],b=seg[1];
+    if(b-a<2)continue;
+    const A=pts[a],B=pts[b],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy);
+    let md=-1,mi=-1;
+    for(let i=a+1;i<b;i++){
+      const d=L<1e-12?Math.hypot(pts[i][0]-A[0],pts[i][1]-A[1])
+                     :Math.abs(dy*(pts[i][0]-A[0])-dx*(pts[i][1]-A[1]))/L;
+      if(d>md){md=d;mi=i;}
+    }
+    if(md>eps){keep[mi]=true;st.push([a,mi],[mi,b]);}
+  }
+  return pts.filter((_,i)=>keep[i]);
+}
+function rdpClosed(pts,eps){
+  if(pts.length<5||eps<=0)return pts;
+  let far=1,fd=-1;
+  for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[0][0],pts[i][1]-pts[0][1]);if(d>fd){fd=d;far=i;}}
+  const a=rdpOpen(pts.slice(0,far+1),eps);
+  const b=rdpOpen(pts.slice(far).concat([pts[0]]),eps);
+  const out=a.slice(0,-1).concat(b.slice(0,-1));
+  return out.length>=3?out:pts.slice(0,3);
+}
+
+function bridge(outer,hole){
+  let mi=0;for(let i=1;i<hole.length;i++)if(hole[i][0]>hole[mi][0])mi=i;
+  const M=hole[mi];let bx=Infinity,be=-1;
+  for(let i=0;i<outer.length;i++){
+    const a=outer[i],b=outer[(i+1)%outer.length];
+    if((a[1]>M[1])===(b[1]>M[1]))continue;
+    const x=a[0]+(M[1]-a[1])/(b[1]-a[1])*(b[0]-a[0]);
+    if(x>M[0]&&x<bx){bx=x;be=i;}
+  }
+  if(be<0)return null;
+  const I=[bx,M[1]],a=outer[be],b=outer[(be+1)%outer.length];
+  let pi=a[0]>b[0]?be:(be+1)%outer.length,P=outer[pi],bd=Infinity;
+  const cosOf=R=>{const dx=R[0]-M[0],dy=R[1]-M[1],L=Math.hypot(dx,dy)||1e-12;return dx/L;};
+  let bc=cosOf(P);
+  for(let i=0;i<outer.length;i++){
+    if(i===pi)continue;const R=outer[i];
+    if(!inTri(R,M,I,P))continue;
+    const pr=outer[(i-1+outer.length)%outer.length],nx=outer[(i+1)%outer.length];
+    if(cr(pr,R,nx)>0)continue;
+    const c=cosOf(R),d=Math.hypot(R[0]-M[0],R[1]-M[1]);
+    if(c>bc+1e-12||(Math.abs(c-bc)<=1e-12&&d<bd)){bc=c;bd=d;pi=i;P=R;}
+  }
+  const out=[];
+  for(let i=0;i<=pi;i++)out.push(outer[i]);
+  for(let i=0;i<hole.length;i++)out.push(hole[(mi+i)%hole.length]);
+  out.push(hole[mi].slice());out.push(outer[pi].slice());
+  for(let i=pi+1;i<outer.length;i++)out.push(outer[i]);
+  return out;
+}
+function earcut(poly){
+  const idx=poly.map((_,i)=>i),tris=[];
+  let guard=idx.length*idx.length*2+64;
+  while(idx.length>3&&guard-->0){
+    let done=false;
+    for(let i=0;i<idx.length;i++){
+      const L=idx.length,i0=idx[(i+L-1)%L],i1=idx[i],i2=idx[(i+1)%L];
+      const a=poly[i0],b=poly[i1],c=poly[i2];
+      if(cr(a,b,c)<=1e-12)continue;
+      let ok=true;
+      for(const j of idx){if(j===i0||j===i1||j===i2)continue;
+        if(inTri(poly[j],a,b,c)){ok=false;break;}}
+      if(!ok)continue;
+      tris.push([a,b,c]);idx.splice(i,1);done=true;break;
+    }
+    if(!done)break;
+  }
+  if(idx.length===3)tris.push([poly[idx[0]],poly[idx[1]],poly[idx[2]]]);
+  return tris;
+}
+
+/* ---------- load / parse ---------- */
+$('drop').onclick=()=>$('file').click();
+$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('over')};
+$('drop').ondragleave=()=>$('drop').classList.remove('over');
+$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');
+  if(e.dataTransfer.files[0])load(e.dataTransfer.files[0])};
+$('file').onchange=e=>{if(e.target.files[0])load(e.target.files[0])};
+
+function load(f){
+  fileName=f.name.replace(/\.svg$/i,'')||'shape';
+  const r=new FileReader();
+  r.onload=()=>{srcText=r.result;$('dropName').textContent=f.name;reparse();};
+  r.readAsText(f);
+}
+function reparse(){
+  if(!srcText)return;
+  try{ parse(srcText); msg(''); update(); }
+  catch(e){ raw=null;mesh=null;$('dl').disabled=true;msg(e.message,true); }
+}
+
+function parse(text){
+  const host=$('hidden');host.innerHTML='';
+  const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+  if(doc.querySelector('parsererror'))throw new Error('SVG could not be parsed');
+  const root=doc.documentElement;host.appendChild(root);
+  const tmp=document.createElementNS(NS,'svg');host.appendChild(tmp);
+
+  let bb=null;try{bb=root.getBBox();}catch(e){}
+  const diag=(bb&&bb.width)?Math.hypot(bb.width,bb.height):1000;
+  const step=Math.min(2,Math.max(0.05,diag/6000));   // dense base sample; RDP decimates later
+
+  const skipNone=$('skipNone').checked;
+  const loops=[];
+  for(const el of root.querySelectorAll('path,rect,circle,ellipse,polygon,polyline')){
+    const cs=getComputedStyle(el);
+    if(cs.display==='none'||cs.visibility==='hidden')continue;
+    if(skipNone&&cs.fill==='none')continue;
+    const d=elToD(el);if(!d)continue;
+    const ctm=el.getCTM();if(!ctm)continue;
+    for(const sd of subpaths(d)){
+      const p=document.createElementNS(NS,'path');p.setAttribute('d',sd);tmp.appendChild(p);
+      let len=0;try{len=p.getTotalLength();}catch(e){}
+      if(len>1e-6){
+        const n=Math.min(30000,Math.max(3,Math.ceil(len/step)));
+        const pts=[];
+        for(let i=0;i<=n;i++){
+          const q=p.getPointAtLength(len*i/n);
+          const x=ctm.a*q.x+ctm.c*q.y+ctm.e, y=ctm.b*q.x+ctm.d*q.y+ctm.f;
+          const l=pts[pts.length-1];
+          if(!l||Math.hypot(x-l[0],y-l[1])>1e-7)pts.push([x,y]);
+        }
+        if(pts.length>2){
+          const a=pts[0],b=pts[pts.length-1];
+          if(Math.hypot(a[0]-b[0],a[1]-b[1])<1e-6)pts.pop();
+          if(pts.length>=3&&Math.abs(area(pts))>1e-6)loops.push(pts);
+        }
+      }
+      tmp.removeChild(p);
+    }
+  }
+  if(!loops.length)throw new Error('No fillable geometry — strokes only, or <use>/<image> content');
+
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const L of loops)for(const p of L){
+    x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+
+  const depth=loops.map((L,i)=>{let d=0;
+    for(let j=0;j<loops.length;j++)if(j!==i&&inPoly(L[0],loops[j]))d++;return d;});
+
+  raw={loops,depth,x0,y0,x1,y1};
+}
+
+/* ---------- exact triangle-count prediction (no triangulation needed) ----------
+   Ear clipping an n-gon yields n-2 triangles. Bridging a hole of h vertices into
+   its outer loop adds h+2 vertices. So the count follows from point counts alone —
+   which is what lets the budget solver bisect in milliseconds. */
+function predict(G,th){
+  let planar=0,edges=0;
+  for(const g of G){
+    let n=g.outer.length;edges+=g.outer.length;
+    for(const h of g.holes){n+=h.length+2;edges+=h.length;}
+    planar+=Math.max(0,n-2);
+  }
+  return th>0?planar*2+edges*2:planar;
+}
+
+function build(tolMM){
+  const {loops,depth,x0,y0,x1,y1}=raw;
+  const wpx=(x1-x0)||1, hpx=(y1-y0)||1;
+  const mode=$('mode').value, v=Math.max(1e-6,parseFloat($('val').value)||1);
+  const s = mode==='width'?v/wpx : mode==='height'?v/hpx : v;
+  const mir=$('mirror').checked;
+
+  let L2=loops.map(L=>rdpClosed(
+    L.map(p=>[(mir?(x1-p[0]):(p[0]-x0))*s,(y1-p[1])*s]), tolMM));
+
+  const W=wpx*s, H=hpx*s;
+  if($('origin').value==='centre')L2=L2.map(L=>L.map(p=>[p[0]-W/2,p[1]-H/2]));
+
+  const ignore=$('holes').value==='ignore';
+  const G=[],holeSet=new Set();
+  L2.forEach((L,i)=>{
+    if(ignore||depth[i]%2===0){
+      const o=L.slice(); if(area(o)<0)o.reverse();
+      G.push({idx:i,outer:o,holes:[]});
+    }
+  });
+  if(!ignore){
+    L2.forEach((L,i)=>{
+      if(depth[i]%2===0)return;
+      for(const g of G){
+        if(depth[g.idx]!==depth[i]-1)continue;
+        if(!inPoly(L[0],L2[g.idx]))continue;
+        const h=L.slice(); if(area(h)>0)h.reverse();
+        g.holes.push(h); holeSet.add(i); break;
+      }
+    });
+  }
+  return {L2,G,W,H,holeSet};
+}
+
+/* ---------- update ---------- */
+let timer=null;
+const queue=()=>{clearTimeout(timer);
+  timer=setTimeout(()=>{try{update()}catch(e){msg(e.message,true)}},110);};
+
+function update(){
+  if(!raw)return;
+  const t0=performance.now();
+  const th=thOf();
+  let tol=tolOf();
+
+  if($('driver').value==='budget'){
+    const target=budOf();
+    let lo=0,hi=100;
+    for(let k=0;k<18;k++){
+      const mid=(lo+hi)/2;
+      const n=predict(build(logMap(mid,TOL_MIN,TOL_MAX)).G,th);
+      if(n>target)lo=mid;else hi=mid;
+    }
+    tol=logMap(hi,TOL_MIN,TOL_MAX);
+    $('tolOut').textContent=tol.toFixed(3)+' mm';
+    $('tol').value=hi; $('tolVal').textContent=tol.toFixed(3)+' mm';
+  }
+
+  const b=build(tol);
+  const z0=(th>0&&$('zdat').value==='mid')?-th/2:0, z1=z0+th;
+
+  const tris2=[];
+  for(const g of b.G){
+    let poly=g.outer;
+    const hs=g.holes.slice().sort((p,q)=>
+      Math.max(...q.map(v=>v[0]))-Math.max(...p.map(v=>v[0])));
+    for(const h of hs){const m=bridge(poly,h);if(m)poly=m;}
+    tris2.push(...earcut(poly));
+  }
+  if(!tris2.length)throw new Error('Triangulation empty — try a coarser tolerance');
+
+  const T=[];
+  if(th<=0){
+    for(const t of tris2)T.push([[t[0][0],t[0][1],0],[t[1][0],t[1][1],0],[t[2][0],t[2][1],0]]);
+  }else{
+    for(const t of tris2){
+      T.push([[t[0][0],t[0][1],z1],[t[1][0],t[1][1],z1],[t[2][0],t[2][1],z1]]);
+      T.push([[t[0][0],t[0][1],z0],[t[2][0],t[2][1],z0],[t[1][0],t[1][1],z0]]);
+    }
+    for(const g of b.G){
+      for(const L of [g.outer,...g.holes]){
+        for(let i=0;i<L.length;i++){
+          const a=L[i],c=L[(i+1)%L.length];
+          T.push([[a[0],a[1],z0],[c[0],c[1],z0],[c[0],c[1],z1]]);
+          T.push([[a[0],a[1],z0],[c[0],c[1],z1],[a[0],a[1],z1]]);
+        }
+      }
+    }
+  }
+
+  mesh={T,tris2,loops:b.L2,holeSet:b.holeSet,th};
+  $('dl').disabled=false;
+
+  const pts=b.L2.reduce((n,L)=>n+L.length,0);
+  $('sLoops').textContent=b.L2.length+(b.holeSet.size?' / '+b.holeSet.size+'h':'');
+  $('sPts').textContent=fmtN(pts);
+  $('sTri').textContent=fmtN(T.length);
+  $('sBox').textContent=b.W.toFixed(1)+' × '+b.H.toFixed(1)+' × '+th.toFixed(1);
+  const bytes=$('fmt').value==='bin'?84+T.length*50:T.length*250;
+  $('sFile').textContent=bytes>1e6?(bytes/1e6).toFixed(1)+' MB':Math.round(bytes/1024)+' KB';
+  msg((th>0?'Closed solid · ':'Open surface, zero thickness · ')+Math.round(performance.now()-t0)+' ms', th<=0);
+  draw();
+}
+function msg(t,warn){const e=$('sMsg');e.textContent=t;e.className=warn?'warn':'';}
+
+/* ---------- preview ---------- */
+function draw(){
+  if(!mesh)return;
+  const cv=$('cv'),st=cv.parentElement.getBoundingClientRect(),dpr=devicePixelRatio||1;
+  const W=Math.max(60,st.width-48),H=Math.max(60,st.height-48);
+  cv.style.width=W+'px';cv.style.height=H+'px';cv.width=W*dpr;cv.height=H*dpr;
+  const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const wire=$('wire').checked&&mesh.T.length<50000;
+
+  if(viewMode==='plan'){
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const L of mesh.loops)for(const p of L){
+      x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+    const pad=30,s=Math.min((W-2*pad)/((x1-x0)||1),(H-2*pad)/((y1-y0)||1));
+    const X=x=>(W-(x1-x0)*s)/2+(x-x0)*s, Y=y=>H-((H-(y1-y0)*s)/2+(y-y0)*s);
+    g.fillStyle='rgba(26,26,26,.10)';g.beginPath();
+    for(const t of mesh.tris2){g.moveTo(X(t[0][0]),Y(t[0][1]));g.lineTo(X(t[1][0]),Y(t[1][1]));g.lineTo(X(t[2][0]),Y(t[2][1]));g.closePath();}
+    g.fill();
+    if(wire){g.strokeStyle='rgba(26,26,26,.22)';g.lineWidth=.5;g.beginPath();
+      for(const t of mesh.tris2){g.moveTo(X(t[0][0]),Y(t[0][1]));g.lineTo(X(t[1][0]),Y(t[1][1]));g.lineTo(X(t[2][0]),Y(t[2][1]));g.closePath();}
+      g.stroke();}
+    g.lineWidth=1.25;g.strokeStyle='#1a1a1a';
+    mesh.loops.forEach((L,i)=>{
+      g.setLineDash(mesh.holeSet.has(i)?[4,3]:[]);
+      g.beginPath();g.moveTo(X(L[0][0]),Y(L[0][1]));
+      for(const p of L)g.lineTo(X(p[0]),Y(p[1]));
+      g.closePath();g.stroke();
+    });
+    g.setLineDash([]);
+    return;
+  }
+
+  const az=-0.62,el=0.62,ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el);
+  const proj=v=>{const x=v[0]*ca-v[1]*sa,y=v[0]*sa+v[1]*ca;
+    return [x,y*se-v[2]*ce,y*ce+v[2]*se];};
+  const T=mesh.T.map(t=>{
+    const p=t.map(proj);
+    const u=[p[1][0]-p[0][0],p[1][1]-p[0][1],p[1][2]-p[0][2]];
+    const v=[p[2][0]-p[0][0],p[2][1]-p[0][1],p[2][2]-p[0][2]];
+    const n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
+    const L=Math.hypot(n[0],n[1],n[2])||1;
+    const lit=Math.max(0,(-0.30*n[0]-0.45*n[1]-0.84*n[2])/L);
+    return {p,d:(p[0][2]+p[1][2]+p[2][2])/3,sh:Math.round(232-110*lit)};
+  }).sort((a,b)=>a.d-b.d);
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const t of T)for(const p of t.p){
+    x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);}
+  const pad=36,s=Math.min((W-2*pad)/((x1-x0)||1),(H-2*pad)/((y1-y0)||1));
+  const X=x=>(W-(x1-x0)*s)/2+(x-x0)*s, Y=y=>(H-(y1-y0)*s)/2+(y-y0)*s;
+  g.lineWidth=.5;g.strokeStyle='rgba(26,26,26,.20)';
+  for(const t of T){
+    g.beginPath();g.moveTo(X(t.p[0][0]),Y(t.p[0][1]));
+    g.lineTo(X(t.p[1][0]),Y(t.p[1][1]));g.lineTo(X(t.p[2][0]),Y(t.p[2][1]));g.closePath();
+    g.fillStyle='rgb('+t.sh+','+t.sh+','+t.sh+')';g.fill();
+    if(wire)g.stroke();
+  }
+}
+addEventListener('resize',draw);
+
+/* ---------- export ---------- */
+function nrm(t){
+  const u=[t[1][0]-t[0][0],t[1][1]-t[0][1],t[1][2]-t[0][2]];
+  const v=[t[2][0]-t[0][0],t[2][1]-t[0][1],t[2][2]-t[0][2]];
+  const n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
+  const L=Math.hypot(n[0],n[1],n[2])||1;
+  return [n[0]/L,n[1]/L,n[2]/L];
+}
+$('dl').onclick=()=>{
+  if(!mesh)return;
+  const T=mesh.T;let blob;
+  if($('fmt').value==='ascii'){
+    let s='solid '+fileName+'\n';
+    for(const t of T){const n=nrm(t);
+      s+=`facet normal ${n[0]} ${n[1]} ${n[2]}\n outer loop\n`;
+      for(const v of t)s+=`  vertex ${v[0]} ${v[1]} ${v[2]}\n`;
+      s+=' endloop\nendfacet\n';}
+    blob=new Blob([s+'endsolid '+fileName+'\n'],{type:'model/stl'});
+  }else{
+    const buf=new ArrayBuffer(84+T.length*50),dv=new DataView(buf);
+    dv.setUint32(80,T.length,true);let o=84;
+    for(const t of T){const n=nrm(t);
+      dv.setFloat32(o,n[0],true);dv.setFloat32(o+4,n[1],true);dv.setFloat32(o+8,n[2],true);o+=12;
+      for(const v of t){dv.setFloat32(o,v[0],true);dv.setFloat32(o+4,v[1],true);dv.setFloat32(o+8,v[2],true);o+=12;}
+      dv.setUint16(o,0,true);o+=2;}
+    blob=new Blob([buf],{type:'model/stl'});
+  }
+  const d=new Date().toISOString().slice(0,10);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`${fileName}-${d}.stl`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+
+/* ---------- wiring ---------- */
+$('mode').onchange=()=>{
+  const m=$('mode').value;
+  $('valLab').textContent=m==='width'?'Width':m==='height'?'Height':'Factor';
+  $('val').value=m==='scale'?1:100;
+  queue();
+};
+$('driver').onchange=()=>{
+  const b=$('driver').value==='budget';
+  $('budBox').classList.toggle('hide',!b);
+  $('tolBox').classList.toggle('hide',b);
+  queue();
+};
+$('tol').oninput=()=>{$('tolVal').textContent=tolOf().toFixed(3)+' mm';queue();};
+$('bud').oninput=()=>{$('budVal').textContent=fmtN(budOf());queue();};
+$('th').oninput =()=>{$('thVal').textContent=thOf().toFixed(1)+' mm';queue();};
+['val','origin','mirror','holes','zdat','fmt'].forEach(id=>$(id).oninput=queue);
+$('skipNone').oninput=reparse;
+$('wire').oninput=draw;
+$('view').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  viewMode=b.dataset.v;
+  [...$('view').children].forEach(x=>x.classList.toggle('on',x===b));
+  draw();
+};
+$('tolVal').textContent=tolOf().toFixed(3)+' mm';
+$('budVal').textContent=fmtN(budOf());
+</script>
+</body>
+</html>

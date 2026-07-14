@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rack Focus — Default Office</title>
+<style>
+  :root{--bg:#0c0c0d;--line:#242427;--ink:#e8e8e6;--dim:#76767a;--accent:#d8b04a;--warn:#c46b3d;--ok:#5b9c6b;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",monospace;
+    overflow:hidden;-webkit-font-smoothing:antialiased;}
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+
+  #loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;z-index:50;gap:24px;transition:opacity .6s ease;}
+  #loader.hide{opacity:0;pointer-events:none;}
+  .mark{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);}
+  .mark b{color:var(--ink);font-weight:600;}
+  .bar-wrap{width:320px;height:1px;background:var(--line);position:relative;overflow:hidden;}
+  .bar{position:absolute;inset:0 100% 0 0;background:var(--accent);transition:right .1s linear;}
+  .pct{font-size:11px;letter-spacing:.25em;color:var(--dim);font-variant-numeric:tabular-nums;}
+  .pct b{color:var(--ink);}
+  .loadnote{font-size:10px;letter-spacing:.14em;color:var(--dim);height:14px;text-transform:uppercase;}
+  .enter-btn{margin-top:8px;background:transparent;color:var(--accent);border:1px solid var(--accent);
+    padding:11px 26px;font:inherit;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s,background .2s;}
+  .enter-btn.show{opacity:1;pointer-events:auto;}
+  .enter-btn:hover{background:var(--accent);color:var(--bg);}
+
+  #viewer{position:relative;width:100%;height:100%;cursor:crosshair;opacity:0;
+    transition:opacity .8s ease .1s;}
+  #viewer.ready{opacity:1;}
+  #canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+
+  #reticle{position:fixed;width:54px;height:54px;margin:-27px 0 0 -27px;pointer-events:none;
+    opacity:0;transition:opacity .25s ease;mix-blend-mode:difference;z-index:15;}
+  #viewer.show-reticle #reticle{opacity:.7;}
+  #reticle::before,#reticle::after{content:"";position:absolute;background:#fff;}
+  #reticle::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-.5px);}
+  #reticle::after{top:50%;left:0;right:0;height:1px;transform:translateY(-.5px);}
+  .corner{position:absolute;width:9px;height:9px;border:1px solid #fff;opacity:.85;}
+  .corner.tl{top:0;left:0;border-right:0;border-bottom:0;}
+  .corner.tr{top:0;right:0;border-left:0;border-bottom:0;}
+  .corner.bl{bottom:0;left:0;border-right:0;border-top:0;}
+  .corner.br{bottom:0;right:0;border-left:0;border-top:0;}
+
+  #probe{position:fixed;width:0;height:0;pointer-events:none;z-index:16;display:none;}
+  #probe.on{display:block;}
+  #probe i{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;
+    border:1.5px solid var(--ok);border-radius:50%;}
+  #probe i::before,#probe i::after{content:"";position:absolute;background:var(--ok);}
+  #probe i::before{left:50%;top:-7px;bottom:-7px;width:1px;transform:translateX(-.5px);}
+  #probe i::after{top:50%;left:-7px;right:-7px;height:1px;transform:translateY(-.5px);}
+
+  .hud{position:fixed;z-index:20;font-size:10.5px;letter-spacing:.18em;color:var(--dim);
+    text-transform:uppercase;user-select:none;}
+  .hud .v{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .hud-tl{top:28px;left:30px;line-height:2.1;}
+  .hud-tl .title{color:var(--ink);letter-spacing:.34em;font-size:11px;}
+  .hud-tl .title span{color:var(--dim);}
+  .hud-bl{bottom:26px;left:30px;line-height:2.1;}
+  .hud-br{bottom:26px;right:30px;text-align:right;line-height:2.1;}
+  .hud .diag{color:var(--ok);}
+
+  .panel{position:fixed;top:28px;right:30px;z-index:25;background:rgba(20,20,22,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);
+    padding:18px 20px;min-width:248px;font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--dim);}
+  .panel h4{font-size:9.5px;letter-spacing:.3em;color:var(--dim);font-weight:500;
+    margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid var(--line);}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:13px 0;}
+  .row label{flex:1;}
+  .toggle{width:44px;height:20px;border:1px solid var(--line);background:var(--bg);
+    position:relative;cursor:pointer;flex-shrink:0;transition:border-color .2s;}
+  .toggle:hover{border-color:#3a3a3e;}
+  .toggle .knob{position:absolute;top:1px;left:1px;width:18px;height:16px;background:var(--dim);
+    transition:transform .22s cubic-bezier(.4,0,.2,1),background .22s;}
+  .toggle.on{border-color:var(--accent);}
+  .toggle.on .knob{transform:translateX(24px);background:var(--accent);}
+  .mode-label{font-size:9px;color:var(--dim);margin-top:-4px;margin-bottom:4px;
+    letter-spacing:.12em;text-transform:none;font-style:italic;opacity:.8;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:96px;height:1px;
+    background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
+    background:var(--accent);cursor:pointer;border-radius:0;}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--accent);
+    border:0;cursor:pointer;border-radius:0;}
+  .chk{width:14px;height:14px;border:1px solid var(--line);background:var(--bg);cursor:pointer;
+    position:relative;flex-shrink:0;transition:border-color .2s;}
+  .chk:hover{border-color:#3a3a3e;}
+  .chk.on{border-color:var(--accent);}
+  .chk.on::after{content:"";position:absolute;inset:3px;background:var(--accent);}
+
+  .hint{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:20;
+    font-size:10px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;
+    opacity:1;transition:opacity .6s ease;pointer-events:none;}
+  .hint.gone{opacity:0;}
+
+  .toast{position:fixed;top:28px;left:50%;transform:translateX(-50%) translateY(-140%);
+    z-index:40;background:rgba(20,20,22,.92);border:1px solid var(--warn);color:var(--ink);
+    padding:13px 20px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    max-width:640px;line-height:1.8;transition:transform .5s cubic-bezier(.4,0,.2,1);
+    display:flex;gap:16px;align-items:center;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast .dot{width:7px;height:7px;background:var(--warn);flex-shrink:0;}
+  .toast .x{cursor:pointer;color:var(--dim);padding-left:8px;border-left:1px solid var(--line);}
+  .toast .x:hover{color:var(--ink);}
+  .toast code{color:var(--warn);text-transform:none;}
+
+  .err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;z-index:60;background:var(--bg);padding:40px;text-align:center;}
+  .err.show{display:flex;}
+  .err .big{font-size:13px;letter-spacing:.2em;color:var(--ink);text-transform:uppercase;}
+  .err .small{font-size:11px;color:var(--dim);line-height:1.9;max-width:480px;letter-spacing:.06em;}
+  .err code{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="mark"><b>DEFAULT OFFICE</b> &nbsp;·&nbsp; RACK FOCUS</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+  <div class="pct"><b id="pctNum">0</b> / <span id="pctTotal">31</span> &nbsp;FRAMES</div>
+  <div class="loadnote" id="loadNote"></div>
+  <button class="enter-btn" id="enterBtn">Enter &#9656;</button>
+</div>
+
+<div class="err" id="err">
+  <div class="big">No frames could be loaded</div>
+  <div class="small">
+    Expected <code>frame.1.png &hellip; frame.31.png</code> and
+    <code>Depth_Adjusted.png</code> in <code>frames/</code> beside this
+    <code>index.html</code>. Serve over <code>http://localhost</code> (see README).
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="dot"></span><span id="toastMsg"></span>
+  <span class="x" id="toastX">DISMISS</span>
+</div>
+
+<div class="stage">
+  <div id="viewer">
+    <canvas id="canvas"></canvas>
+    <div id="reticle">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+    </div>
+  </div>
+</div>
+<div id="probe"><i></i></div>
+
+<div class="hud hud-tl">
+  <div class="title">RACK&nbsp;FOCUS <span>// linear depth</span></div>
+  <div>SAMPLE&nbsp;&nbsp; <span class="v" id="hudXY">&mdash;</span></div>
+  <div>DEPTH&nbsp;&nbsp;&nbsp; <span class="v" id="hudDepth">&mdash;</span></div>
+  <div class="diag" id="hudDiag" style="display:none">OFFSET&nbsp; <span id="hudOff">0, 0</span> px</div>
+</div>
+<div class="hud hud-bl">
+  <div>FRAME&nbsp;&nbsp;&nbsp; <span class="v" id="hudFrame">&mdash;</span> / <span id="hudTotal">31</span></div>
+  <div>FOCUS&nbsp;&nbsp;&nbsp; <span class="v" id="hudFocus">&mdash;</span></div>
+</div>
+<div class="hud hud-br">
+  <div>DIRECT&nbsp;LINEAR&nbsp;MATCH</div>
+  <div><span class="v">1920 &times; 1080</span></div>
+</div>
+
+<div class="panel">
+  <h4>CONTROLS</h4>
+  <div class="row">
+    <label>Background falls&nbsp;to</label>
+    <div class="toggle on" id="bgToggle"><div class="knob"></div></div>
+  </div>
+  <div class="mode-label" id="bgModeLabel">Snap to furthest (frame 31)</div>
+  <div class="row">
+    <label>Tween&nbsp;ms</label>
+    <input type="range" id="tween" min="0" max="320" value="60" step="10">
+    <span class="v" id="tweenVal" style="min-width:34px;text-align:right;color:var(--ink)">60</span>
+  </div>
+  <div class="row">
+    <label>Show reticle</label>
+    <div class="chk on" id="retChk"></div>
+  </div>
+  <div class="row">
+    <label>Diagnostic</label>
+    <div class="chk" id="diagChk"></div>
+  </div>
+  <div class="row">
+    <label>Debug depth</label>
+    <div class="chk" id="dbgChk"></div>
+  </div>
+</div>
+
+<div class="hint" id="hint">Move to focus</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---- Config -------------------------------------------------------------
+  // 31 KeyShot DOF stills: frame.1 = nearest focus, frame.31 = furthest.
+  // Depth_Adjusted.png: generated directly from the raw KeyShot depth EXR.
+  //   - product pixels: 0..254, LINEAR in true camera distance
+  //     (0 = product front / frame 1, 254 = product rear / frame 31)
+  //   - background (no product geometry): 255
+  // No remapping. Sampled depth maps 1:1 to focus frame.
+  const FRAME_COUNT = 31;
+  const FRAME_PATH  = i => `frames/frame.${i}.png`;
+  const DEPTH_PATH  = "frames/Depth_Adjusted.png";
+  const W = 1920, H = 1080;
+  const BG_VALUE = 255;            // product-only depth: 255 = no geometry
+  const PROD_MAX = 254;            // product spans 0..254 linear
+  const LOAD_TIMEOUT = 12000, RETRIES = 1;
+
+  const $ = id => document.getElementById(id);
+  const loader=$("loader"), bar=$("bar"), pctNum=$("pctNum"), loadNote=$("loadNote");
+  const enterBtn=$("enterBtn"), viewer=$("viewer"), canvas=$("canvas");
+  const ctx=canvas.getContext("2d"), errBox=$("err");
+  const toast=$("toast"), toastMsg=$("toastMsg"), probe=$("probe");
+  $("pctTotal").textContent=FRAME_COUNT; $("hudTotal").textContent=FRAME_COUNT;
+
+  const state={
+    frames:new Array(FRAME_COUNT+1), loadedIdx:[],
+    depthData:null,
+    curFrame:Math.round(FRAME_COUNT/2),
+    targetFrame:Math.round(FRAME_COUNT/2),
+    lastValidFrame:Math.round(FRAME_COUNT/2),
+    bgMode:"snap", tweenMs:60, showReticle:true, diag:false, debug:false,
+    mouse:{x:-1,y:-1,inside:false}, lastT:0
+  };
+
+  let done=0;
+  function bump(){
+    done++; const pct=done/(FRAME_COUNT+1);
+    bar.style.right=(100-pct*100)+"%"; pctNum.textContent=Math.min(done,FRAME_COUNT);
+  }
+  async function fetchDecode(url, attempt=0){
+    try{
+      const bust = attempt>0 ? (url.includes("?")?"&":"?")+"r="+Date.now() : "";
+      const ctrl=new AbortController();
+      const to=setTimeout(()=>ctrl.abort(),LOAD_TIMEOUT);
+      const res=await fetch(url+bust,{signal:ctrl.signal,cache:"reload"});
+      clearTimeout(to);
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const blob=await res.blob();
+      if(self.createImageBitmap){ try{ return await createImageBitmap(blob);}catch(_){} }
+      return await new Promise((resolve,reject)=>{
+        const u=URL.createObjectURL(blob); const im=new Image();
+        im.onload=()=>resolve(im); im.onerror=()=>{URL.revokeObjectURL(u);reject();};
+        im.src=u;
+      });
+    }catch(e){
+      if(attempt===0){
+        const viaImg=await new Promise(resolve=>{
+          const im=new Image(); let s=false;
+          const fin=ok=>{if(s)return;s=true;resolve(ok?im:null);};
+          const t=setTimeout(()=>fin(false),LOAD_TIMEOUT);
+          im.onload=()=>{clearTimeout(t);fin(true);};
+          im.onerror=()=>{clearTimeout(t);fin(false);};
+          im.src=url;
+        });
+        if(viaImg) return viaImg;
+      }
+      if(attempt<RETRIES) return fetchDecode(url,attempt+1);
+      return null;
+    }
+  }
+
+  function ingestDepth(src){
+    const oc=document.createElement("canvas");
+    oc.width=W; oc.height=H;
+    const octx=oc.getContext("2d",{willReadFrequently:true});
+    octx.drawImage(src,0,0,W,H);
+    const px=octx.getImageData(0,0,W,H).data;
+    const lum=new Uint8ClampedArray(W*H);
+    for(let i=0,p=0;i<lum.length;i++,p+=4) lum[i]=px[p];
+    state.depthData=lum;
+  }
+
+  async function boot(){
+    loadNote.textContent="Reading depth map…";
+    const d=await fetchDecode(DEPTH_PATH);
+    let depthOK=false;
+    if(d){ try{ ingestDepth(d); depthOK=true; }catch(e){ console.error(e);} }
+    bump();
+    const failed=[];
+    for(let i=1;i<=FRAME_COUNT;i++){
+      loadNote.textContent="Loading frame "+i+"…";
+      const im=await fetchDecode(FRAME_PATH(i));
+      if(im){ state.frames[i]=im; state.loadedIdx.push(i);} else failed.push(i);
+      bump();
+    }
+    loadNote.textContent="";
+    if(state.loadedIdx.length===0){ loader.classList.add("hide"); errBox.classList.add("show"); return; }
+    const mid=state.loadedIdx[Math.floor(state.loadedIdx.length/2)];
+    state.curFrame=state.targetFrame=state.lastValidFrame=mid;
+    const probs=[];
+    if(!depthOK) probs.push("depth map missing — focus mapping disabled");
+    if(failed.length) probs.push(failed.length+" frame(s) unavailable: "+compress(failed));
+    finishBoot(probs,depthOK);
+  }
+  function compress(a){
+    const o=[]; let s=a[0],p=a[0];
+    for(let i=1;i<a.length;i++){ if(a[i]===p+1){p=a[i];continue;}
+      o.push(s===p?`${s}`:`${s}–${p}`); s=p=a[i]; }
+    o.push(s===p?`${s}`:`${s}–${p}`); return o.join(", ");
+  }
+  let depthEnabled=true;
+  function finishBoot(problems,depthOK){
+    depthEnabled=depthOK;
+    enterBtn.classList.add("show");
+    enterBtn.onclick=()=>{
+      loader.classList.add("hide"); viewer.classList.add("ready");
+      if(state.showReticle) viewer.classList.add("show-reticle");
+      if(problems.length) showToast(problems.join("  ·  "));
+      sizeCanvas();
+      window.addEventListener("resize",sizeCanvas);
+      window.addEventListener("scroll",sizeCanvas,true);
+      drawFrame(state.curFrame); bindInput();
+      state.lastT=performance.now(); requestAnimationFrame(tick);
+    };
+    if(!problems.length) enterBtn.click();
+  }
+  function showToast(m){
+    toastMsg.innerHTML=m; toast.classList.add("show");
+    $("toastX").onclick=()=>toast.classList.remove("show");
+    setTimeout(()=>toast.classList.remove("show"),10000);
+  }
+
+  // ---- Layout / sampling (single shared coordinate space) ----------------
+  let imgRect={x:0,y:0,w:0,h:0};
+  function sizeCanvas(){
+    const rect=canvas.getBoundingClientRect();
+    const cw=rect.width, ch=rect.height;
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.round(cw*dpr);
+    canvas.height=Math.round(ch*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const sc=Math.min(cw/W, ch/H);
+    const dw=W*sc, dh=H*sc;
+    imgRect={ x:rect.left+(cw-dw)/2, y:rect.top+(ch-dh)/2, w:dw, h:dh };
+    drawFrame(state.curFrame);
+  }
+
+  function sampleDepth(cx,cy){
+    if(!state.depthData) return {bg:true,value:BG_VALUE,fx:-1,fy:-1,sx:cx,sy:cy};
+    const lx=cx-imgRect.x, ly=cy-imgRect.y;
+    if(lx<0||lx>imgRect.w||ly<0||ly>imgRect.h)
+      return {bg:true,value:BG_VALUE,fx:-1,fy:-1,sx:cx,sy:cy};
+    const px=Math.min(W-1,Math.max(0,Math.round(lx/imgRect.w*W)));
+    const py=Math.min(H-1,Math.max(0,Math.round(ly/imgRect.h*H)));
+    const value=state.depthData[py*W+px];
+    const sx=imgRect.x+(px+0.5)/W*imgRect.w;
+    const sy=imgRect.y+(py+0.5)/H*imgRect.h;
+    return {bg:value>=BG_VALUE,value,fx:px,fy:py,sx,sy};
+  }
+
+  // Direct 1:1 — linear depth value -> focus frame. No remapping.
+  function valueToFrame(value){
+    const t=Math.min(1,Math.max(0,value/PROD_MAX));   // 0 front .. 1 rear
+    return 1 + t*(FRAME_COUNT-1);
+  }
+
+  function nearestLoaded(f){
+    const r=Math.round(f);
+    if(state.frames[r]) return r;
+    for(let d=1;d<FRAME_COUNT;d++){
+      if(state.frames[r-d]) return r-d;
+      if(state.frames[r+d]) return r+d;
+    }
+    return state.loadedIdx[0];
+  }
+
+  function updateTarget(){
+    if(!state.mouse.inside) return;
+    if(!depthEnabled){ $("hudDepth").textContent="disabled"; return; }
+    const s=sampleDepth(state.mouse.x,state.mouse.y);
+    $("hudXY").textContent=s.fx<0?"—":`${s.fx}, ${s.fy}`;
+    $("hudDepth").textContent=s.bg?"BG / null":Math.round(s.value);
+    if(state.diag){
+      probe.style.left=s.sx+"px"; probe.style.top=s.sy+"px";
+      $("hudOff").textContent=`${Math.round(s.sx-state.mouse.x)}, ${Math.round(s.sy-state.mouse.y)}`;
+    }
+    if(s.bg){
+      state.targetFrame=state.bgMode==="sticky"?state.lastValidFrame:FRAME_COUNT;
+    }else{
+      const f=valueToFrame(s.value);
+      state.targetFrame=f; state.lastValidFrame=f;
+    }
+  }
+
+  function tick(now){
+    const dt=now-state.lastT; state.lastT=now;
+    updateTarget();
+    const diff=state.targetFrame-state.curFrame;
+    if(Math.abs(diff)>0.002){
+      if(state.tweenMs<=0) state.curFrame=state.targetFrame;
+      else{ const k=1-Math.exp(-dt/(state.tweenMs/3)); state.curFrame+=diff*Math.min(1,k); }
+      drawFrame(state.curFrame);
+    }
+    updateHUD();
+    requestAnimationFrame(tick);
+  }
+
+  function drawFrame(f){
+    const idx=nearestLoaded(f);
+    const img=state.frames[idx];
+    const rect=canvas.getBoundingClientRect();
+    ctx.clearRect(0,0,rect.width,rect.height);
+    const lx=imgRect.x-rect.left, ly=imgRect.y-rect.top;
+    if(state.debug && state.depthData){ drawDebug(lx,ly); return; }
+    if(img) ctx.drawImage(img,lx,ly,imgRect.w,imgRect.h);
+  }
+
+  let dbgCanvas=null;
+  function buildDebug(){
+    dbgCanvas=document.createElement("canvas");
+    dbgCanvas.width=W; dbgCanvas.height=H;
+    const d=dbgCanvas.getContext("2d");
+    const im=d.createImageData(W,H),s=state.depthData;
+    for(let i=0,p=0;i<s.length;i++,p+=4){
+      const v=s[i];
+      if(v>=BG_VALUE){ im.data[p]=120;im.data[p+1]=20;im.data[p+2]=20; }
+      else{
+        const n=v/PROD_MAX;                 // 0 front .. 1 rear
+        im.data[p]=Math.round(255*(1-n));
+        im.data[p+1]=Math.round(180*(1-Math.abs(n-0.5)*2));
+        im.data[p+2]=Math.round(255*n);
+      }
+      im.data[p+3]=255;
+    }
+    d.putImageData(im,0,0);
+  }
+  function drawDebug(lx,ly){ if(!dbgCanvas) buildDebug();
+    ctx.drawImage(dbgCanvas,lx,ly,imgRect.w,imgRect.h); }
+
+  function updateHUD(){
+    const fr=nearestLoaded(state.curFrame);
+    $("hudFrame").textContent=fr;
+    const pct=((fr-1)/(FRAME_COUNT-1)*100).toFixed(0);
+    $("hudFocus").textContent=pct+"%  "+(fr<=1?"FRONT":fr>=FRAME_COUNT?"REAR":"");
+  }
+
+  function bindInput(){
+    const hint=$("hint"); let gone=false;
+    viewer.addEventListener("pointermove",e=>{
+      state.mouse.x=e.clientX; state.mouse.y=e.clientY; state.mouse.inside=true;
+      const ret=$("reticle"); ret.style.left=e.clientX+"px"; ret.style.top=e.clientY+"px";
+      if(!gone){ hint.classList.add("gone"); gone=true; }
+    });
+    viewer.addEventListener("pointerleave",()=>{
+      state.mouse.inside=false;
+      $("hudXY").textContent="—"; $("hudDepth").textContent="—";
+    });
+    const bgT=$("bgToggle"),bgLbl=$("bgModeLabel");
+    bgT.addEventListener("click",()=>{
+      const snap=bgT.classList.toggle("on");
+      state.bgMode=snap?"snap":"sticky";
+      bgLbl.textContent=snap?"Snap to furthest (frame 31)":"Sticky — hold last valid focus";
+    });
+    const tw=$("tween"),twv=$("tweenVal");
+    tw.addEventListener("input",()=>{ state.tweenMs=+tw.value; twv.textContent=tw.value; });
+    const retC=$("retChk");
+    retC.addEventListener("click",()=>{
+      const on=retC.classList.toggle("on");
+      state.showReticle=on; viewer.classList.toggle("show-reticle",on);
+    });
+    const diagC=$("diagChk");
+    diagC.addEventListener("click",()=>{
+      state.diag=diagC.classList.toggle("on");
+      probe.classList.toggle("on",state.diag);
+      $("hudDiag").style.display=state.diag?"block":"none";
+    });
+    const dbgC=$("dbgChk");
+    dbgC.addEventListener("click",()=>{ state.debug=dbgC.classList.toggle("on");
+      dbgCanvas=null; drawFrame(state.curFrame); });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

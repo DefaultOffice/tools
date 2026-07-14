@@ -1,0 +1,8 @@
+{
+    "name": "SVG to Planar STL",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 07 14",
+    "description": "Converts SVG artwork into an STL — a planar trimmed surface, or a closed extruded solid. Chord tolerance and triangle budget give direct control over mesh weight."
+}
