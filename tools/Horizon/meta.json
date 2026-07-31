@@ -1,0 +1,8 @@
+{
+  "name": "Horizon",
+  "category": "Simulation",
+  "project": "General",
+  "owner": "Alex",
+  "date": "2026 07 31",
+  "description": "Physically-based atmospheric sunset/sunrise simulator. Nishita single-scattering with ozone (Chappuis band), full spectral integration to a WebGL2 radiance LUT. Three physical controls — sun elevation, turbidity, altitude — drive a full-bleed dithered gradient. Exports adaptive-stop CSS/SVG gradients, PNG, and permalinks."
+}

@@ -1,5 +1,32 @@
 [
   {
+    "folder": "Horizon",
+    "name": "Horizon",
+    "category": "Simulation",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 07 31",
+    "description": "Physically-based atmospheric sunset/sunrise simulator. Nishita single-scattering with ozone (Chappuis band), full spectral integration to a WebGL2 radiance LUT. Three physical controls — sun elevation, turbidity, altitude — drive a full-bleed dithered gradient. Exports adaptive-stop CSS/SVG gradients, PNG, and permalinks."
+  },
+  {
+    "folder": "svg-to-planar-stl",
+    "name": "SVG to Planar STL",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 07 14",
+    "description": "Converts SVG artwork into an STL — a planar trimmed surface, or a closed extruded solid. Chord tolerance and triangle budget give direct control over mesh weight."
+  },
+  {
+    "folder": "ev-charger-logger",
+    "name": "EV Charger Logger",
+    "category": "Utility",
+    "project": "General",
+    "owner": "Alex",
+    "date": "2026 05 08",
+    "description": "A mobile logger for recording data on installed EV Chargers"
+  },
+  {
     "folder": "pinterest-downloader",
     "name": "Pinterest Board Downloader",
     "category": "Utility",
@@ -63,15 +90,6 @@
     "description": "Create precise radial dot patterns with customizable rings, spacing, and dot arrangements. Export as PNG."
   },
   {
-    "folder": "terrain-studio",
-    "name": "Terrain Studio",
-    "category": "Environment",
-    "project": "General",
-    "owner": "Alex",
-    "date": "2026 03 08",
-    "description": ""
-  },
-  {
     "folder": "wavemesh-generator",
     "name": "WaveMesh Generator",
     "category": "Animation",
@@ -79,5 +97,14 @@
     "owner": "Alex",
     "date": "2026 03 08",
     "description": "Animated dot-grid pattern generator with wave modulation, tiling controls, and post-processing effects. Exports PNG sequences."
+  },
+  {
+    "folder": "terrain-studio",
+    "name": "Terrain Studio",
+    "category": "Environment",
+    "project": "General",
+    "owner": "Alex",
+    "date": "08.03.2026",
+    "description": ""
   }
 ]

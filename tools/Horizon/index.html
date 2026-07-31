@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Horizon | Default Office Tools</title>
+<style>
+@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Regular.otf') format('opentype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Medium.otf') format('opentype'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Book.otf') format('opentype'); font-weight:450; font-display:swap; }
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;}
+body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;}
+
+#sky{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+
+/* ink color set dynamically via --ink */
+:root{--ink:rgba(0,0,0,0.72);--ink-dim:rgba(0,0,0,0.42);--ink-faint:rgba(0,0,0,0.16);--ink-bg:rgba(0,0,0,0.05);}
+
+.ui{position:fixed;color:var(--ink);transition:opacity .55s ease;z-index:10;}
+.ui.hidden{opacity:0;pointer-events:none;}
+
+/* ---- bottom control strip ---- */
+#strip{
+  left:0;right:0;bottom:0;
+  padding:0 clamp(16px,3vw,40px) calc(18px + env(safe-area-inset-bottom)) clamp(16px,3vw,40px);
+  padding-top:26px;
+  display:flex;align-items:flex-end;gap:clamp(20px,4vw,64px);
+  background:linear-gradient(to top, var(--ink-bg), transparent);
+}
+.ctrl{flex:1;min-width:0;max-width:420px;}
+.ctrl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+.ctrl-label{font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);}
+.ctrl-val{font-size:12px;font-weight:450;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink);}
+
+/* custom slider */
+.slider{position:relative;height:16px;cursor:pointer;outline:none;}
+.slider .track{position:absolute;top:50%;left:0;right:0;height:1px;background:var(--ink-faint);transform:translateY(-50%);}
+.slider .fill{position:absolute;top:50%;left:0;height:1px;background:var(--ink);transform:translateY(-50%);}
+.slider .thumb{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--ink);
+  transform:translate(-50%,-50%);transition:width .12s,height .12s;}
+.slider:hover .thumb,.slider:focus .thumb{width:12px;height:12px;}
+.slider:focus .thumb{box-shadow:0 0 0 3px var(--ink-bg);}
+.slider .ticks{position:absolute;top:50%;left:0;right:0;height:16px;transform:translateY(-50%);pointer-events:none;}
+.slider .tick{position:absolute;top:0;width:1px;height:5px;background:var(--ink-faint);}
+.slider .tick.major{height:8px;background:var(--ink-dim);}
+.slider .tick span{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:8.5px;
+  letter-spacing:.05em;color:var(--ink-dim);white-space:nowrap;font-family:ui-monospace,'SF Mono',monospace;}
+
+/* ---- top-right glyphs ---- */
+#topbar{top:calc(14px + env(safe-area-inset-top));right:clamp(14px,3vw,32px);display:flex;gap:6px;align-items:center;}
+.glyph{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  cursor:pointer;color:var(--ink-dim);transition:color .2s,background .2s;}
+.glyph:hover{color:var(--ink);background:var(--ink-bg);}
+.glyph svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.4;}
+.glyph.play svg{stroke-width:1.2;}
+
+/* wordmark bottom-left corner, very quiet */
+#mark{bottom:calc(20px + env(safe-area-inset-bottom));left:clamp(16px,3vw,40px);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-faint);font-weight:500;pointer-events:none;opacity:0;transition:opacity .5s;}
+
+/* ---- advanced panel ---- */
+#advanced{top:calc(52px + env(safe-area-inset-top));right:clamp(14px,3vw,32px);width:250px;
+  background:rgba(255,255,255,0.86);backdrop-filter:blur(20px) saturate(1.1);
+  -webkit-backdrop-filter:blur(20px) saturate(1.1);
+  border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:16px 18px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.16);
+  transform-origin:top right;transition:opacity .28s,transform .28s;color:#111;}
+#advanced.hidden{opacity:0;transform:scale(.96);pointer-events:none;}
+#advanced .adv-title{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-bottom:14px;font-weight:500;}
+.adv-ctrl{margin-bottom:15px;}
+.adv-ctrl:last-child{margin-bottom:0;}
+.adv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+.adv-label{font-size:10.5px;color:#555;letter-spacing:.02em;}
+.adv-val{font-size:11px;color:#111;font-variant-numeric:tabular-nums;font-family:ui-monospace,'SF Mono',monospace;}
+.adv-ctrl .slider .track{background:rgba(0,0,0,0.1);}
+.adv-ctrl .slider .fill{background:#111;}
+.adv-ctrl .slider .thumb{background:#111;}
+.adv-ctrl .slider:focus .thumb{box-shadow:0 0 0 3px rgba(0,0,0,0.08);}
+
+/* ---- export panel ---- */
+#export{top:calc(52px + env(safe-area-inset-top));right:clamp(14px,3vw,32px);width:300px;
+  background:rgba(255,255,255,0.86);backdrop-filter:blur(20px) saturate(1.1);
+  -webkit-backdrop-filter:blur(20px) saturate(1.1);
+  border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:16px 18px;color:#111;
+  transform-origin:top right;transition:opacity .28s,transform .28s;
+  box-shadow:0 12px 40px rgba(0,0,0,0.16);}
+#export.hidden{opacity:0;transform:scale(.96);pointer-events:none;}
+#export .adv-title{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-bottom:12px;font-weight:500;}
+.exp-row{display:flex;gap:8px;margin-bottom:10px;}
+.exp-btn{flex:1;padding:9px 8px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:transparent;
+  font-family:inherit;font-size:11px;font-weight:450;color:#111;cursor:pointer;transition:background .15s,border-color .15s;letter-spacing:.01em;}
+.exp-btn:hover{background:rgba(0,0,0,0.05);border-color:rgba(0,0,0,0.22);}
+.exp-btn.primary{background:#111;color:#fff;border-color:#111;}
+.exp-btn.primary:hover{background:#333;}
+.exp-field{margin-bottom:12px;}
+.exp-field label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:6px;}
+.exp-code{width:100%;height:74px;resize:none;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;line-height:1.5;
+  color:#333;background:rgba(0,0,0,0.035);border:1px solid rgba(0,0,0,0.07);border-radius:7px;padding:8px 9px;
+  outline:none;white-space:pre;overflow:auto;}
+.exp-code:focus{border-color:rgba(0,0,0,0.2);}
+.exp-sub{display:flex;gap:6px;margin-bottom:8px;}
+.exp-tab{font-size:10px;padding:4px 9px;border-radius:6px;color:#888;cursor:pointer;letter-spacing:.02em;}
+.exp-tab.active{background:#111;color:#fff;}
+.exp-note{font-size:9.5px;color:#aaa;margin-top:2px;line-height:1.5;letter-spacing:.01em;}
+.exp-res{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.exp-res select{font-family:inherit;font-size:11px;padding:5px 8px;border:1px solid rgba(0,0,0,0.12);border-radius:6px;background:#fff;color:#111;outline:none;}
+.copied{color:#111 !important;}
+
+@media (max-width:640px){
+  #strip{flex-direction:column;align-items:stretch;gap:14px;padding-top:20px;}
+  .ctrl{max-width:none;}
+  #advanced,#export{width:min(300px,calc(100vw - 28px));}
+}
+@media (prefers-reduced-motion:reduce){ .ui{transition:none;} }
+
+.hint{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  font-size:10.5px;letter-spacing:.06em;color:var(--ink-dim);pointer-events:none;transition:opacity .6s;z-index:9;}
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+
+<div id="topbar" class="ui">
+  <div class="glyph play" id="btnPlay" title="Play / pause (space)" tabindex="0">
+    <svg viewBox="0 0 24 24"><polygon points="7,5 19,12 7,19" fill="currentColor" stroke="none"/></svg>
+  </div>
+  <div class="glyph" id="btnExport" title="Export" tabindex="0">
+    <svg viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg>
+  </div>
+  <div class="glyph" id="btnAdv" title="Advanced" tabindex="0">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+  </div>
+</div>
+
+<div id="mark" class="ui">Horizon</div>
+
+<div id="strip" class="ui"></div>
+
+<div id="advanced" class="ui hidden">
+  <div class="adv-title">Advanced</div>
+  <div class="adv-ctrl" data-adv="azimuth">
+    <div class="adv-head"><span class="adv-label">View azimuth</span><span class="adv-val" id="vAzimuth">0°</span></div>
+    <div class="slider" id="sAzimuth" tabindex="0"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="adv-ctrl" data-adv="emax">
+    <div class="adv-head"><span class="adv-label">Frame top elevation</span><span class="adv-val" id="vEmax">45°</span></div>
+    <div class="slider" id="sEmax" tabindex="0"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="adv-ctrl" data-adv="ozone">
+    <div class="adv-head"><span class="adv-label">Ozone column</span><span class="adv-val" id="vOzone">300 DU</span></div>
+    <div class="slider" id="sOzone" tabindex="0"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="adv-ctrl" data-adv="alpha">
+    <div class="adv-head"><span class="adv-label">Ångström α (aerosol)</span><span class="adv-val" id="vAlpha">0.60</span></div>
+    <div class="slider" id="sAlpha" tabindex="0"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+</div>
+
+<div id="export" class="ui hidden">
+  <div class="adv-title">Export — WYSIWYG from the live gradient</div>
+  <div class="exp-sub">
+    <span class="exp-tab active" data-fmt="css">CSS</span>
+    <span class="exp-tab" data-fmt="svg">SVG</span>
+    <span class="exp-tab" data-fmt="json">JSON</span>
+  </div>
+  <div class="exp-field">
+    <textarea class="exp-code" id="expCode" readonly spellcheck="false"></textarea>
+    <div class="exp-note" id="expNote"></div>
+  </div>
+  <div class="exp-row">
+    <button class="exp-btn primary" id="btnCopy">Copy</button>
+    <button class="exp-btn" id="btnPermalink">Copy link</button>
+  </div>
+  <div class="exp-res">
+    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#999;">PNG</span>
+    <select id="pngRes">
+      <option value="1080x1920">1080 × 1920</option>
+      <option value="1920x1080">1920 × 1080</option>
+      <option value="2160x3840">2160 × 3840</option>
+      <option value="1024x1024">1024 × 1024</option>
+      <option value="1200x628">1200 × 628</option>
+    </select>
+    <button class="exp-btn" id="btnPng" style="flex:0 0 auto;padding:7px 14px;">Download</button>
+  </div>
+</div>
+
+<div class="hint ui" id="hint">drag to explore · space to animate</div>
+
+<script>
+/* ============================================================================
+   HORIZON — Atmospheric sunset/sunrise simulator
+   Nishita-style single-scattering in a spherical-shell atmosphere, with ozone
+   (Chappuis band) absorption. Full spectral integration (18 wavelengths,
+   380–720nm) -> CIE XYZ -> linear sRGB, computed into a 1x1024 radiance LUT in
+   a WebGL2 fragment shader, then displayed full-bleed with filmic tonemap,
+   luminance-preserving gamut mapping, and dithering.
+
+   The physics lives ONCE, in GLSL. Everything (screen, export) samples the LUT.
+   ============================================================================ */
+
+const CANVAS = document.getElementById('sky');
+const gl = CANVAS.getContext('webgl2', {antialias:false, preserveDrawingBuffer:true, premultipliedAlpha:false});
+if(!gl){ document.body.innerHTML='<div style="color:#888;font:14px sans-serif;padding:40px">WebGL2 is required for Horizon.</div>'; throw new Error('no webgl2'); }
+const floatBuf = gl.getExtension('EXT_color_buffer_float'); // for RGBA16F render target
+gl.getExtension('OES_texture_float_linear');
+
+/* ---------------------------------------------------------------- shaders */
+const VERT = `#version 300 es
+precision highp float;
+const vec2 P[3] = vec2[3](vec2(-1.,-1.), vec2(3.,-1.), vec2(-1.,3.));
+void main(){ gl_Position = vec4(P[gl_VertexID],0.,1.); }
+`;
+
+// ---- shared physics header (constants + functions), used by the LUT pass ----
+const PHYS = `
+#define PI 3.141592653589793
+#define NW 18
+// wavelengths (nm)
+const float LAMBDA[NW] = float[NW](380.,400.,420.,440.,460.,480.,500.,520.,540.,560.,580.,600.,620.,640.,660.,680.,700.,720.);
+// extraterrestrial solar irradiance (ASTM E-490, W/m^2/nm, downsampled)
+const float ESUN[NW] = float[NW](1.12,1.55,1.72,1.85,1.98,2.02,1.94,1.86,1.85,1.83,1.81,1.76,1.72,1.66,1.59,1.47,1.38,1.29);
+// CIE 1931 2-deg colour matching functions
+const float CIEX[NW] = float[NW](0.0014,0.0143,0.1344,0.3483,0.2908,0.0956,0.0049,0.0633,0.2904,0.5945,0.9163,1.0622,0.8544,0.4479,0.1649,0.0468,0.0114,0.0029);
+const float CIEY[NW] = float[NW](0.0000,0.0004,0.0040,0.0230,0.0600,0.1390,0.3230,0.7100,0.9540,0.9950,0.8700,0.6310,0.3810,0.1750,0.0610,0.0170,0.0041,0.0010);
+const float CIEZ[NW] = float[NW](0.0065,0.0679,0.6456,1.7471,1.6692,0.8130,0.2720,0.0782,0.0203,0.0039,0.0017,0.0008,0.0002,0.0000,0.0000,0.0000,0.0000,0.0000);
+// ozone Chappuis-band cross-section shape (units 1e-21 cm^2 / molecule)
+const float O3CS[NW] = float[NW](0.0,0.0,0.10,0.30,0.65,1.20,1.90,2.60,3.30,3.80,4.20,4.30,3.60,2.60,1.70,1.10,0.72,0.40);
+
+const float R_EARTH = 6360000.0;      // m
+const float R_ATMOS = 6360000.0+80000.0;
+const float H_R = 8000.0;             // Rayleigh scale height
+const float H_M = 1200.0;             // Mie scale height
+
+// uniforms driving the model
+uniform float uThetaSun;   // sun elevation (rad)
+uniform float uThetaMinV;  // bottom-of-frame view elevation (horizon dip, rad)
+uniform float uThetaMaxV;  // top-of-frame view elevation (Emax, rad)
+uniform float uTurbidity;
+uniform float uAltitude;   // observer altitude (m)
+uniform float uDPhi;       // view azimuth rel. sun (rad)
+uniform float uOzoneDU;    // ozone column (Dobson)
+uniform float uAlpha;      // Angstrom exponent
+uniform float uMs;         // multiple-scatter ambient strength
+
+// betaR at 550 = 13.5e-6 m^-1
+float betaR(int i){ float l=LAMBDA[i]; float r=550.0/l; return 13.5e-6*r*r*r*r; }
+// ozone peak number density from column: tent 10..40km, peak 25km
+float o3PeakN(){ return uOzoneDU*1.791e16; }              // molecules/m^3
+float sigO3(int i){ return O3CS[i]*1.0e-25; }             // m^2/molecule
+float densO3(float alt){ // normalized tent (0..1) * peak
+  float t = 1.0 - abs(alt-25000.0)/15000.0;
+  return max(0.0,t)*o3PeakN();
+}
+
+// ray/sphere: returns far intersection t (or -1 if none ahead). origin from planet center.
+float raySphereFar(vec3 o, vec3 d, float rad){
+  float b=dot(o,d); float c=dot(o,o)-rad*rad; float disc=b*b-c;
+  if(disc<0.0) return -1.0; return -b+sqrt(disc);
+}
+// near positive intersection (>0) or -1
+float raySphereNear(vec3 o, vec3 d, float rad){
+  float b=dot(o,d); float c=dot(o,o)-rad*rad; float disc=b*b-c;
+  if(disc<0.0) return -1.0; float s=sqrt(disc); float t=-b-s; return t;
+}
+
+// XYZ -> linear sRGB
+vec3 xyz2rgb(vec3 c){
+  return vec3(
+     3.2406*c.x -1.5372*c.y -0.4986*c.z,
+    -0.9689*c.x +1.8758*c.y +0.0415*c.z,
+     0.0557*c.x -0.2040*c.y +1.0570*c.z);
+}
+
+// Compute spectral radiance for one view elevation -> linear sRGB radiance.
+vec3 computeRow(float thetaV){
+  vec3 up = vec3(0.0,1.0,0.0);
+  vec3 O  = vec3(0.0, R_EARTH+uAltitude, 0.0);
+  // view direction, azimuth uDPhi from sun (sun azimuth = +x)
+  vec3 viewDir = vec3(cos(thetaV)*cos(uDPhi), sin(thetaV), cos(thetaV)*sin(uDPhi));
+  vec3 sunDir  = vec3(cos(uThetaSun), sin(uThetaSun), 0.0);
+  float mu = dot(viewDir, sunDir);
+
+  // primary ray length: to atmosphere top, or to ground if it truly penetrates.
+  // A grazing/tangent ray (disc==0, or the near root at the observer) must NOT be
+  // treated as a ground hit, or the horizon row collapses to black.
+  float tAtmos = raySphereFar(O, viewDir, R_ATMOS);
+  if(tAtmos <= 0.0) return vec3(0.0);
+  float tEnd = tAtmos;
+  {
+    float bE=dot(O,viewDir), cE=dot(O,O)-R_EARTH*R_EARTH;
+    float discE=bE*bE-cE;
+    if(discE > 1.0){ float tN=-bE-sqrt(discE); if(tN > 1.0) tEnd=min(tEnd,tN); }
+  }
+
+  const int NV = 40;   // primary samples
+  const int NL = 10;   // light samples
+  float dt = tEnd/float(NV);
+
+  // phase functions
+  float phaseR = 3.0/(16.0*PI)*(1.0+mu*mu);
+  float g = mix(0.76,0.80, clamp((uTurbidity-1.0)/9.0,0.0,1.0));
+  float gg=g*g;
+  float denom = pow(max(1.0+gg-2.0*g*mu, 1e-4), 1.5);
+  float phaseM = (1.0/(4.0*PI)) * (3.0*(1.0-gg))/(2.0*(2.0+gg)) * (1.0+mu*mu)/denom;
+  float phaseIso = 1.0/(4.0*PI);
+
+  float betaM550 = (uTurbidity-1.0)*9.0e-5;  // scattering @550
+
+  // ---- terminator illumination (drives multiple-scatter ambient colour) ----
+  // At twilight the sky is mostly in Earth's shadow, lit by light that grazed
+  // the terminator through a long horizontal chord in the ozone layer. That path
+  // reddens via Rayleigh AND has its greens carved out by the Chappuis band; the
+  // lambda^-4 re-scattering then favours blue -> the ozone-blue "blue hour".
+  // (This is where ozone earns its keep. Turn it off and twilight goes grey-green.)
+  float GR=0.0, GM=0.0, GO=0.0;
+  {
+    float r0 = R_EARTH + 22000.0;                 // ozone-layer altitude
+    float halfChord = sqrt(max(R_ATMOS*R_ATMOS - r0*r0, 0.0));
+    float ds = halfChord/float(NL);
+    for(int j=0;j<NL;j++){
+      float x=(float(j)+0.5)*ds;
+      float aG=sqrt(r0*r0+x*x)-R_EARTH;
+      GR += exp(-aG/H_R)*ds; GM += exp(-aG/H_M)*ds; GO += densO3(aG)*ds;
+    }
+  }
+  float sunLift = smoothstep(-0.32, 0.05, sin(uThetaSun)); // ambient fade: ~-18deg..+3deg
+
+  // running column densities along the view ray (for view transmittance)
+  float cR=0.0, cM=0.0, cO=0.0;
+  vec3 XYZ = vec3(0.0);
+
+  for(int i=0;i<NV;i++){
+    float t=(float(i)+0.5)*dt;
+    vec3 P = O + viewDir*t;
+    float alt = length(P)-R_EARTH;
+    if(alt<0.0) break;
+    float dR=exp(-alt/H_R), dM=exp(-alt/H_M), dO=densO3(alt);
+    // accumulate view-path column densities (to P, including this half-step)
+    cR += dR*dt; cM += dM*dt; cO += dO*dt;
+
+    // sun light march from P
+    vec3 sunOrigin = P;
+    float shadow = raySphereNear(sunOrigin, sunDir, R_EARTH);
+    bool lit = !(shadow > 0.0); // earth blocks the sun -> point in planet shadow
+    float sR=0.0,sM=0.0,sO=0.0;
+    if(lit){
+      float tS = raySphereFar(sunOrigin, sunDir, R_ATMOS);
+      if(tS>0.0){
+        float dts=tS/float(NL);
+        for(int j=0;j<NL;j++){
+          vec3 Q = sunOrigin + sunDir*((float(j)+0.5)*dts);
+          float aQ=length(Q)-R_EARTH; if(aQ<0.0){ sR+=1e9; break; }
+          sR += exp(-aQ/H_R)*dts; sM += exp(-aQ/H_M)*dts; sO += densO3(aQ)*dts;
+        }
+      }
+    }
+
+    // spectral inner loop
+    float betaMs, betaMe;
+    for(int k=0;k<NW;k++){
+      float bR = betaR(k);
+      float rl = pow(550.0/LAMBDA[k], uAlpha);
+      betaMs = betaM550*rl;
+      betaMe = betaMs/0.9;        // single-scatter albedo 0.9
+      float bO = sigO3(k);
+
+      float tauView = bR*cR + betaMe*cM + bO*cO;
+      float Tview = exp(-tauView);
+
+      // direct single scattering
+      float inscat = 0.0;
+      if(lit){
+        float tauSun = bR*sR + betaMe*sM + bO*sO;
+        float Tsun = exp(-tauSun);
+        inscat += Tview*Tsun*(bR*dR*phaseR + betaMs*dM*phaseM)*dt;
+      }
+      // cheap multiple-scatter ambient (the one non-first-principles term):
+      // local scattering illuminated by ozone-filtered terminator light (Tamb).
+      float Tamb = exp(-(bR*GR + betaMe*GM + bO*GO));
+      inscat += uMs*Tview*(bR*dR + betaMs*dM)*phaseIso*dt*sunLift*Tamb;
+
+      float L = ESUN[k]*inscat;
+      float dl = (k<NW-1)? (LAMBDA[k+1]-LAMBDA[k]) : 20.0;
+      XYZ += vec3(CIEX[k],CIEY[k],CIEZ[k])*L*dl;
+    }
+  }
+  return max(xyz2rgb(XYZ), vec3(0.0));
+}
+`;
+
+// LUT pass: 1024 wide x 1 tall, each texel = one view elevation
+const FRAG_LUT = `#version 300 es
+precision highp float;
+${PHYS}
+out vec4 outColor;
+void main(){
+  float v = (gl_FragCoord.x)/1024.0;              // 0..1 across the LUT
+  float thetaV = mix(uThetaMinV, uThetaMaxV, v);  // bottom=horizon, top=Emax
+  vec3 rgb = computeRow(thetaV);
+  outColor = vec4(rgb, 1.0);
+}
+`;
+
+// Display pass: sample LUT, expose, tonemap, gamut map, dither
+const FRAG_DISP = `#version 300 es
+precision highp float;
+uniform sampler2D uLut;
+uniform vec2 uRes;
+uniform float uExposure;
+uniform float uSeed;
+out vec4 outColor;
+
+// Hable/Uncharted2 filmic
+vec3 hable(vec3 x){
+  const float A=0.15,B=0.50,C=0.10,D=0.20,E=0.02,F=0.30;
+  return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
+void main(){
+  float lv = gl_FragCoord.y/uRes.y;             // 0 bottom(horizon) .. 1 top
+  vec3 rad = texture(uLut, vec2(lv,0.5)).rgb;
+  vec3 c = rad*uExposure;
+
+  // luminance-preserving desaturation for out-of-[0,inf) & pre-clip hue safety
+  // filmic tonemap
+  float W=11.2;
+  vec3 mapped = hable(c*2.0)/hable(vec3(W));
+  mapped = clamp(mapped,0.0,1.0);
+
+  // gamut: if any channel would clip hard, pull toward luminance a touch
+  float L = dot(mapped, vec3(0.2126,0.7152,0.0722));
+  float over = max(max(mapped.r,mapped.g),mapped.b);
+  float desat = smoothstep(0.85,1.0,over)*0.35;
+  mapped = mix(mapped, vec3(L), desat);
+
+  // linear -> sRGB
+  vec3 srgb = mix(mapped*12.92, 1.055*pow(mapped,vec3(1.0/2.4))-0.055, step(0.0031308,mapped));
+
+  // triangular-PDF dither (~blue-ish via two hashes) to kill banding at 8-bit
+  vec2 uv=gl_FragCoord.xy;
+  float n1=hash(uv+uSeed);
+  float n2=hash(uv*1.37 - uSeed*0.7);
+  float d=(n1-n2)/255.0;
+  srgb += d;
+
+  outColor = vec4(srgb,1.0);
+}
+`;
+
+/* ---------------------------------------------------------------- gl setup */
+function compile(type,src){
+  const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)+'\n'+src.split('\n').map((l,i)=>(i+1)+': '+l).slice(0,60).join('\n'));
+  return s;
+}
+function program(fsrc){
+  const p=gl.createProgram();
+  gl.attachShader(p,compile(gl.VERTEX_SHADER,VERT));
+  gl.attachShader(p,compile(gl.FRAGMENT_SHADER,fsrc));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+const progLut = program(FRAG_LUT);
+const progDisp = program(FRAG_DISP);
+const dummyVAO = gl.createVertexArray();
+
+// LUT texture + framebuffer (RGBA16F 1024x1)
+const LUT_W = 1024;
+const lutTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, lutTex);
+const internal = floatBuf ? gl.RGBA16F : gl.RGBA;
+const ftype = floatBuf ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+gl.texImage2D(gl.TEXTURE_2D,0,internal,LUT_W,1,0,gl.RGBA,ftype,null);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+const lutFbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, lutFbo);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,lutTex,0);
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+// uniform locations
+const U = {};
+['uThetaSun','uThetaMinV','uThetaMaxV','uTurbidity','uAltitude','uDPhi','uOzoneDU','uAlpha','uMs']
+  .forEach(n=>U[n]=gl.getUniformLocation(progLut,n));
+const UD = {
+  uLut: gl.getUniformLocation(progDisp,'uLut'),
+  uRes: gl.getUniformLocation(progDisp,'uRes'),
+  uExposure: gl.getUniformLocation(progDisp,'uExposure'),
+  uSeed: gl.getUniformLocation(progDisp,'uSeed'),
+};
+
+/* try Display-P3 wide gamut where supported */
+try{ if('drawingBufferColorSpace' in gl){ gl.drawingBufferColorSpace='display-p3'; } }catch(e){}
+
+/* ---------------------------------------------------------------- state */
+const DEG=Math.PI/180;
+const state = {
+  theta: -2.5,      // sun elevation, deg — lands on the SF-reference blue hour
+  turbidity: 2.5,   // 1..10
+  altitude: 0,      // m, 0..12000
+  azimuth: 0,       // deg, view rel sun
+  emax: 45,         // deg
+  ozone: 300,       // DU
+  alpha: 0.6,
+};
+let EXPOSURE_BASE = 1.0;   // calibrated once at load
+const MS_STRENGTH = 0.8;   // multiple-scatter ambient (kept small; the one non-first-principles term)
+
+function horizonDip(altM){ return -Math.acos(R_clamp(R_EARTH/(R_EARTH+altM))); }
+function R_clamp(x){ return Math.max(-1,Math.min(1,x)); }
+const R_EARTH = 6360000.0;
+
+/* adaptation curve: exposure multiplier vs sun elevation (photopic->scotopic).
+   Brightens twilight/night so a single scrub stays watchable; deterministic. */
+function adaptation(thetaDeg){
+  // logistic in elevation; ~1 through the day and sunset, lifts only in twilight.
+  const day = 1.0;
+  const night = 13.0;
+  const center = -7.0;   // half-lift near civil/nautical twilight
+  const width = 4.0;
+  const t = 1.0/(1.0+Math.exp((thetaDeg-center)/width));
+  return day + (night-day)*t;
+}
+
+/* ---------------------------------------------------------------- render */
+function renderLUT(){
+  gl.bindFramebuffer(gl.FRAMEBUFFER, lutFbo);
+  gl.viewport(0,0,LUT_W,1);
+  gl.useProgram(progLut);
+  gl.bindVertexArray(dummyVAO);
+  gl.uniform1f(U.uThetaSun, state.theta*DEG);
+  gl.uniform1f(U.uThetaMinV, horizonDip(state.altitude));
+  gl.uniform1f(U.uThetaMaxV, state.emax*DEG);
+  gl.uniform1f(U.uTurbidity, state.turbidity);
+  gl.uniform1f(U.uAltitude, state.altitude);
+  gl.uniform1f(U.uDPhi, state.azimuth*DEG);
+  gl.uniform1f(U.uOzoneDU, state.ozone);
+  gl.uniform1f(U.uAlpha, state.alpha);
+  gl.uniform1f(U.uMs, MS_STRENGTH);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+let dispSeed=0;
+function renderDisplay(){
+  gl.viewport(0,0,CANVAS.width,CANVAS.height);
+  gl.useProgram(progDisp);
+  gl.bindVertexArray(dummyVAO);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, lutTex);
+  gl.uniform1i(UD.uLut,0);
+  gl.uniform2f(UD.uRes, CANVAS.width, CANVAS.height);
+  gl.uniform1f(UD.uExposure, EXPOSURE_BASE*adaptation(state.theta));
+  gl.uniform1f(UD.uSeed, (dispSeed=(dispSeed+0.618)%1.0));
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+let needsLUT=true;
+function render(){
+  if(needsLUT){ renderLUT(); needsLUT=false; }
+  renderDisplay();
+  updateInk();
+}
+function invalidate(){ needsLUT=true; schedule(); }
+let raf=null;
+function schedule(){ if(raf==null) raf=requestAnimationFrame(frame); }
+function frame(){ raf=null; render(); if(animating) { advanceAnim(); schedule(); } }
+
+/* ---------------------------------------------------------------- readback / LUT on CPU (for export + ink) */
+function readLUT(){
+  // returns Float32Array length 1024*4 (linear sRGB radiance)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, lutFbo);
+  let out;
+  if(floatBuf){
+    out = new Float32Array(LUT_W*4);
+    gl.readPixels(0,0,LUT_W,1,gl.RGBA,gl.FLOAT,out);
+  } else {
+    const b=new Uint8Array(LUT_W*4); gl.readPixels(0,0,LUT_W,1,gl.RGBA,gl.UNSIGNED_BYTE,b);
+    out=new Float32Array(LUT_W*4); for(let i=0;i<b.length;i++) out[i]=b[i]/255;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return out;
+}
+
+/* Apply the SAME tonemap chain as the display shader, on CPU, for export. */
+function toneChain(rad){ // rad: [r,g,b] linear radiance -> [0..1] sRGB
+  const exp = EXPOSURE_BASE*adaptation(state.theta);
+  let c=[rad[0]*exp,rad[1]*exp,rad[2]*exp];
+  const A=0.15,B=0.50,C=0.10,D=0.20,E=0.02,F=0.30;
+  const hb=x=>((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+  const W=hb(11.2);
+  let m=c.map(x=>Math.min(1,Math.max(0,hb(x*2.0)/W)));
+  const L=0.2126*m[0]+0.7152*m[1]+0.0722*m[2];
+  const over=Math.max(m[0],m[1],m[2]);
+  const desat=smooth(0.85,1.0,over)*0.35;
+  m=m.map(x=>x*(1-desat)+L*desat);
+  const s=m.map(x=> x<=0.0031308? x*12.92 : 1.055*Math.pow(x,1/2.4)-0.055);
+  return s;
+}
+function smooth(a,b,x){ x=Math.max(0,Math.min(1,(x-a)/(b-a))); return x*x*(3-2*x); }
+
+/* sample tonemapped color at normalized vertical position p (0 horizon .. 1 top) */
+function sampleColor(lut,p){
+  const f=Math.max(0,Math.min(1,p))*(LUT_W-1);
+  const i=Math.floor(f), fr=f-i, j=Math.min(LUT_W-1,i+1);
+  const r=lut[i*4]*(1-fr)+lut[j*4]*fr;
+  const g=lut[i*4+1]*(1-fr)+lut[j*4+1]*fr;
+  const b=lut[i*4+2]*(1-fr)+lut[j*4+2]*fr;
+  return toneChain([r,g,b]);
+}
+
+/* ---------------------------------------------------------------- exposure calibration (once) */
+function calibrate(){
+  const saved={...state};
+  Object.assign(state,{theta:12,turbidity:2.4,altitude:0,azimuth:0,emax:45,ozone:300,alpha:0.6});
+  renderLUT();
+  const lut=readLUT();
+  // median luminance of the raw daytime radiance as the anchor
+  const lum=[];
+  for(let i=0;i<LUT_W;i++){ lum.push(0.2126*lut[i*4]+0.7152*lut[i*4+1]+0.0722*lut[i*4+2]); }
+  lum.sort((a,b)=>a-b);
+  const p70=lum[Math.floor(lum.length*0.70)]||1e-6;
+  EXPOSURE_BASE = 0.34/Math.max(p70,1e-9);
+  Object.assign(state,saved);
+  needsLUT=true;
+}
+
+/* ============================================================================
+   UI
+   ============================================================================ */
+const el = id=>document.getElementById(id);
+
+/* ---- non-linear slider mappings ---- */
+// sun elevation: dense in [-12,12]
+const THETA_PTS=[[-25,0],[-12,0.16],[0,0.42],[12,0.68],[90,1.0]];
+function thetaToS(v){ return piecewise(THETA_PTS,v,true); }
+function sToTheta(s){ return piecewise(THETA_PTS,s,false); }
+function piecewise(pts,val,forward){
+  const a=forward?0:1, b=forward?1:0;
+  for(let i=0;i<pts.length-1;i++){
+    const [x0,y0]=pts[i],[x1,y1]=pts[i+1];
+    const lo=forward?x0:y0, hi=forward?x1:y1;
+    if(val<=Math.max(lo,hi)+1e-9 || i===pts.length-2){
+      const t=(val-lo)/((hi-lo)||1e-9);
+      const oy0=forward?y0:x0, oy1=forward?y1:x1;
+      return oy0+(oy1-oy0)*Math.max(0,Math.min(1,t));
+    }
+  }
+  return forward?1:0;
+}
+// turbidity: log 1..10
+const turbToS=v=>Math.log10(v);              // 1..10 -> 0..1
+const sToTurb=s=>Math.pow(10,s);
+// altitude: log-ish 0..12000
+const ALT_K=2.4;
+const altToS=v=>Math.log(1+ (v/12000)*(Math.exp(ALT_K)-1))/ALT_K;
+const sToAlt=s=>(Math.exp(s*ALT_K)-1)/(Math.exp(ALT_K)-1)*12000;
+
+/* ---- slider component ---- */
+function makeSlider(node, get, set, fmt, opts={}){
+  const fill=node.querySelector('.fill'), thumb=node.querySelector('.thumb');
+  const min=opts.min??0, max=opts.max??1; // in slider-space [0,1]
+  function pos(){ return Math.max(0,Math.min(1,get())); }
+  function paint(){ const p=pos()*100; fill.style.width=p+'%'; thumb.style.left=p+'%'; if(opts.onpaint) opts.onpaint(); }
+  function setFromClientX(cx){
+    const r=node.getBoundingClientRect();
+    let p=(cx-r.left)/r.width; p=Math.max(0,Math.min(1,p));
+    set(p); paint();
+  }
+  let dragging=false;
+  node.addEventListener('pointerdown',e=>{ dragging=true; node.setPointerCapture(e.pointerId); node.focus(); setFromClientX(e.clientX); wake(); });
+  node.addEventListener('pointermove',e=>{ if(dragging){ setFromClientX(e.clientX); wake(); } });
+  node.addEventListener('pointerup',e=>{ dragging=false; });
+  node.addEventListener('keydown',e=>{
+    const step=e.shiftKey?opts.fineStep??0.002:opts.step??0.02;
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ set(Math.min(1,pos()+step)); paint(); e.preventDefault(); wake(); }
+    else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ set(Math.max(0,pos()-step)); paint(); e.preventDefault(); wake(); }
+  });
+  node.tabIndex=0;
+  paint();
+  return {paint};
+}
+
+/* build tick landmarks on elevation slider */
+function buildTicks(node){
+  const ticks=document.createElement('div'); ticks.className='ticks';
+  const marks=[{t:0,l:'0°',m:1},{t:-6,l:'−6'},{t:-12,l:'−12'},{t:-18,l:'−18'},{t:30,l:'30°'},{t:60,l:'60°'}];
+  marks.forEach(mk=>{
+    const d=document.createElement('div'); d.className='tick'+(mk.m?' major':'');
+    d.style.left=(thetaToS(mk.t)*100)+'%';
+    if(mk.l){ const s=document.createElement('span'); s.textContent=mk.l; d.appendChild(s); }
+    ticks.appendChild(d);
+  });
+  node.appendChild(ticks);
+}
+
+/* main sliders (built in strip) */
+const strip=el('strip');
+strip.innerHTML=`
+  <div class="ctrl">
+    <div class="ctrl-head"><span class="ctrl-label">Sun elevation</span><span class="ctrl-val" id="vTheta"></span></div>
+    <div class="slider" id="sTheta"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-head"><span class="ctrl-label">Turbidity</span><span class="ctrl-val" id="vTurb"></span></div>
+    <div class="slider" id="sTurb"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-head"><span class="ctrl-label">Altitude</span><span class="ctrl-val" id="vAlt"></span></div>
+    <div class="slider" id="sAlt"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
+  </div>`;
+buildTicks(el('sTheta'));
+
+function fmtTheta(){ el('vTheta').textContent=`θ ${state.theta>=0?'+':'−'}${Math.abs(state.theta).toFixed(1)}°`; }
+function fmtTurb(){ el('vTurb').textContent=`T ${state.turbidity.toFixed(1)}`; }
+function fmtAlt(){ el('vAlt').textContent=`h ${state.altitude<1000?Math.round(state.altitude)+' m':(state.altitude/1000).toFixed(1)+' km'}`; }
+
+const slTheta=makeSlider(el('sTheta'),
+  ()=>thetaToS(state.theta),
+  s=>{ state.theta=clampN(sToTheta(s),-25,90); fmtTheta(); invalidate(); syncURL(); },
+  null,{fineStep:0.0016,step:0.012,onpaint:fmtTheta});
+const slTurb=makeSlider(el('sTurb'),
+  ()=>turbToS(state.turbidity),
+  s=>{ state.turbidity=clampN(sToTurb(s),1,10); fmtTurb(); invalidate(); syncURL(); },
+  null,{onpaint:fmtTurb});
+const slAlt=makeSlider(el('sAlt'),
+  ()=>altToS(state.altitude),
+  s=>{ state.altitude=clampN(sToAlt(s),0,12000); fmtAlt(); invalidate(); syncURL(); },
+  null,{onpaint:fmtAlt});
+function clampN(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* advanced sliders */
+const slAz=makeSlider(el('sAzimuth'),
+  ()=>state.azimuth/180,
+  s=>{ state.azimuth=Math.round(s*180); el('vAzimuth').textContent=state.azimuth+'°'; invalidate(); syncURL(); },
+  null,{});
+const slEmax=makeSlider(el('sEmax'),
+  ()=>(state.emax-5)/85,
+  s=>{ state.emax=Math.round(5+s*85); el('vEmax').textContent=state.emax+'°'; invalidate(); syncURL(); },
+  null,{});
+const slOz=makeSlider(el('sOzone'),
+  ()=>(state.ozone-100)/400,
+  s=>{ state.ozone=Math.round(100+s*400); el('vOzone').textContent=state.ozone+' DU'; invalidate(); syncURL(); },
+  null,{});
+const slAl=makeSlider(el('sAlpha'),
+  ()=>state.alpha/2.5,
+  s=>{ state.alpha=+(s*2.5).toFixed(2); el('vAlpha').textContent=state.alpha.toFixed(2); invalidate(); syncURL(); },
+  null,{});
+
+function refreshAllSliders(){
+  slTheta.paint(); slTurb.paint(); slAlt.paint();
+  slAz.paint(); slEmax.paint(); slOz.paint(); slAl.paint();
+  fmtTheta(); fmtTurb(); fmtAlt();
+  el('vAzimuth').textContent=state.azimuth+'°';
+  el('vEmax').textContent=state.emax+'°';
+  el('vOzone').textContent=state.ozone+' DU';
+  el('vAlpha').textContent=state.alpha.toFixed(2);
+}
+
+/* ---------------------------------------------------------------- adaptive ink from LUT */
+let inkRaf=null;
+function updateInk(){
+  if(inkRaf) return;
+  inkRaf=requestAnimationFrame(()=>{
+    inkRaf=null;
+    const lut=readLUT();
+    // mean luminance over lower ~28% of the frame (where the strip sits)
+    let sum=0,n=0;
+    const lo=0, hi=Math.floor(LUT_W*0.28);
+    for(let i=lo;i<hi;i++){
+      const c=toneChain([lut[i*4],lut[i*4+1],lut[i*4+2]]);
+      sum+=0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; n++;
+    }
+    const mean=n?sum/n:0.5;
+    const dark = mean>0.5; // bright sky -> dark ink
+    const root=document.documentElement.style;
+    if(dark){
+      root.setProperty('--ink','rgba(0,0,0,0.78)');
+      root.setProperty('--ink-dim','rgba(0,0,0,0.46)');
+      root.setProperty('--ink-faint','rgba(0,0,0,0.18)');
+      root.setProperty('--ink-bg','rgba(0,0,0,0.06)');
+      root.setProperty('--panel-bg','rgba(255,255,255,0.72)');
+    } else {
+      root.setProperty('--ink','rgba(255,255,255,0.9)');
+      root.setProperty('--ink-dim','rgba(255,255,255,0.55)');
+      root.setProperty('--ink-faint','rgba(255,255,255,0.22)');
+      root.setProperty('--ink-bg','rgba(255,255,255,0.08)');
+      root.setProperty('--panel-bg','rgba(20,20,24,0.66)');
+    }
+  });
+}
+
+/* ---------------------------------------------------------------- idle fade */
+let idleTimer=null;
+const uiNodes=[el('strip'),el('topbar'),el('mark')];
+function showUI(){ uiNodes.forEach(n=>n.classList.remove('hidden')); }
+function hideUI(){
+  if(advOpen||expOpen) return;
+  uiNodes.forEach(n=>{ if(n.id!=='mark') n.classList.add('hidden'); });
+}
+function wake(){
+  showUI();
+  el('mark').style.opacity='';
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(hideUI,2200);
+}
+window.addEventListener('pointermove',wake);
+window.addEventListener('pointerdown',wake);
+
+/* ---------------------------------------------------------------- drag on sky to scrub */
+let skyDrag=false, dragStart=null;
+CANVAS.addEventListener('pointerdown',e=>{ skyDrag=true; dragStart={x:e.clientX,y:e.clientY,theta:state.theta,turb:state.turbidity}; CANVAS.setPointerCapture(e.pointerId); });
+CANVAS.addEventListener('pointermove',e=>{
+  if(!skyDrag) return;
+  const dx=(e.clientX-dragStart.x)/window.innerWidth;
+  const dy=(e.clientY-dragStart.y)/window.innerHeight;
+  state.theta=clampN(dragStart.theta - dy*60 + dx*0, -25,90); // vertical drag = elevation
+  fmtTheta(); slTheta.paint(); invalidate(); syncURL();
+});
+CANVAS.addEventListener('pointerup',()=>{ skyDrag=false; });
+
+/* ---------------------------------------------------------------- animation */
+let animating=false, animDir=-1;
+function advanceAnim(){
+  state.theta += animDir*0.18;
+  if(state.theta<=-25){ state.theta=-25; animDir=1; }
+  if(state.theta>=90){ state.theta=90; animDir=-1; }
+  fmtTheta(); slTheta.paint(); needsLUT=true; syncURLthrottled();
+}
+function toggleAnim(){
+  animating=!animating;
+  el('btnPlay').querySelector('svg').innerHTML = animating
+    ? '<rect x="7" y="5" width="3.4" height="14" fill="currentColor" stroke="none"/><rect x="13.6" y="5" width="3.4" height="14" fill="currentColor" stroke="none"/>'
+    : '<polygon points="7,5 19,12 7,19" fill="currentColor" stroke="none"/>';
+  if(animating) schedule();
+  wake();
+}
+const reduceMotion=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------------------------------------------------------------- keyboard */
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ e.preventDefault(); if(!reduceMotion) toggleAnim(); }
+  else if(e.key==='e'||e.key==='E'){ toggleExport(); }
+});
+
+/* ---------------------------------------------------------------- panels */
+let advOpen=false, expOpen=false;
+function toggleAdv(){ advOpen=!advOpen; el('advanced').classList.toggle('hidden',!advOpen); if(advOpen){expOpen=false;el('export').classList.add('hidden');} wake(); }
+function toggleExport(){ expOpen=!expOpen; el('export').classList.toggle('hidden',!expOpen); if(expOpen){advOpen=false;el('advanced').classList.add('hidden'); refreshExport();} wake(); }
+el('btnAdv').addEventListener('click',toggleAdv);
+el('btnExport').addEventListener('click',toggleExport);
+el('btnPlay').addEventListener('click',()=>{ if(!reduceMotion) toggleAnim(); });
+el('btnPlay').addEventListener('keydown',e=>{if(e.key==='Enter'){toggleAnim();}});
+el('btnAdv').addEventListener('keydown',e=>{if(e.key==='Enter'){toggleAdv();}});
+el('btnExport').addEventListener('keydown',e=>{if(e.key==='Enter'){toggleExport();}});
+
+/* ============================================================================
+   EXPORT
+   ============================================================================ */
+let expFmt='css';
+document.querySelectorAll('.exp-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.exp-tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); expFmt=t.dataset.fmt; refreshExport();
+}));
+
+/* adaptive stop placement: insert stops where linear interpolation error exceeds tol */
+function adaptiveStops(lut, tol){
+  const N=LUT_W;
+  const col=i=>sampleColor(lut, i/(N-1)); // sRGB 0..1
+  // build candidate at each of ~256 positions, greedily keep endpoints + high-error points
+  const M=256;
+  const pos=[], cols=[];
+  for(let i=0;i<M;i++){ const p=i/(M-1); pos.push(p); cols.push(sampleColor(lut,p)); }
+  const keep=new Array(M).fill(false);
+  keep[0]=keep[M-1]=true;
+  // recursive subdivision (Douglas-Peucker-like in oklab)
+  const oklab=cols.map(srgbToOklab);
+  function rec(a,b){
+    if(b-a<2) return;
+    let worst=-1, wi=-1;
+    for(let i=a+1;i<b;i++){
+      const t=(i-a)/(b-a);
+      const interp=[oklab[a][0]+(oklab[b][0]-oklab[a][0])*t,
+                    oklab[a][1]+(oklab[b][1]-oklab[a][1])*t,
+                    oklab[a][2]+(oklab[b][2]-oklab[a][2])*t];
+      const d=Math.hypot(interp[0]-oklab[i][0],interp[1]-oklab[i][1],interp[2]-oklab[i][2]);
+      if(d>worst){worst=d;wi=i;}
+    }
+    if(worst>tol){ keep[wi]=true; rec(a,wi); rec(wi,b); }
+  }
+  rec(0,M-1);
+  const stops=[];
+  for(let i=0;i<M;i++) if(keep[i]) stops.push({p:pos[i],c:cols[i]});
+  return stops;
+}
+function srgbToLin(x){ return x<=0.04045? x/12.92 : Math.pow((x+0.055)/1.055,2.4); }
+function srgbToOklab(s){
+  const r=srgbToLin(s[0]),g=srgbToLin(s[1]),b=srgbToLin(s[2]);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b);
+  const m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b);
+  const sC=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*sC,
+          1.9779984951*l-2.4285922050*m+0.4505937099*sC,
+          0.0259040371*l+0.7827717662*m-0.8086757660*sC];
+}
+function hex(c){ return '#'+c.map(x=>Math.round(Math.max(0,Math.min(1,x))*255).toString(16).padStart(2,'0')).join(''); }
+function p3str(c){ return `color(display-p3 ${c.map(x=>Math.max(0,Math.min(1,x)).toFixed(4)).join(' ')})`; }
+
+function genCSS(){
+  const lut=readLUT();
+  const stops=adaptiveStops(lut,0.0035);
+  // CSS gradient goes top->bottom by default; our p=1 is TOP, p=0 is horizon(bottom).
+  const line=stops.slice().reverse().map(s=>`${hex(s.c)} ${(100-s.p*100).toFixed(1)}%`).join(', ');
+  const lineP3=stops.slice().reverse().map(s=>`${p3str(s.c)} ${(100-s.p*100).toFixed(1)}%`).join(', ');
+  return {
+    text:`/* Horizon — ${stops.length} adaptive stops */\nbackground: linear-gradient(to bottom, ${line});\n\n/* Display P3, in oklab */\nbackground: linear-gradient(to bottom in oklab, ${lineP3});`,
+    note:`${stops.length} stops · perceptually placed (dense through the sunset band, sparse in flat sky).`
+  };
+}
+function genSVG(){
+  const lut=readLUT();
+  const stops=adaptiveStops(lut,0.0035);
+  const inner=stops.map(s=>`    <stop offset="${((1-s.p)*100).toFixed(1)}%" stop-color="${hex(s.c)}"/>`).join('\n');
+  const text=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+   <linearGradient id="horizon" x1="0" y1="0" x2="0" y2="1">
+${inner}
+   </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#horizon)"/>
+</svg>`;
+  return {text, note:`${stops.length}-stop &lt;linearGradient&gt; — drop into any design tool.`};
+}
+function genJSON(){
+  const s={sunElevation:+state.theta.toFixed(2),turbidity:+state.turbidity.toFixed(2),
+    altitude:Math.round(state.altitude),viewAzimuth:state.azimuth,frameTopElevation:state.emax,
+    ozoneDU:state.ozone,angstromAlpha:state.alpha};
+  return {text:JSON.stringify(s,null,2), note:'Reopen live at this exact state via the permalink.'};
+}
+function refreshExport(){
+  let r;
+  if(expFmt==='css') r=genCSS();
+  else if(expFmt==='svg') r=genSVG();
+  else r=genJSON();
+  el('expCode').value=r.text;
+  el('expNote').innerHTML=r.note;
+}
+el('btnCopy').addEventListener('click',()=>{
+  el('expCode').select();
+  navigator.clipboard.writeText(el('expCode').value).then(()=>{
+    const b=el('btnCopy'); b.textContent='Copied'; b.classList.add('copied');
+    setTimeout(()=>{b.textContent='Copy';b.classList.remove('copied');},1200);
+  });
+});
+el('btnPermalink').addEventListener('click',()=>{
+  navigator.clipboard.writeText(location.href).then(()=>{
+    const b=el('btnPermalink'); b.textContent='Copied'; setTimeout(()=>b.textContent='Copy link',1200);
+  });
+});
+
+/* PNG: re-render the LUT at target height for full precision, then dither-fill */
+el('btnPng').addEventListener('click',()=>{
+  const [w,h]=el('pngRes').value.split('x').map(Number);
+  const lut=readLUT();
+  const cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
+  const ctx=cvs.getContext('2d');
+  const img=ctx.createImageData(w,h);
+  // per-row color (columns identical), with TPDF dither per pixel
+  for(let y=0;y<h;y++){
+    const p=1-(y/(h-1)); // top row y=0 -> p=1 (Emax)
+    const c=sampleColor(lut,p); // sRGB 0..1
+    for(let x=0;x<w;x++){
+      const n=( ((x*1103515245+y*12345)>>>0)%1000/1000 - ((x*77+y*3121)>>>0)%1000/1000 )/255;
+      const idx=(y*w+x)*4;
+      img.data[idx]  =Math.round(Math.max(0,Math.min(1,c[0]+n))*255);
+      img.data[idx+1]=Math.round(Math.max(0,Math.min(1,c[1]+n))*255);
+      img.data[idx+2]=Math.round(Math.max(0,Math.min(1,c[2]+n))*255);
+      img.data[idx+3]=255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+  cvs.toBlob(b=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(b);
+    a.download=`horizon_${state.theta.toFixed(1)}deg_T${state.turbidity.toFixed(1)}.png`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  },'image/png');
+});
+
+/* ============================================================================
+   URL STATE
+   ============================================================================ */
+function syncURL(){
+  const q=new URLSearchParams();
+  q.set('t',state.theta.toFixed(2));
+  q.set('turb',state.turbidity.toFixed(2));
+  q.set('h',Math.round(state.altitude));
+  if(state.azimuth) q.set('az',state.azimuth);
+  if(state.emax!==45) q.set('emax',state.emax);
+  if(state.ozone!==300) q.set('o3',state.ozone);
+  if(state.alpha!==0.6) q.set('a',state.alpha);
+  history.replaceState(null,'','?'+q.toString());
+  if(expOpen) refreshExport();
+}
+let urlT=null;
+function syncURLthrottled(){ if(urlT) return; urlT=setTimeout(()=>{urlT=null;syncURL();},120); }
+function loadURL(){
+  const q=new URLSearchParams(location.search);
+  if(q.has('t')) state.theta=clampN(+q.get('t'),-25,90);
+  if(q.has('turb')) state.turbidity=clampN(+q.get('turb'),1,10);
+  if(q.has('h')) state.altitude=clampN(+q.get('h'),0,12000);
+  if(q.has('az')) state.azimuth=clampN(+q.get('az'),0,180);
+  if(q.has('emax')) state.emax=clampN(+q.get('emax'),5,90);
+  if(q.has('o3')) state.ozone=clampN(+q.get('o3'),100,500);
+  if(q.has('a')) state.alpha=clampN(+q.get('a'),0,2.5);
+}
+
+/* ============================================================================
+   RESIZE + BOOT
+   ============================================================================ */
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1, 2);
+  CANVAS.width=Math.round(window.innerWidth*dpr);
+  CANVAS.height=Math.round(window.innerHeight*dpr);
+  CANVAS.style.width=window.innerWidth+'px';
+  CANVAS.style.height=window.innerHeight+'px';
+  schedule();
+}
+window.addEventListener('resize',resize);
+
+loadURL();
+calibrate();
+refreshAllSliders();
+resize();
+render();
+wake();
+setTimeout(()=>{ const hint=el('hint'); hint.style.opacity='0'; }, 4200);
+</script>
+</body>
+</html>
