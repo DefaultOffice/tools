@@ -37,6 +37,9 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 
 /* custom slider */
 .slider{position:relative;height:16px;cursor:pointer;outline:none;}
+/* generous invisible hit area — extends up over the label so the whole control
+   is grabbable and you never catch the sky by mistake */
+.slider::before{content:"";position:absolute;left:-10px;right:-10px;top:-30px;bottom:-14px;}
 .slider .track{position:absolute;top:50%;left:0;right:0;height:1px;background:var(--ink-faint);transform:translateY(-50%);}
 .slider .fill{position:absolute;top:50%;left:0;height:1px;background:var(--ink);transform:translateY(-50%);}
 .slider .thumb{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--ink);
@@ -75,6 +78,7 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 .adv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
 .adv-label{font-size:10.5px;color:#555;letter-spacing:.02em;}
 .adv-val{font-size:11px;color:#111;font-variant-numeric:tabular-nums;font-family:ui-monospace,'SF Mono',monospace;}
+.adv-ctrl .slider::before{top:-16px;bottom:-8px;}
 .adv-ctrl .slider .track{background:rgba(0,0,0,0.1);}
 .adv-ctrl .slider .fill{background:#111;}
 .adv-ctrl .slider .thumb{background:#111;}
@@ -423,18 +427,29 @@ void main(){
   float lv = gl_FragCoord.y/uRes.y;             // 0 bottom(horizon) .. 1 top
   vec3 rad = texture(uLut, vec2(lv,0.5)).rgb;
   vec3 c = rad*uExposure;
+  const vec3 LW = vec3(0.2126,0.7152,0.0722);
 
-  // luminance-preserving desaturation for out-of-[0,inf) & pre-clip hue safety
-  // filmic tonemap
-  float W=11.2;
-  vec3 mapped = hable(c*2.0)/hable(vec3(W));
-  mapped = clamp(mapped,0.0,1.0);
+  // Chroma-preserving filmic tonemap. Per-channel Hable desaturates hard
+  // (turns the physical saturated-orange horizon to mud); tonemapping luminance
+  // and keeping the linear colour ratios preserves the spectral progression
+  // orange->yellow->teal->blue that the physics actually computes.
+  vec3 Wv = hable(vec3(11.2));
+  vec3 tmCh = hable(c*2.0)/Wv;                        // per-channel (desaturating)
+  float Lin = max(dot(c, LW), 1e-5);
+  float tmL = hable(vec3(Lin*2.0)).x/Wv.x;
+  vec3 tmLum = c*(tmL/Lin);                           // luminance-preserving (chroma-rich)
+  vec3 mapped = mix(tmCh, tmLum, 0.72);
+  mapped = max(mapped,0.0);
 
-  // gamut: if any channel would clip hard, pull toward luminance a touch
-  float L = dot(mapped, vec3(0.2126,0.7152,0.0722));
+  // camera-like vibrancy (push away from luminance)
+  float Lm = dot(mapped, LW);
+  mapped = Lm + (mapped-Lm)*1.38;
+  mapped = max(mapped,0.0);
+
+  // highlight safety: only pull toward luminance where a channel truly clips
   float over = max(max(mapped.r,mapped.g),mapped.b);
-  float desat = smoothstep(0.85,1.0,over)*0.35;
-  mapped = mix(mapped, vec3(L), desat);
+  mapped = mix(mapped, vec3(dot(mapped,LW)), smoothstep(0.94,1.02,over)*0.5);
+  mapped = clamp(mapped,0.0,1.0);
 
   // linear -> sRGB
   vec3 srgb = mix(mapped*12.92, 1.055*pow(mapped,vec3(1.0/2.4))-0.055, step(0.0031308,mapped));
@@ -521,9 +536,9 @@ const R_EARTH = 6360000.0;
 function adaptation(thetaDeg){
   // logistic in elevation; ~1 through the day and sunset, lifts only in twilight.
   const day = 1.0;
-  const night = 13.0;
-  const center = -7.0;   // half-lift near civil/nautical twilight
-  const width = 4.0;
+  const night = 28.0;
+  const center = -3.5;   // lift the just-after-sunset afterglow, not only deep twilight
+  const width = 3.5;
   const t = 1.0/(1.0+Math.exp((thetaDeg-center)/width));
   return day + (night-day)*t;
 }
@@ -587,17 +602,24 @@ function readLUT(){
 }
 
 /* Apply the SAME tonemap chain as the display shader, on CPU, for export. */
-function toneChain(rad){ // rad: [r,g,b] linear radiance -> [0..1] sRGB
+function toneChain(rad){ // rad: [r,g,b] linear radiance -> [0..1] sRGB (mirrors FRAG_DISP)
   const exp = EXPOSURE_BASE*adaptation(state.theta);
-  let c=[rad[0]*exp,rad[1]*exp,rad[2]*exp];
+  const c=[rad[0]*exp,rad[1]*exp,rad[2]*exp];
   const A=0.15,B=0.50,C=0.10,D=0.20,E=0.02,F=0.30;
   const hb=x=>((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
   const W=hb(11.2);
-  let m=c.map(x=>Math.min(1,Math.max(0,hb(x*2.0)/W)));
-  const L=0.2126*m[0]+0.7152*m[1]+0.0722*m[2];
+  const lum=v=>0.2126*v[0]+0.7152*v[1]+0.0722*v[2];
+  const tmCh=c.map(x=>hb(x*2.0)/W);
+  const Lin=Math.max(lum(c),1e-5);
+  const tmL=hb(Lin*2.0)/W;
+  const tmLum=c.map(x=>x*(tmL/Lin));
+  let m=tmCh.map((x,i)=>Math.max(0, x*(1-0.72)+tmLum[i]*0.72));
+  const Lm=lum(m);
+  m=m.map(x=>Math.max(0, Lm+(x-Lm)*1.38));
   const over=Math.max(m[0],m[1],m[2]);
-  const desat=smooth(0.85,1.0,over)*0.35;
-  m=m.map(x=>x*(1-desat)+L*desat);
+  const ds=smooth(0.94,1.02,over)*0.5;
+  const Lm2=lum(m);
+  m=m.map(x=>Math.min(1,Math.max(0, x*(1-ds)+Lm2*ds)));
   const s=m.map(x=> x<=0.0031308? x*12.92 : 1.055*Math.pow(x,1/2.4)-0.055);
   return s;
 }
