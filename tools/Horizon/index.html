@@ -446,9 +446,9 @@ void main(){
   mapped = Lm + (mapped-Lm)*1.38;
   mapped = max(mapped,0.0);
 
-  // highlight safety: only pull toward luminance where a channel truly clips
-  float over = max(max(mapped.r,mapped.g),mapped.b);
-  mapped = mix(mapped, vec3(dot(mapped,LW)), smoothstep(0.94,1.02,over)*0.5);
+  // Gamut: a bright saturated orange should just let its red channel pin at 1
+  // and stay orange. Pulling clipping pixels toward luminance turned the bright
+  // near-horizon aureole into a pale washed band, so just clamp.
   mapped = clamp(mapped,0.0,1.0);
 
   // linear -> sRGB
@@ -616,10 +616,7 @@ function toneChain(rad){ // rad: [r,g,b] linear radiance -> [0..1] sRGB (mirrors
   let m=tmCh.map((x,i)=>Math.max(0, x*(1-0.72)+tmLum[i]*0.72));
   const Lm=lum(m);
   m=m.map(x=>Math.max(0, Lm+(x-Lm)*1.38));
-  const over=Math.max(m[0],m[1],m[2]);
-  const ds=smooth(0.94,1.02,over)*0.5;
-  const Lm2=lum(m);
-  m=m.map(x=>Math.min(1,Math.max(0, x*(1-ds)+Lm2*ds)));
+  m=m.map(x=>Math.min(1,Math.max(0, x)));
   const s=m.map(x=> x<=0.0031308? x*12.92 : 1.055*Math.pow(x,1/2.4)-0.055);
   return s;
 }
