@@ -305,13 +305,21 @@ vec3 computeRow(float thetaV){
 
   // phase functions
   float phaseR = 3.0/(16.0*PI)*(1.0+mu*mu);
-  float g = mix(0.76,0.80, clamp((uTurbidity-1.0)/9.0,0.0,1.0));
+  // Sun-elevation coupling (artistic, not strictly physical): single scattering
+  // can't give BOTH a clean-blue afternoon and a lush-orange sunset from one fixed
+  // aerosol amount. So we drive the haze off the sun's height: high sun -> little
+  // Mie + tight forward lobe (sky reads Rayleigh-blue); sun near/below the horizon
+  // -> much more Mie + a broad lobe (the orange "wall"). Turbidity still scales the
+  // overall amount; this only modulates it by time of day.
+  float dayness = smoothstep(-0.05, 0.28, sin(uThetaSun));   // 1 = high sun .. 0 = at/below horizon
+  float g = mix(0.78, 0.86, dayness);                        // broad wall low, tight (bluer) high
   float gg=g*g;
   float denom = pow(max(1.0+gg-2.0*g*mu, 1e-4), 1.5);
   float phaseM = (1.0/(4.0*PI)) * (3.0*(1.0-gg))/(2.0*(2.0+gg)) * (1.0+mu*mu)/denom;
   float phaseIso = 1.0/(4.0*PI);
 
-  float betaM550 = (uTurbidity-1.0)*9.0e-5;  // scattering @550
+  float mieBoost = mix(9.0, 1.0, dayness);                   // more haze/glow as the sun sets
+  float betaM550 = (uTurbidity-1.0)*1.1e-5*mieBoost;
 
   // ---- terminator illumination (drives multiple-scatter ambient colour) ----
   // At twilight the sky is mostly in Earth's shadow, lit by light that grazed
@@ -520,7 +528,8 @@ const state = {
   turbidity: 2.5,   // 1..10
   altitude: 0,      // m, 0..12000
   azimuth: 0,       // deg, view rel sun
-  emax: 45,         // deg
+  emax: 30,         // deg — horizon-focused: a high sun stays above the frame so the
+                    // afternoon reads deep blue, then descends into view for sunset
   ozone: 300,       // DU
   alpha: 0.6,
 };
@@ -534,13 +543,16 @@ const R_EARTH = 6360000.0;
 /* adaptation curve: exposure multiplier vs sun elevation (photopic->scotopic).
    Brightens twilight/night so a single scrub stays watchable; deterministic. */
 function adaptation(thetaDeg){
-  // logistic in elevation; ~1 through the day and sunset, lifts only in twilight.
+  // Valley-shaped exposure vs sun elevation. Golden hour is the brightest scene
+  // (needs least exposure); both the dimmer high-sun blue sky and twilight need
+  // lifting. Two lifts on a base of 1, added on either side of golden hour.
   const day = 1.0;
   const night = 28.0;
-  const center = -3.5;   // lift the just-after-sunset afterglow, not only deep twilight
+  const center = -3.5;   // twilight lift centre (just-after-sunset afterglow)
   const width = 3.5;
-  const t = 1.0/(1.0+Math.exp((thetaDeg-center)/width));
-  return day + (night-day)*t;
+  const nightLift = (night-day) / (1.0+Math.exp((thetaDeg-center)/width));
+  const dayLift = 6.0 * smooth(3.0, 38.0, thetaDeg);   // brighten the dim high-sun sky
+  return day + nightLift + dayLift;
 }
 
 /* ---------------------------------------------------------------- render */
