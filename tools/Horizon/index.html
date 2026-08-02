@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Horizon | Default Office Tools</title>
 <style>
-@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Regular.otf') format('opentype'); font-weight:400; font-display:swap; }
-@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Medium.otf') format('opentype'); font-weight:500; font-display:swap; }
-@font-face { font-family:'Suisse'; src:url('../../fonts/SuisseIntl-Book.otf') format('opentype'); font-weight:450; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('fonts/SuisseIntl-Light.otf') format('opentype'); font-weight:300; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('fonts/SuisseIntl-Book.otf') format('opentype'); font-weight:450; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('fonts/SuisseIntl-Regular.otf') format('opentype'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('fonts/SuisseIntl-Medium.otf') format('opentype'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Suisse'; src:url('fonts/SuisseIntl-SemiBold.otf') format('opentype'); font-weight:600; font-display:swap; }
 
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;}
@@ -26,14 +28,13 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
   left:0;right:0;bottom:0;
   padding:0 clamp(16px,3vw,40px) calc(18px + env(safe-area-inset-bottom)) clamp(16px,3vw,40px);
   padding-top:26px;
-  display:flex;align-items:flex-end;gap:clamp(20px,4vw,64px);
+  display:flex;justify-content:center;align-items:flex-end;gap:clamp(20px,4vw,56px);
   background:linear-gradient(to top, var(--ink-bg), transparent);
 }
-.ctrl{flex:1;min-width:0;max-width:420px;}
-.ctrl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
-.ctrl-label{font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);}
-.ctrl-val{font-size:12px;font-weight:450;letter-spacing:.02em;font-variant-numeric:tabular-nums;
-  font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink);}
+.ctrl{flex:0 1 300px;min-width:0;}
+.ctrl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.ctrl-label{font-size:12.5px;font-weight:500;letter-spacing:0;color:var(--ink-dim);}
+.ctrl-val{font-size:13.5px;font-weight:450;letter-spacing:0;font-variant-numeric:tabular-nums;color:var(--ink);}
 
 /* custom slider */
 .slider{position:relative;height:16px;cursor:pointer;outline:none;}
@@ -49,8 +50,8 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 .slider .ticks{position:absolute;top:50%;left:0;right:0;height:16px;transform:translateY(-50%);pointer-events:none;}
 .slider .tick{position:absolute;top:0;width:1px;height:5px;background:var(--ink-faint);}
 .slider .tick.major{height:8px;background:var(--ink-dim);}
-.slider .tick span{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:8.5px;
-  letter-spacing:.05em;color:var(--ink-dim);white-space:nowrap;font-family:ui-monospace,'SF Mono',monospace;}
+.slider .tick span{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:9px;
+  letter-spacing:.01em;color:var(--ink-dim);white-space:nowrap;font-variant-numeric:tabular-nums;}
 
 /* ---- top-right glyphs ---- */
 #topbar{top:calc(14px + env(safe-area-inset-top));right:clamp(14px,3vw,32px);display:flex;gap:6px;align-items:center;}
@@ -61,8 +62,8 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 .glyph.play svg{stroke-width:1.2;}
 
 /* wordmark bottom-left corner, very quiet */
-#mark{bottom:calc(20px + env(safe-area-inset-bottom));left:clamp(16px,3vw,40px);font-size:10px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--ink-faint);font-weight:500;pointer-events:none;opacity:0;transition:opacity .5s;}
+#mark{bottom:calc(20px + env(safe-area-inset-bottom));left:clamp(16px,3vw,40px);font-size:12px;letter-spacing:.01em;
+  color:var(--ink-faint);font-weight:500;pointer-events:none;opacity:0;transition:opacity .5s;}
 
 /* ---- advanced panel ---- */
 #advanced{top:calc(52px + env(safe-area-inset-top));right:clamp(14px,3vw,32px);width:250px;
@@ -72,12 +73,12 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
   box-shadow:0 12px 40px rgba(0,0,0,0.16);
   transform-origin:top right;transition:opacity .28s,transform .28s;color:#111;}
 #advanced.hidden{opacity:0;transform:scale(.96);pointer-events:none;}
-#advanced .adv-title{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-bottom:14px;font-weight:500;}
+#advanced .adv-title{font-size:13px;letter-spacing:.01em;color:#1a1a1a;margin-bottom:14px;font-weight:600;}
 .adv-ctrl{margin-bottom:15px;}
 .adv-ctrl:last-child{margin-bottom:0;}
 .adv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
-.adv-label{font-size:10.5px;color:#555;letter-spacing:.02em;}
-.adv-val{font-size:11px;color:#111;font-variant-numeric:tabular-nums;font-family:ui-monospace,'SF Mono',monospace;}
+.adv-label{font-size:11.5px;color:#555;letter-spacing:0;font-weight:400;}
+.adv-val{font-size:11.5px;color:#111;font-weight:450;font-variant-numeric:tabular-nums;}
 .adv-ctrl .slider::before{top:-16px;bottom:-8px;}
 .adv-ctrl .slider .track{background:rgba(0,0,0,0.1);}
 .adv-ctrl .slider .fill{background:#111;}
@@ -92,7 +93,7 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
   transform-origin:top right;transition:opacity .28s,transform .28s;
   box-shadow:0 12px 40px rgba(0,0,0,0.16);}
 #export.hidden{opacity:0;transform:scale(.96);pointer-events:none;}
-#export .adv-title{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#999;margin-bottom:12px;font-weight:500;}
+#export .adv-title{font-size:13px;letter-spacing:.01em;color:#1a1a1a;margin-bottom:12px;font-weight:600;}
 .exp-row{display:flex;gap:8px;margin-bottom:10px;}
 .exp-btn{flex:1;padding:9px 8px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;background:transparent;
   font-family:inherit;font-size:11px;font-weight:450;color:#111;cursor:pointer;transition:background .15s,border-color .15s;letter-spacing:.01em;}
@@ -100,14 +101,14 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 .exp-btn.primary{background:#111;color:#fff;border-color:#111;}
 .exp-btn.primary:hover{background:#333;}
 .exp-field{margin-bottom:12px;}
-.exp-field label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:6px;}
+.exp-field label{display:block;font-size:11px;letter-spacing:0;color:#888;font-weight:500;margin-bottom:6px;}
 .exp-code{width:100%;height:74px;resize:none;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;line-height:1.5;
   color:#333;background:rgba(0,0,0,0.035);border:1px solid rgba(0,0,0,0.07);border-radius:7px;padding:8px 9px;
   outline:none;white-space:pre;overflow:auto;}
 .exp-code:focus{border-color:rgba(0,0,0,0.2);}
 .exp-sub{display:flex;gap:6px;margin-bottom:8px;}
-.exp-tab{font-size:10px;padding:4px 9px;border-radius:6px;color:#888;cursor:pointer;letter-spacing:.02em;}
-.exp-tab.active{background:#111;color:#fff;}
+.exp-tab{font-size:11px;padding:4px 10px;border-radius:6px;color:#888;cursor:pointer;letter-spacing:0;font-weight:450;}
+.exp-tab.active{background:#111;color:#fff;font-weight:500;}
 .exp-note{font-size:9.5px;color:#aaa;margin-top:2px;line-height:1.5;letter-spacing:.01em;}
 .exp-res{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
 .exp-res select{font-family:inherit;font-size:11px;padding:5px 8px;border:1px solid rgba(0,0,0,0.12);border-radius:6px;background:#fff;color:#111;outline:none;}
@@ -115,7 +116,7 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 
 @media (max-width:640px){
   #strip{flex-direction:column;align-items:stretch;gap:14px;padding-top:20px;}
-  .ctrl{max-width:none;}
+  .ctrl{flex:none;max-width:none;}
   #advanced,#export{width:min(300px,calc(100vw - 28px));}
 }
 @media (prefers-reduced-motion:reduce){ .ui{transition:none;} }
@@ -164,7 +165,8 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 </div>
 
 <div id="export" class="ui hidden">
-  <div class="adv-title">Export — WYSIWYG from the live gradient</div>
+  <div class="adv-title">Export</div>
+  <div class="exp-note" style="margin-top:-6px;margin-bottom:12px;">Exactly what you see — sampled from the live gradient.</div>
   <div class="exp-sub">
     <span class="exp-tab active" data-fmt="css">CSS</span>
     <span class="exp-tab" data-fmt="svg">SVG</span>
@@ -179,16 +181,24 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
     <button class="exp-btn" id="btnPermalink">Copy link</button>
   </div>
   <div class="exp-res">
-    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#999;">PNG</span>
-    <select id="pngRes">
+    <select id="imgFmt" style="flex:1;">
+      <option value="png">PNG · 8-bit</option>
+      <option value="tiff">TIFF · 16-bit</option>
+    </select>
+    <select id="pngRes" style="flex:1;">
       <option value="1080x1920">1080 × 1920</option>
+      <option value="2160x3840">2160 × 3840 · 4K</option>
+      <option value="4320x7680">4320 × 7680 · 8K</option>
       <option value="1920x1080">1920 × 1080</option>
-      <option value="2160x3840">2160 × 3840</option>
+      <option value="3840x2160">3840 × 2160 · 4K</option>
+      <option value="7680x4320">7680 × 4320 · 8K</option>
       <option value="1024x1024">1024 × 1024</option>
+      <option value="4096x4096">4096 × 4096</option>
       <option value="1200x628">1200 × 628</option>
     </select>
-    <button class="exp-btn" id="btnPng" style="flex:0 0 auto;padding:7px 14px;">Download</button>
   </div>
+  <button class="exp-btn" id="btnPng" style="width:100%;">Download image</button>
+  <div class="exp-note" id="imgNote" style="margin-top:8px;">PNG · 8-bit sRGB, TPDF-dithered to hide banding.</div>
 </div>
 
 <div class="hint ui" id="hint">drag to explore · space to animate</div>
@@ -998,33 +1008,104 @@ el('btnPermalink').addEventListener('click',()=>{
   });
 });
 
-/* PNG: re-render the LUT at target height for full precision, then dither-fill */
+/* format note */
+function updateImgNote(){
+  el('imgNote').textContent = el('imgFmt').value==='tiff'
+    ? 'TIFF · 16-bit sRGB, uncompressed. No dither — full precision for print/grading.'
+    : 'PNG · 8-bit sRGB, TPDF-dithered to hide banding.';
+}
+el('imgFmt').addEventListener('change',updateImgNote);
+
+/* Baseline uncompressed TIFF, 16-bit/sample RGB, native byte order. */
+function encodeTIFF16(w,h,rgb16){ // rgb16: Uint16Array length w*h*3
+  const LE = new Uint8Array(new Uint16Array([1]).buffer)[0]===1;
+  const NENTRIES=11;
+  const headerLen=8, ifdLen=2+NENTRIES*12+4, extraLen=12; // BitsPerSample(6)+SampleFormat(6)
+  let dataStart=headerLen+ifdLen+extraLen;
+  if(dataStart%2) dataStart++;
+  const bpsOff=headerLen+ifdLen;      // 3 shorts
+  const sfOff=bpsOff+6;               // 3 shorts
+  const dataBytes=w*h*3*2;
+  const buf=new ArrayBuffer(dataStart+dataBytes);
+  const dv=new DataView(buf);
+  // header
+  dv.setUint16(0, LE?0x4949:0x4D4D, LE);
+  dv.setUint16(2, 42, LE);
+  dv.setUint32(4, headerLen, LE);     // first IFD right after header
+  // IFD
+  let o=headerLen;
+  dv.setUint16(o, NENTRIES, LE); o+=2;
+  const entry=(tag,type,count,val)=>{
+    dv.setUint16(o,tag,LE); dv.setUint16(o+2,type,LE);
+    dv.setUint32(o+4,count,LE); dv.setUint32(o+8,val,LE); o+=12;
+  }; // type: 3=SHORT 4=LONG. For SHORT count 1, value sits in low bytes (LE-correct).
+  entry(256,4,1,w);          // ImageWidth
+  entry(257,4,1,h);          // ImageLength
+  entry(258,3,3,bpsOff);     // BitsPerSample -> [16,16,16]
+  entry(259,3,1,1);          // Compression = none
+  entry(262,3,1,2);          // Photometric = RGB
+  entry(273,4,1,dataStart);  // StripOffsets
+  entry(277,3,1,3);          // SamplesPerPixel
+  entry(278,4,1,h);          // RowsPerStrip
+  entry(279,4,1,dataBytes);  // StripByteCounts
+  entry(284,3,1,1);          // PlanarConfiguration = chunky
+  entry(339,3,3,sfOff);      // SampleFormat -> [1,1,1] unsigned
+  dv.setUint32(o,0,LE);      // next IFD = 0
+  // out-of-line arrays
+  dv.setUint16(bpsOff,16,LE); dv.setUint16(bpsOff+2,16,LE); dv.setUint16(bpsOff+4,16,LE);
+  dv.setUint16(sfOff,1,LE);   dv.setUint16(sfOff+2,1,LE);   dv.setUint16(sfOff+4,1,LE);
+  // pixel data (native endian matches header byte order)
+  new Uint16Array(buf, dataStart, w*h*3).set(rgb16);
+  return new Blob([buf],{type:'image/tiff'});
+}
+
+/* Re-render the LUT at the target resolution for full precision. */
 el('btnPng').addEventListener('click',()=>{
+  const btn=el('btnPng'), label=btn.textContent;
   const [w,h]=el('pngRes').value.split('x').map(Number);
-  const lut=readLUT();
-  const cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
-  const ctx=cvs.getContext('2d');
-  const img=ctx.createImageData(w,h);
-  // per-row color (columns identical), with TPDF dither per pixel
-  for(let y=0;y<h;y++){
-    const p=1-(y/(h-1)); // top row y=0 -> p=1 (Emax)
-    const c=sampleColor(lut,p); // sRGB 0..1
-    for(let x=0;x<w;x++){
-      const n=( ((x*1103515245+y*12345)>>>0)%1000/1000 - ((x*77+y*3121)>>>0)%1000/1000 )/255;
-      const idx=(y*w+x)*4;
-      img.data[idx]  =Math.round(Math.max(0,Math.min(1,c[0]+n))*255);
-      img.data[idx+1]=Math.round(Math.max(0,Math.min(1,c[1]+n))*255);
-      img.data[idx+2]=Math.round(Math.max(0,Math.min(1,c[2]+n))*255);
-      img.data[idx+3]=255;
-    }
-  }
-  ctx.putImageData(img,0,0);
-  cvs.toBlob(b=>{
+  const fmt=el('imgFmt').value;
+  btn.textContent='Rendering…'; btn.disabled=true;
+  const name=`horizon_${state.theta.toFixed(1)}deg_T${state.turbidity.toFixed(1)}`;
+  const dl=(blob,ext)=>{
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(b);
-    a.download=`horizon_${state.theta.toFixed(1)}deg_T${state.turbidity.toFixed(1)}.png`;
+    a.href=URL.createObjectURL(blob); a.download=`${name}.${ext}`;
     a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  },'image/png');
+    btn.textContent=label; btn.disabled=false;
+  };
+  setTimeout(()=>{ try{
+    const lut=readLUT();
+    if(fmt==='tiff'){
+      // 16-bit, no dither — the extra bit depth removes banding on its own.
+      const px=new Uint16Array(w*h*3);
+      for(let y=0;y<h;y++){
+        const c=sampleColor(lut, 1-(y/(h-1)));
+        const r=Math.round(Math.max(0,Math.min(1,c[0]))*65535);
+        const g=Math.round(Math.max(0,Math.min(1,c[1]))*65535);
+        const b=Math.round(Math.max(0,Math.min(1,c[2]))*65535);
+        for(let x=0,o=y*w*3;x<w;x++,o+=3){ px[o]=r; px[o+1]=g; px[o+2]=b; }
+      }
+      dl(encodeTIFF16(w,h,px),'tif');
+    }else{
+      const cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
+      const ctx=cvs.getContext('2d'); const img=ctx.createImageData(w,h);
+      for(let y=0;y<h;y++){
+        const c=sampleColor(lut, 1-(y/(h-1)));
+        for(let x=0;x<w;x++){
+          const n=( ((x*1103515245+y*12345)>>>0)%1000/1000 - ((x*77+y*3121)>>>0)%1000/1000 )/255;
+          const idx=(y*w+x)*4;
+          img.data[idx]  =Math.round(Math.max(0,Math.min(1,c[0]+n))*255);
+          img.data[idx+1]=Math.round(Math.max(0,Math.min(1,c[1]+n))*255);
+          img.data[idx+2]=Math.round(Math.max(0,Math.min(1,c[2]+n))*255);
+          img.data[idx+3]=255;
+        }
+      }
+      ctx.putImageData(img,0,0);
+      cvs.toBlob(b=>dl(b,'png'),'image/png');
+    }
+  }catch(err){
+    btn.textContent=label; btn.disabled=false;
+    alert('Export failed at this size (likely memory). Try a smaller resolution.\n\n'+err);
+  }},20);
 });
 
 /* ============================================================================
