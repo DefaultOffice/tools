@@ -20,7 +20,10 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 /* UI ink: always white (a soft shadow keeps it legible on bright skies too) */
 :root{--ink:rgba(255,255,255,0.94);--ink-dim:rgba(255,255,255,0.62);--ink-faint:rgba(255,255,255,0.30);--ink-bg:rgba(255,255,255,0.10);}
 
-.ui{position:fixed;color:var(--ink);transition:opacity .55s ease;z-index:10;}
+.ui{position:fixed;color:var(--ink);transition:opacity .55s ease;z-index:10;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+/* keep the export code box selectable so it can be copied */
+.exp-code{user-select:text;-webkit-user-select:text;}
 .ui.hidden{opacity:0;pointer-events:none;}
 
 /* ---- bottom control strip ---- */
