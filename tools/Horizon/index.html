@@ -76,6 +76,7 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
 #advanced .adv-title{font-size:13px;letter-spacing:.01em;color:#1a1a1a;margin-bottom:14px;font-weight:600;}
 .adv-ctrl{margin-bottom:15px;}
 .adv-ctrl:last-child{margin-bottom:0;}
+.adv-foot{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.08);}
 .adv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
 .adv-label{font-size:11.5px;color:#555;letter-spacing:0;font-weight:400;}
 .adv-val{font-size:11.5px;color:#111;font-weight:450;font-variant-numeric:tabular-nums;}
@@ -162,6 +163,7 @@ body{font-family:'Suisse',-apple-system,BlinkMacSystemFont,sans-serif;-webkit-fo
     <div class="adv-head"><span class="adv-label">Ångström α (aerosol)</span><span class="adv-val" id="vAlpha">0.60</span></div>
     <div class="slider" id="sAlpha" tabindex="0"><div class="track"></div><div class="fill"></div><div class="thumb"></div></div>
   </div>
+  <div class="adv-foot"><span class="adv-label" style="color:#888;">Display</span><span class="adv-val" id="capReadout" style="color:#888;">—</span></div>
 </div>
 
 <div id="export" class="ui hidden">
@@ -433,6 +435,9 @@ uniform sampler2D uLut;
 uniform vec2 uRes;
 uniform float uExposure;
 uniform float uSeed;
+uniform float uToP3;      // 1 -> convert linear Rec.709 primaries to Display-P3
+uniform float uHDR;       // 1 -> extended-range output (values >1 bloom into headroom)
+uniform float uHeadroom;  // max luminance multiple above SDR white in HDR mode
 out vec4 outColor;
 
 // Hable/Uncharted2 filmic
@@ -441,6 +446,17 @@ vec3 hable(vec3 x){
   return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 float hash(vec2 p){ p=fract(p*vec2(123.34,345.45)); p+=dot(p,p+34.345); return fract(p.x*p.y); }
+
+// linear Rec.709 (sRGB primaries) -> linear Display-P3, both D65
+vec3 rec709ToP3(vec3 c){
+  return vec3(
+    0.822462*c.r + 0.177537*c.g,
+    0.033194*c.r + 0.966807*c.g,
+    0.017083*c.r + 0.072397*c.g + 0.910520*c.b);
+}
+// sRGB transfer, sign-preserving and continuous above 1.0 (extended-sRGB for HDR)
+float encT(float x){ float s=sign(x); x=abs(x); return s*(x<=0.0031308 ? x*12.92 : 1.055*pow(x,1.0/2.4)-0.055); }
+vec3 encodeSRGB(vec3 c){ return vec3(encT(c.r),encT(c.g),encT(c.b)); }
 void main(){
   float lv = gl_FragCoord.y/uRes.y;             // 0 bottom(horizon) .. 1 top
   vec3 rad = texture(uLut, vec2(lv,0.5)).rgb;
@@ -464,22 +480,38 @@ void main(){
   mapped = Lm + (mapped-Lm)*1.38;
   mapped = max(mapped,0.0);
 
-  // Gamut: a bright saturated orange should just let its red channel pin at 1
-  // and stay orange. Pulling clipping pixels toward luminance turned the bright
-  // near-horizon aureole into a pale washed band, so just clamp.
-  mapped = clamp(mapped,0.0,1.0);
+  // Output stage. SDR: clamp to [0,1] (a bright saturated orange lets its red
+  // channel pin at 1 and stays orange). HDR: keep the sky at/below SDR white
+  // unchanged, but let values that would have clipped bloom into the display's
+  // headroom, scaling RGB together so the aureole gets brighter, not paler.
+  vec3 lin;
+  if(uHDR > 0.5){
+    // Extend only genuine highlights into the display's headroom, keeping the
+    // sky within SDR range. Driven by the pre-tonemap scene luminance (rad*exp),
+    // so the bright day/golden-hour aureole glows above paper-white while
+    // twilight — which is never brighter than white — is left untouched.
+    // Chroma is preserved (uniform scale), so highlights get brighter, not paler.
+    float Lraw = dot(c, LW);
+    float glow = smoothstep(0.35, 2.6, Lraw);
+    lin = mapped * (1.0 + (uHeadroom-1.0)*glow);
+  } else {
+    lin = clamp(mapped,0.0,1.0);
+  }
 
-  // linear -> sRGB
-  vec3 srgb = mix(mapped*12.92, 1.055*pow(mapped,vec3(1.0/2.4))-0.055, step(0.0031308,mapped));
+  if(uToP3 > 0.5) lin = rec709ToP3(lin);
 
-  // triangular-PDF dither (~blue-ish via two hashes) to kill banding at 8-bit
-  vec2 uv=gl_FragCoord.xy;
-  float n1=hash(uv+uSeed);
-  float n2=hash(uv*1.37 - uSeed*0.7);
-  float d=(n1-n2)/255.0;
-  srgb += d;
+  vec3 enc = encodeSRGB(lin);
 
-  outColor = vec4(srgb,1.0);
+  if(uHDR < 0.5){
+    // triangular-PDF dither (~blue-ish via two hashes) to kill banding at 8-bit.
+    // The float16 HDR buffer has no banding, so it needs none.
+    vec2 uv=gl_FragCoord.xy;
+    float n1=hash(uv+uSeed);
+    float n2=hash(uv*1.37 - uSeed*0.7);
+    enc += (n1-n2)/255.0;
+  }
+
+  outColor = vec4(enc,1.0);
 }
 `;
 
@@ -526,10 +558,38 @@ const UD = {
   uRes: gl.getUniformLocation(progDisp,'uRes'),
   uExposure: gl.getUniformLocation(progDisp,'uExposure'),
   uSeed: gl.getUniformLocation(progDisp,'uSeed'),
+  uToP3: gl.getUniformLocation(progDisp,'uToP3'),
+  uHDR: gl.getUniformLocation(progDisp,'uHDR'),
+  uHeadroom: gl.getUniformLocation(progDisp,'uHeadroom'),
 };
 
-/* try Display-P3 wide gamut where supported */
-try{ if('drawingBufferColorSpace' in gl){ gl.drawingBufferColorSpace='display-p3'; } }catch(e){}
+/* ---------------------------------------------------------------- display capability
+   Two independent upgrades, each behind capability + graceful fallback:
+   - Wide gamut: on a P3 display we declare the canvas Display-P3 and colour-manage
+     Rec.709 -> P3 in-shader, so saturated sunset colours outside sRGB actually show.
+   - HDR (EDR): on an HDR display in a browser exposing float16 drawing buffers, we
+     allocate an RGBA16F backbuffer so the sun/aureole can exceed SDR white. */
+const CAP = { p3:false, hdr:false };
+const HDR_HEADROOM = 4.0;   // how far above SDR white the brightest sky may bloom
+let usedManualBuffer = false;
+function updateCapReadout(){
+  const elc=document.getElementById('capReadout');
+  if(!elc) return;
+  elc.textContent = (CAP.hdr?'HDR':'SDR') + ' · ' + (CAP.p3?'Display-P3':'sRGB');
+}
+function refreshDisplayCaps(){
+  try{ CAP.p3 = ('drawingBufferColorSpace' in gl) && !!window.matchMedia && matchMedia('(color-gamut: p3)').matches; }catch(e){ CAP.p3=false; }
+  try{ CAP.hdr = (typeof gl.drawingBufferStorage==='function') && !!window.matchMedia && matchMedia('(dynamic-range: high)').matches; }catch(e){ CAP.hdr=false; }
+  try{ if('drawingBufferColorSpace' in gl){ gl.drawingBufferColorSpace = CAP.p3 ? 'display-p3' : 'srgb'; } }catch(e){}
+  if(typeof updateCapReadout==='function') updateCapReadout();
+}
+refreshDisplayCaps();
+// Re-evaluate when the window moves between displays (e.g. laptop <-> external monitor).
+if(window.matchMedia){
+  ['(dynamic-range: high)','(color-gamut: p3)'].forEach(q=>{
+    try{ matchMedia(q).addEventListener('change',()=>{ refreshDisplayCaps(); if(typeof resize==='function') resize(); if(typeof render==='function') render(); }); }catch(e){}
+  });
+}
 
 /* ---------------------------------------------------------------- state */
 const DEG=Math.PI/180;
@@ -585,15 +645,19 @@ function renderLUT(){
 }
 let dispSeed=0;
 function renderDisplay(){
-  gl.viewport(0,0,CANVAS.width,CANVAS.height);
+  const dw=gl.drawingBufferWidth, dh=gl.drawingBufferHeight;
+  gl.viewport(0,0,dw,dh);
   gl.useProgram(progDisp);
   gl.bindVertexArray(dummyVAO);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, lutTex);
   gl.uniform1i(UD.uLut,0);
-  gl.uniform2f(UD.uRes, CANVAS.width, CANVAS.height);
+  gl.uniform2f(UD.uRes, dw, dh);
   gl.uniform1f(UD.uExposure, EXPOSURE_BASE*adaptation(state.theta));
   gl.uniform1f(UD.uSeed, (dispSeed=(dispSeed+0.618)%1.0));
+  gl.uniform1f(UD.uToP3, CAP.p3?1.0:0.0);
+  gl.uniform1f(UD.uHDR, CAP.hdr?1.0:0.0);
+  gl.uniform1f(UD.uHeadroom, HDR_HEADROOM);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 let needsLUT=true;
@@ -1145,6 +1209,14 @@ function resize(){
   CANVAS.height=Math.round(window.innerHeight*dpr);
   CANVAS.style.width=window.innerWidth+'px';
   CANVAS.style.height=window.innerHeight+'px';
+  // Explicit drawing-buffer storage for HDR (float16). Once we've taken manual
+  // control we keep managing it (RGBA8 when HDR is off) so size stays in sync.
+  if(typeof gl.drawingBufferStorage==='function' && (CAP.hdr || usedManualBuffer)){
+    try{
+      gl.drawingBufferStorage(CAP.hdr?gl.RGBA16F:gl.RGBA8, CANVAS.width, CANVAS.height);
+      usedManualBuffer=true;
+    }catch(e){ CAP.hdr=false; }
+  }
   schedule();
 }
 window.addEventListener('resize',resize);
