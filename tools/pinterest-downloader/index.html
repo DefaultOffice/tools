@@ -32,7 +32,8 @@
         .container { max-width: 520px; margin: 80px auto 0; }
 
         h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
-        .subtitle { color: #666; margin-bottom: 32px; }
+        .subtitle { color: #666; }
+        .requirement { font-size: 13px; color: #999; margin-top: 2px; margin-bottom: 32px; }
 
         label { display: block; font-size: 13px; margin-bottom: 6px; }
 
@@ -89,14 +90,19 @@
         .status.success { color: #22863a; }
         .status.error { color: #cb2431; }
 
-        .notes {
+        .credit {
             margin-top: 48px;
             padding-top: 24px;
             border-top: 1px solid #e0e0e0;
             font-size: 13px;
             color: #666;
         }
-        .notes p + p { margin-top: 8px; }
+        .credit a {
+            color: #1a1a1a;
+            text-decoration: underline;
+            text-decoration-color: #1a1a1a;
+            text-underline-offset: 3px;
+        }
     </style>
 </head>
 <body>
@@ -105,6 +111,7 @@
     <div class="container">
         <h1>Pinterest Board Downloader</h1>
         <p class="subtitle">Paste a board link and get every image as a zip.</p>
+        <p class="requirement">The board must be public.</p>
 
         <label for="url">Pinterest board URL</label>
         <input type="text" id="url" placeholder="https://pin.it/… or https://pinterest.com/user/board" autocomplete="off" spellcheck="false">
@@ -118,10 +125,7 @@
         <p class="board-name" id="board-name" hidden></p>
         <p class="status" id="status"></p>
 
-        <div class="notes">
-            <p>Works with public boards, board sections and pin.it share links. Sections are saved as subfolders.</p>
-            <p>Full-resolution originals are used where available. Videos download as their cover image.</p>
-        </div>
+        <p class="credit">Created by <a href="https://defaultoffice.com" target="_blank" rel="noopener">Default Office</a></p>
     </div>
 
     <script>
