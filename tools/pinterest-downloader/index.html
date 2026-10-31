@@ -4,16 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pinterest Board Downloader</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Suisse+Int'l:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
             background: #ffffff;
@@ -23,7 +17,7 @@
             font-size: 14px;
             line-height: 1.5;
         }
-        
+
         .back-link {
             position: fixed;
             top: 24px;
@@ -31,53 +25,17 @@
             font-size: 13px;
             color: #666;
             text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 4px;
             transition: color 0.15s;
         }
-        
-        .back-link:hover {
-            color: #1a1a1a;
-        }
-        
-        .container {
-            max-width: 520px;
-            margin: 80px auto 0;
-        }
-        
-        h1 {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            letter-spacing: -0.01em;
-        }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 32px;
-        }
-        
-        .section {
-            margin-bottom: 32px;
-        }
-        
-        .section-title {
-            font-size: 11px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #999;
-            margin-bottom: 12px;
-        }
-        
-        label {
-            display: block;
-            font-size: 13px;
-            color: #1a1a1a;
-            margin-bottom: 6px;
-        }
-        
+        .back-link:hover { color: #1a1a1a; }
+
+        .container { max-width: 520px; margin: 80px auto 0; }
+
+        h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
+        .subtitle { color: #666; margin-bottom: 32px; }
+
+        label { display: block; font-size: 13px; margin-bottom: 6px; }
+
         input {
             width: 100%;
             padding: 12px 14px;
@@ -88,39 +46,12 @@
             outline: none;
             transition: border-color 0.15s;
         }
-        
-        input:focus {
-            border-color: #1a1a1a;
-        }
-        
-        input::placeholder {
-            color: #aaa;
-        }
-        
-        .output-box {
-            background: #f7f7f7;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 14px 16px;
-            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-            font-size: 12px;
-            color: #333;
-            word-break: break-all;
-            min-height: 48px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .output-box.empty {
-            color: #999;
-        }
-        
-        .button-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
+        input:focus { border-color: #1a1a1a; }
+        input::placeholder { color: #aaa; }
+        input:disabled { background: #fafafa; color: #888; }
+
+        .button-row { display: flex; gap: 12px; margin-top: 16px; }
+
         button {
             flex: 1;
             padding: 12px 20px;
@@ -134,227 +65,265 @@
             background: #1a1a1a;
             color: #fff;
         }
-        
-        button:hover {
-            background: #333;
+        button:hover { background: #333; }
+        button.secondary { background: #fff; color: #1a1a1a; flex: 0 0 auto; }
+        button.secondary:hover { background: #f5f5f5; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        [hidden] { display: none !important; }
+
+        .progress {
+            margin-top: 24px;
+            height: 2px;
+            background: #eee;
+            overflow: hidden;
         }
-        
-        button.secondary {
-            background: #fff;
-            color: #1a1a1a;
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: #1a1a1a;
+            transition: width 0.2s;
         }
-        
-        button.secondary:hover {
-            background: #f5f5f5;
-        }
-        
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        
-        .status {
-            margin-top: 12px;
-            font-size: 13px;
-            color: #666;
-            min-height: 20px;
-        }
-        
-        .status.success {
-            color: #22863a;
-        }
-        
-        .status.error {
-            color: #cb2431;
-        }
-        
-        .instructions {
+
+        .board-name { margin-top: 24px; font-weight: 500; }
+        .status { margin-top: 6px; font-size: 13px; color: #666; min-height: 20px; }
+        .status.success { color: #22863a; }
+        .status.error { color: #cb2431; }
+
+        .notes {
             margin-top: 48px;
-            padding-top: 32px;
+            padding-top: 24px;
             border-top: 1px solid #e0e0e0;
-        }
-        
-        .instructions h2 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-        
-        .step {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        
-        .step-number {
-            width: 24px;
-            height: 24px;
-            background: #f0f0f0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 500;
-            color: #666;
-            flex-shrink: 0;
-        }
-        
-        .step-content {
-            padding-top: 2px;
-        }
-        
-        .step-content p {
-            color: #444;
-        }
-        
-        code {
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-            font-size: 12px;
-        }
-        
-        .prereq {
-            background: #fffbeb;
-            border: 1px solid #f5e6b3;
-            border-radius: 6px;
-            padding: 14px 16px;
-            margin-bottom: 24px;
             font-size: 13px;
+            color: #666;
         }
-        
-        .prereq strong {
-            display: block;
-            margin-bottom: 4px;
-        }
-        
-        .prereq code {
-            background: rgba(0,0,0,0.05);
-        }
+        .notes p + p { margin-top: 8px; }
     </style>
 </head>
 <body>
     <a href="/" class="back-link">← Back</a>
-    
+
     <div class="container">
         <h1>Pinterest Board Downloader</h1>
-        <p class="subtitle">Download all images from a Pinterest board via Terminal</p>
-        
-        <div class="section">
-            <label for="url">Pinterest Board URL</label>
-            <input type="text" id="url" placeholder="https://pin.it/... or https://pinterest.com/user/board">
+        <p class="subtitle">Paste a board link and get every image as a zip.</p>
+
+        <label for="url">Pinterest board URL</label>
+        <input type="text" id="url" placeholder="https://pin.it/… or https://pinterest.com/user/board" autocomplete="off" spellcheck="false">
+
+        <div class="button-row">
+            <button id="go-btn">Download board</button>
+            <button id="cancel-btn" class="secondary" hidden>Cancel</button>
         </div>
-        
-        <div class="section">
-            <div class="section-title">Terminal Command</div>
-            <div class="output-box empty" id="output">Enter a URL above to generate command</div>
-            <div class="button-row">
-                <button id="generate-btn" onclick="generate()">Generate Command</button>
-                <button class="secondary" id="copy-btn" onclick="copyCommand()" disabled>Copy</button>
-            </div>
-            <p class="status" id="status"></p>
-        </div>
-        
-        <div class="instructions">
-            <h2>How to use</h2>
-            
-            <div class="prereq">
-                <strong>First time setup</strong>
-                Run this once in Terminal to install the download tool:<br>
-                <code>pip3 install gallery-dl</code>
-            </div>
-            
-            <div class="step">
-                <div class="step-number">1</div>
-                <div class="step-content">
-                    <p>Paste your Pinterest board URL above</p>
-                </div>
-            </div>
-            
-            <div class="step">
-                <div class="step-number">2</div>
-                <div class="step-content">
-                    <p>Click <strong>Generate Command</strong> then <strong>Copy</strong></p>
-                </div>
-            </div>
-            
-            <div class="step">
-                <div class="step-number">3</div>
-                <div class="step-content">
-                    <p>Open <strong>Terminal</strong> (Applications → Utilities → Terminal)</p>
-                </div>
-            </div>
-            
-            <div class="step">
-                <div class="step-number">4</div>
-                <div class="step-content">
-                    <p>Paste the command (<code>⌘V</code>) and press <strong>Enter</strong></p>
-                </div>
-            </div>
-            
-            <div class="step">
-                <div class="step-number">5</div>
-                <div class="step-content">
-                    <p>Images will download to <code>~/Downloads/Pinterest/</code></p>
-                </div>
-            </div>
+
+        <div class="progress" id="progress" hidden><div class="progress-bar" id="progress-bar"></div></div>
+        <p class="board-name" id="board-name" hidden></p>
+        <p class="status" id="status"></p>
+
+        <div class="notes">
+            <p>Works with public boards, board sections and pin.it share links. Sections are saved as subfolders.</p>
+            <p>Full-resolution originals are used where available. Videos download as their cover image.</p>
         </div>
     </div>
 
     <script>
-        let currentCommand = '';
-        
-        function generate() {
-            const url = document.getElementById('url').value.trim();
-            const output = document.getElementById('output');
-            const status = document.getElementById('status');
-            const copyBtn = document.getElementById('copy-btn');
-            
-            if (!url) {
-                status.textContent = 'Please enter a Pinterest URL';
-                status.className = 'status error';
-                return;
-            }
-            
-            if (!url.includes('pinterest') && !url.includes('pin.it')) {
-                status.textContent = 'Please enter a valid Pinterest URL';
-                status.className = 'status error';
-                return;
-            }
-            
-            currentCommand = `~/Library/Python/3.9/bin/gallery-dl -d ~/Downloads/Pinterest "${url}"`;
-            
-            output.textContent = currentCommand;
-            output.className = 'output-box';
-            copyBtn.disabled = false;
-            status.textContent = '';
+        const API = '/api/pinterest';
+        const CONCURRENCY = 6;
+        const PART_LIMIT = 400 * 1024 * 1024; // split very large boards into several zips
+
+        const $ = id => document.getElementById(id);
+        const urlInput = $('url'), goBtn = $('go-btn'), cancelBtn = $('cancel-btn');
+        let cancelled = false;
+        let proxyOnly = false; // flips on if i.pinimg.com refuses direct browser fetches
+
+        function setStatus(text, kind = '') {
+            $('status').textContent = text;
+            $('status').className = 'status' + (kind ? ' ' + kind : '');
         }
-        
-        function copyCommand() {
-            if (!currentCommand) return;
-            
-            const status = document.getElementById('status');
-            
-            navigator.clipboard.writeText(currentCommand).then(() => {
-                status.textContent = 'Copied to clipboard — paste in Terminal';
-                status.className = 'status success';
-            }).catch(() => {
-                status.textContent = 'Failed to copy — select and copy manually';
-                status.className = 'status error';
-            });
+        function setProgress(frac) {
+            $('progress').hidden = frac == null;
+            $('progress-bar').style.width = Math.round((frac || 0) * 100) + '%';
         }
-        
-        // Generate on Enter key
-        document.getElementById('url').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') generate();
-        });
-        
-        // Auto-generate when pasting
-        document.getElementById('url').addEventListener('paste', () => {
-            setTimeout(generate, 50);
-        });
+        function setBusy(busy) {
+            urlInput.disabled = busy;
+            goBtn.disabled = busy;
+            cancelBtn.hidden = !busy;
+        }
+
+        async function api(params) {
+            const res = await fetch(API + '?' + new URLSearchParams(params));
+            let body = {};
+            try { body = await res.json(); } catch {}
+            if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+            return body;
+        }
+
+        async function collectPins(params, onPage) {
+            const pins = [];
+            let bookmark = null;
+            do {
+                if (cancelled) throw new Error('cancelled');
+                const page = await api(bookmark ? { ...params, bookmark } : params);
+                pins.push(...page.pins);
+                onPage(pins.length);
+                bookmark = page.bookmark;
+            } while (bookmark);
+            return pins;
+        }
+
+        async function collectSections(boardId) {
+            const sections = [];
+            let bookmark = null;
+            do {
+                const page = await api(bookmark ? { action: 'sections', boardId, bookmark } : { action: 'sections', boardId });
+                sections.push(...page.sections);
+                bookmark = page.bookmark;
+            } while (bookmark);
+            return sections;
+        }
+
+        async function fetchBlob(url) {
+            if (!proxyOnly) {
+                try {
+                    const r = await fetch(url, { mode: 'cors', referrerPolicy: 'no-referrer' });
+                    if (r.ok) return await r.blob();
+                } catch { proxyOnly = true; }
+            }
+            const r = await fetch(API + '?' + new URLSearchParams({ action: 'image', url }));
+            if (r.ok) return await r.blob();
+            // Originals that are too large for the proxy fall back to the 736px version
+            if (url.includes('/originals/')) {
+                const smaller = url.replace('/originals/', '/736x/');
+                const r2 = await fetch(API + '?' + new URLSearchParams({ action: 'image', url: smaller }));
+                if (r2.ok) return await r2.blob();
+            }
+            throw new Error('image failed');
+        }
+
+        function safeName(s) {
+            return String(s).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'board';
+        }
+
+        function extFrom(url, blob) {
+            const m = url.split('?')[0].match(/\.(jpe?g|png|gif|webp)$/i);
+            if (m) return m[1].toLowerCase().replace('jpeg', 'jpg');
+            const t = (blob.type || '').split('/')[1];
+            return t ? t.replace('jpeg', 'jpg') : 'jpg';
+        }
+
+        function saveZip(blob, filename) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        }
+
+        async function run() {
+            const url = urlInput.value.trim();
+            if (!url) { setStatus('Paste a Pinterest board link first.', 'error'); return; }
+            if (!/pinterest\.|pin\.it/i.test(url)) { setStatus('That doesn’t look like a Pinterest link.', 'error'); return; }
+
+            cancelled = false;
+            proxyOnly = false;
+            setBusy(true);
+            $('board-name').hidden = true;
+            setProgress(0);
+            setStatus('Looking up board…');
+
+            try {
+                const board = await api({ action: 'board', url });
+                const title = board.section ? `${board.name} — ${board.section.title}` : board.name;
+                $('board-name').textContent = title;
+                $('board-name').hidden = false;
+
+                // Build the list of { folder, pin } jobs
+                const groups = [];
+                const progressFind = n => setStatus(`Finding pins… ${n}`);
+                if (board.section) {
+                    groups.push({ folder: '', pins: await collectPins({ action: 'pins', boardId: board.id, sectionId: board.section.id }, progressFind) });
+                } else {
+                    let found = 0;
+                    const main = await collectPins({ action: 'pins', boardId: board.id }, n => progressFind(found + n));
+                    found += main.length;
+                    groups.push({ folder: '', pins: main });
+                    if (board.sectionCount) {
+                        for (const s of await collectSections(board.id)) {
+                            const pins = await collectPins({ action: 'pins', boardId: board.id, sectionId: s.id }, n => progressFind(found + n));
+                            found += pins.length;
+                            groups.push({ folder: safeName(s.title) + '/', pins });
+                        }
+                    }
+                }
+
+                const jobs = [];
+                const seen = new Set();
+                for (const g of groups) {
+                    let i = 0;
+                    for (const pin of g.pins) {
+                        if (seen.has(g.folder + pin.id)) continue;
+                        seen.add(g.folder + pin.id);
+                        i++;
+                        pin.images.forEach((src, n) => jobs.push({
+                            src,
+                            base: g.folder + String(i).padStart(4, '0') + '_' + pin.id + (pin.images.length > 1 ? '_' + (n + 1) : ''),
+                        }));
+                    }
+                }
+                if (!jobs.length) throw new Error('No images found on that board.');
+
+                // Download with a small worker pool, splitting into parts if huge
+                const rootName = safeName(board.section ? `${board.name} - ${board.section.title}` : board.name);
+                let zip = new JSZip(), partBytes = 0, part = 1, done = 0, failed = 0, saved = 0;
+                const parts = [];
+                let next = 0;
+
+                const flush = async (final) => {
+                    if (!Object.keys(zip.files).length) return;
+                    // Swap in a fresh zip synchronously so other workers keep adding to the next part
+                    const current = zip, label = final && part === 1 ? '' : ` (part ${part})`;
+                    zip = new JSZip(); partBytes = 0; part++;
+                    parts.push(label);
+                    setStatus(`Zipping${label}…`);
+                    const blob = await current.generateAsync({ type: 'blob', compression: 'STORE' });
+                    saveZip(blob, `${rootName}${label}.zip`);
+                };
+
+                async function worker() {
+                    while (next < jobs.length && !cancelled) {
+                        const job = jobs[next++];
+                        try {
+                            const blob = await fetchBlob(job.src);
+                            zip.file(`${rootName}/${job.base}.${extFrom(job.src, blob)}`, blob);
+                            partBytes += blob.size;
+                            saved++;
+                        } catch { failed++; }
+                        done++;
+                        setProgress(done / jobs.length);
+                        setStatus(`Downloading ${done} / ${jobs.length}`);
+                        if (partBytes > PART_LIMIT) await flush(false);
+                    }
+                }
+                await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+                if (cancelled) throw new Error('cancelled');
+                await flush(true);
+
+                setProgress(1);
+                const extra = failed ? ` · ${failed} couldn’t be downloaded` : '';
+                const partNote = parts.length > 1 ? ` in ${parts.length} zips` : '';
+                setStatus(`Done — ${saved} images saved${partNote}${extra}.`, failed ? '' : 'success');
+            } catch (err) {
+                setProgress(null);
+                if (err.message === 'cancelled') setStatus('Cancelled.');
+                else setStatus(err.message || 'Something went wrong.', 'error');
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        goBtn.addEventListener('click', run);
+        cancelBtn.addEventListener('click', () => { cancelled = true; setStatus('Cancelling…'); });
+        urlInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !goBtn.disabled) run(); });
     </script>
 </body>
 </html>
